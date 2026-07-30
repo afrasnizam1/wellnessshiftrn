@@ -14,8 +14,8 @@ interface Props {
 
 const METRICS = [
   { key: 'steps', icon: 'footsteps-outline' as const, label: 'steps', format: (v: number) => v.toLocaleString(), color: Colors.physical },
+  { key: 'sleepHours', icon: 'moon-outline' as const, label: 'sleep', format: (v: number) => `${v}h`, color: Colors.sleep },
   { key: 'calories', icon: 'flame-outline' as const, label: 'cal', format: (v: number) => v.toString(), color: Colors.social },
-  { key: 'distanceKm', icon: 'navigate-outline' as const, label: 'km', format: (v: number) => v.toFixed(1), color: Colors.nutrition },
   { key: 'exerciseMinutes', icon: 'time-outline' as const, label: 'min', format: (v: number) => v.toString(), color: Colors.mental },
   { key: 'heartRate', icon: 'heart-outline' as const, label: 'bpm', format: (v: number) => v.toString(), color: Colors.brand },
 ] as const;

@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { LineChart, BarChart, PieChart } from 'react-native-gifted-charts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors, Typography, Spacing, Radius, WELLNESS_CATEGORIES } from '../../theme';
-import { AppCard, ScreenHeader, SegmentedControl, ListRow, AnimatedPressable, IconBadge, CategoryIcon } from '../../components/ui';
+import { AppCard, ScreenHeader, SegmentedControl, ListRow, AnimatedPressable, IconBadge, CategoryIcon, BrandButton } from '../../components/ui';
 import {
   BarChartTooltip,
   buildLinePointerConfig,
@@ -42,6 +42,7 @@ import {
 import AnalyticsCustomizationModal from '../../components/analytics/AnalyticsCustomizationModal';
 import HabitsPerformanceCard from '../../components/analytics/HabitsPerformanceCard';
 import { healthKitService, getHealthPlatformName } from '../../services/healthkit';
+import { aiService, type AnalyticsAiSummary } from '../../services/ai';
 import ActivityRing from '../../components/analytics/ActivityRing';
 import WeeklyBarChart from '../../components/activity/WeeklyBarChart';
 import { DEFAULT_ACTIVITY_GOALS, weekOverWeekChange } from '../../utils/activityHistoryHelpers';
@@ -105,6 +106,8 @@ export default function AnalyticsDashboardScreen() {
     DEFAULT_ANALYTICS_CUSTOMIZATION,
   );
   const [showCustomize, setShowCustomize] = useState(false);
+  const [aiSummary, setAiSummary] = useState<AnalyticsAiSummary | null>(null);
+  const [summarising, setSummarising] = useState(false);
 
   const toggleCollapse = (key: string) => {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -242,6 +245,27 @@ export default function AnalyticsDashboardScreen() {
   const openCategoryDetail = (key: WellnessCategoryKey) => {
     navigation.navigate(Screen.categoryDetail, { category: key });
   };
+
+  const runAiSummary = useCallback(async () => {
+    setSummarising(true);
+    try {
+      const summary = await aiService.summarizeAnalytics({
+        wellnessScore,
+        activity,
+        engagement: {
+          checkInStreak: engagement.checkInStreak,
+          planCompletionRate: engagement.planCompletionRate,
+        },
+        recentOverallTrend:
+          wellnessHistory.length > 0
+            ? wellnessHistory.map((s) => s.overall)
+            : trendData.map((d) => d.value),
+      });
+      setAiSummary(summary);
+    } finally {
+      setSummarising(false);
+    }
+  }, [wellnessScore, activity, engagement, wellnessHistory, trendData]);
 
   const explorerTrend = useMemo(() => {
     const history = wellnessHistory.length > 0 ? wellnessHistory : [];
@@ -421,6 +445,51 @@ export default function AnalyticsDashboardScreen() {
             />
           </View>
         </AnimatedPressable>
+
+        <View style={styles.aiCard}>
+          <View style={styles.aiHeader}>
+            <IconBadge name="sparkles-outline" color={Colors.brand} size="sm" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.aiTitle}>AI analytics summary</Text>
+              <Text style={styles.aiSub}>
+                What’s going well vs what needs improvement — based on your scores, activity & habits.
+              </Text>
+            </View>
+          </View>
+          <BrandButton
+            label={summarising ? 'Summarising…' : aiSummary ? 'Refresh summary' : 'Summarize with AI'}
+            onPress={runAiSummary}
+            loading={summarising}
+          />
+          {aiSummary ? (
+            <View style={styles.aiResult}>
+              <Text style={styles.aiHeadline}>{aiSummary.headline}</Text>
+              <Text style={styles.aiBody}>{aiSummary.body}</Text>
+              {aiSummary.strengths.length > 0 ? (
+                <View style={styles.aiSection}>
+                  <Text style={styles.aiSectionLabel}>Doing well</Text>
+                  {aiSummary.strengths.map((line) => (
+                    <View key={line} style={styles.aiBulletRow}>
+                      <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+                      <Text style={styles.aiBullet}>{line}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              {aiSummary.improvements.length > 0 ? (
+                <View style={styles.aiSection}>
+                  <Text style={styles.aiSectionLabel}>Needs improvement</Text>
+                  {aiSummary.improvements.map((line) => (
+                    <View key={line} style={styles.aiBulletRow}>
+                      <Ionicons name="arrow-up-circle" size={16} color={Colors.warning} />
+                      <Text style={styles.aiBullet}>{line}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
 
         {activeTab === 'Overview' && (
           <>
@@ -1091,6 +1160,40 @@ const styles = StyleSheet.create({
   scoreHeroStatus: { fontSize: Typography.size.lg, fontWeight: '700' },
   scoreHeroHint: { fontSize: Typography.size.xs, color: Colors.textSecondary, lineHeight: 16 },
   scoreHeroPie: {},
+
+  aiCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
+    gap: Spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.brandMuted,
+  },
+  aiHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+  aiTitle: { fontSize: Typography.size.base, fontWeight: '800', color: Colors.text },
+  aiSub: { fontSize: Typography.size.xs, color: Colors.textSecondary, lineHeight: 16, marginTop: 2 },
+  aiResult: { gap: Spacing.sm },
+  aiHeadline: {
+    fontSize: Typography.size.lg,
+    fontWeight: '800',
+    color: Colors.text,
+    letterSpacing: -0.3,
+  },
+  aiBody: {
+    fontSize: Typography.size.sm,
+    color: Colors.textSecondary,
+    lineHeight: 21,
+  },
+  aiSection: { gap: Spacing.xs, marginTop: Spacing.xs },
+  aiSectionLabel: {
+    fontSize: Typography.size.xs,
+    fontWeight: '800',
+    color: Colors.text,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  aiBulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs },
+  aiBullet: { flex: 1, fontSize: Typography.size.sm, color: Colors.text, lineHeight: 20 },
 
   pieWrap: { alignItems: 'center', paddingTop: Spacing.md, paddingBottom: Spacing.lg },
   legend: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },

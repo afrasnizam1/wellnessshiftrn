@@ -17,6 +17,22 @@ export function registerPreAuthRouteListener(listener: (route: PreAuthRoute) => 
   };
 }
 
+let onWelcomeVideoCompleted: (() => void) | null = null;
+
+/** Fired after the launch welcome (breath + scenes) is marked complete. */
+export function registerWelcomeVideoCompletedListener(listener: () => void): () => void {
+  onWelcomeVideoCompleted = listener;
+  return () => {
+    if (onWelcomeVideoCompleted === listener) {
+      onWelcomeVideoCompleted = null;
+    }
+  };
+}
+
+export function notifyWelcomeVideoCompleted() {
+  onWelcomeVideoCompleted?.();
+}
+
 export async function refreshPreAuthRouteFromPending(introSeen: boolean | null): Promise<PreAuthRoute> {
   const route = await resolvePreAuthRoute(introSeen);
   onPreAuthRouteResolved?.(route);

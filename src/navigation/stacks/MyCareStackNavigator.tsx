@@ -10,6 +10,7 @@ import ProgramsScreen from '../../screens/more/ProgramsScreen';
 import ProgramDetailScreen from '../../screens/more/ProgramDetailScreen';
 import CoachingScreen from '../../screens/more/CoachingScreen';
 import ScanCustomPlanScreen from '../../screens/more/ScanCustomPlanScreen';
+import HealthRecordsScreen from '../../screens/home/HealthRecordsScreen';
 import PaywallScreen from '../../screens/auth/PaywallScreen';
 import { Screen } from '../screenNames';
 
@@ -26,6 +27,7 @@ export default function MyCareStackNavigator() {
       <Stack.Screen name={Screen.programDetail} component={ProgramDetailScreen} />
       <Stack.Screen name={Screen.coaching} component={CoachingScreen} />
       <Stack.Screen name={Screen.scanCustomPlan} component={ScanCustomPlanScreen} />
+      <Stack.Screen name={Screen.healthRecords} component={HealthRecordsScreen} />
       <Stack.Screen
         name={Screen.subscriptionPaywall}
         component={PaywallScreen}

@@ -1,8 +1,9 @@
 // src/components/home/WellnessOrbitRing.tsx
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, memo } from 'react';
 import { View, Text, StyleSheet, Pressable, PixelRatio } from 'react-native';
 import Svg, { Circle, Path, G } from 'react-native-svg';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useSharedValue,
@@ -55,7 +56,7 @@ export function getOrbitPanelSize(size: number): number {
   return roundPx(computeOrbitPanelSide(size));
 }
 
-export default function WellnessOrbitRing({
+export default memo(function WellnessOrbitRing({
   score,
   categories,
   size = 160,
@@ -86,12 +87,18 @@ export default function WellnessOrbitRing({
   const sparkleOpacity = useSharedValue(0);
 
   useEffect(() => {
-    if (!spin) return;
+    if (!spin) {
+      cancelAnimation(rotation);
+      return;
+    }
     rotation.value = withRepeat(
       withTiming(360, { duration: 45000, easing: Easing.linear }),
       -1,
       false,
     );
+    return () => {
+      cancelAnimation(rotation);
+    };
   }, [spin, rotation]);
 
   useEffect(() => {
@@ -432,7 +439,7 @@ export default function WellnessOrbitRing({
       </Pressable>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   helixLayer: {

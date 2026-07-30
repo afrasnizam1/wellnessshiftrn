@@ -9,6 +9,9 @@ import CheckInScreen from '../../screens/home/CheckInScreen';
 import ActivityDashboardScreen from '../../screens/home/ActivityDashboardScreen';
 import StepsDetailScreen from '../../screens/home/StepsDetailScreen';
 import HealthKitPermissionScreen from '../../screens/auth/HealthKitPermissionScreen';
+import BodyMetricsScreen from '../../screens/home/BodyMetricsScreen';
+import FoodScanScreen from '../../screens/home/FoodScanScreen';
+import HealthRecordsScreen from '../../screens/home/HealthRecordsScreen';
 import { Screen } from '../screenNames';
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -23,6 +26,9 @@ export default function HomeStackNavigator() {
       <Stack.Screen name={Screen.activityDashboard} component={ActivityDashboardScreen} />
       <Stack.Screen name={Screen.stepsDetail} component={StepsDetailScreen} />
       <Stack.Screen name={Screen.healthPermissions} component={HealthKitPermissionScreen} />
+      <Stack.Screen name={Screen.bodyMetrics} component={BodyMetricsScreen} />
+      <Stack.Screen name={Screen.foodScan} component={FoodScanScreen} />
+      <Stack.Screen name={Screen.healthRecords} component={HealthRecordsScreen} />
     </Stack.Navigator>
   );
 }

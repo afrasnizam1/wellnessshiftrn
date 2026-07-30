@@ -18,6 +18,9 @@ export type FitnessScreenName =
   | typeof Screen.nutritionBasics
   | typeof Screen.guidedProgram
   | typeof Screen.mealPlanner
+  | typeof Screen.foodScan
+  | typeof Screen.bodyMetrics
+  | typeof Screen.healthRecords
   | typeof Screen.activityDashboard
   | typeof Screen.stepsDetail
   | typeof Screen.premiumShop
@@ -35,6 +38,9 @@ export function getRouteForModule(module: FitnessModule): FitnessRoute {
     case 'calculators':
       return { screen: Screen.healthCalculator, params: { calculatorId: module.id } };
     case 'trackers':
+      if (module.id === 'body-metrics') {
+        return { screen: Screen.bodyMetrics };
+      }
       return { screen: Screen.healthTracker, params: { trackerId: module.id } };
     case 'anatomy':
       return { screen: Screen.anatomyViewer, params: { modelId: module.id } };
@@ -44,6 +50,9 @@ export function getRouteForModule(module: FitnessModule): FitnessRoute {
       }
       if (module.id === 'meal-planner') {
         return { screen: Screen.mealPlanner };
+      }
+      if (module.id === 'food-scan') {
+        return { screen: Screen.foodScan };
       }
       if (module.id === 'organ-health-nutrition') {
         return { screen: Screen.organHealthNutrition };
@@ -109,6 +118,8 @@ const LINKED_TITLE_OVERRIDES: Record<string, FitnessRoute> = {
   'Hydration Tracker': { screen: Screen.healthTracker, params: { trackerId: 'hydration-tracker' } },
   'Macro Calculator': { screen: Screen.healthCalculator, params: { calculatorId: 'macros' } },
   'Meal Planner': { screen: Screen.mealPlanner },
+  'Food Scan': { screen: Screen.foodScan },
+  'Recovery & Strain': { screen: Screen.bodyMetrics },
   'Sleep Debt Calculator': { screen: Screen.healthCalculator, params: { calculatorId: 'sleep-debt' } },
 };
 

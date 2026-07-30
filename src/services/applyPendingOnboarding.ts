@@ -13,6 +13,10 @@ export async function ensurePendingOnboardingApplied(uid: string): Promise<UserP
 
 export async function applyPendingOnboardingToAccount(uid: string): Promise<boolean> {
   const pending = await pendingOnboardingStorage.get();
+
+  // Do not mark the per-user welcome video as seen here — after signup we replay
+  // the breathe / welcome screen once for the new account (IntroVideoScreen).
+
   if (!pending.resultsPreviewComplete || !pending.wellnessScore) return false;
 
   const goals = pending.goals;

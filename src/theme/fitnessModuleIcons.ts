@@ -97,6 +97,8 @@ const MODULE_OVERRIDES: Record<string, IoniconName> = {
   menopause: 'flower-outline',
   'long-covid': 'medical-outline',
   'meal-planner': 'restaurant-outline',
+  'food-scan': 'camera-outline',
+  'body-metrics': 'pulse-outline',
   'activity-dashboard': 'analytics-outline',
   'brain-games-hub': 'game-controller-outline',
 };

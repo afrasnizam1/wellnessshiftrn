@@ -22,12 +22,13 @@ import {
   pendingOnboardingStorage,
 } from '../../services/pendingOnboardingStorage';
 import { resolvePostAuthOnboardingRoute } from '../../services/onboardingRoutes';
-import { refreshPreAuthRouteFromPending, resetOnboardingStack } from '../../services/onboardingNavigation';
+import { refreshPreAuthRouteFromPending, resetOnboardingStack, notifyWelcomeVideoCompleted } from '../../services/onboardingNavigation';
 import { userService, wellnessService } from '../../services/firebase';
 import { useAppStore } from '../../store';
+import { Screen } from '../../navigation/screenNames';
 
 /** Full in+out cycle — a short warmup before the welcome message. */
-const BREATH_CYCLE_MS = 7000;
+const BREATH_CYCLE_MS = 11000;
 const BREATH_HALF_MS = BREATH_CYCLE_MS / 2;
 
 const SCENES = [
@@ -53,6 +54,7 @@ export default function IntroVideoScreen() {
   const navigation = useNavigation<any>();
   const { user, setUser, hasSeenIntro } = useAppStore();
   const [finishing, setFinishing] = useState(false);
+  // Always start with breathe-in/out on this screen (launch welcome).
   const [stage, setStage] = useState<Stage>('breath');
   const [breathPhase, setBreathPhase] = useState<'in' | 'out'>('in');
   const [secondsLeft, setSecondsLeft] = useState(Math.ceil(BREATH_HALF_MS / 1000));
@@ -80,6 +82,7 @@ export default function IntroVideoScreen() {
       // Guest / cold-start: mark pending and continue pre-auth funnel.
       if (!user) {
         await pendingOnboardingStorage.markWelcomeVideoComplete();
+        notifyWelcomeVideoCompleted();
         const route = await refreshPreAuthRouteFromPending(hasSeenIntro);
         resetOnboardingStack(navigation, route);
         return;
@@ -87,6 +90,12 @@ export default function IntroVideoScreen() {
 
       await onboardingStorage.markWelcomeVideoSeen(user.uid);
       await pendingOnboardingStorage.markWelcomeVideoComplete();
+      notifyWelcomeVideoCompleted();
+
+      // Already fully onboarded — RootNavigator will remount into the main app.
+      if (user.onboardingComplete) {
+        return;
+      }
 
       const score = await wellnessService.getLatestScore(user.uid);
       const resultsSeen = await onboardingStorage.hasCompletedWellnessResults(user.uid);
@@ -105,6 +114,11 @@ export default function IntroVideoScreen() {
         return;
       }
 
+      // Don't replay IntroVideo after finishing it.
+      if (route === Screen.introVideo) {
+        return;
+      }
+
       navigation.replace(route);
     } catch {
       finishingRef.current = false;
@@ -112,7 +126,22 @@ export default function IntroVideoScreen() {
     }
   }, [hasSeenIntro, navigation, setUser, user]);
 
-  // ── Breath warmup: one 7s in+out cycle ──────────────────────────────────
+  // After signup: only skip if THIS account already finished the post-auth welcome.
+  // Guest `welcomeVideoComplete` must not skip the post-signup breathe replay.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const seen = await onboardingStorage.hasSeenWelcomeVideo(user.uid);
+      if (cancelled || !seen) return;
+      finish();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [finish, user]);
+
+  // ── Breath warmup on every mount of this launch screen ───────────────────
   useEffect(() => {
     if (stage !== 'breath') return;
 
@@ -395,7 +424,7 @@ export default function IntroVideoScreen() {
 
               <Text style={styles.countdown}>{secondsLeft}</Text>
               <Text style={styles.sub}>
-                Seven seconds to arrive — then your welcome begins.
+                Eleven seconds to arrive — then your welcome begins.
               </Text>
             </>
           ) : showCinematic ? (
@@ -522,6 +551,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xl,
+    // Shift the visual centre upward so the logo / breath orb sits higher.
+    paddingBottom: Spacing['3xl'],
     gap: Spacing.sm,
   },
   prompt: {
@@ -542,7 +573,8 @@ const styles = StyleSheet.create({
     height: 240,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: Spacing.md,
+    marginTop: -Spacing.lg,
+    marginBottom: Spacing.sm,
   },
   ringOuter: {
     position: 'absolute',
@@ -588,6 +620,7 @@ const styles = StyleSheet.create({
   logoStage: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: -Spacing['2xl'],
     marginBottom: Spacing.md,
     ...Shadow.lg,
     shadowColor: Colors.brand,

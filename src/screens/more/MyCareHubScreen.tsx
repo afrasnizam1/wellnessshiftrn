@@ -224,6 +224,13 @@ export default function MyCareHubScreen() {
             onPress={() => navigation.navigate(Screen.messages)}
           />
           <ListRow
+            title="Health records"
+            subtitle="Labs, GP letters — share with your clinician"
+            icon={<Ionicons name="folder-open-outline" size={22} color={Colors.primary} />}
+            iconBg={Colors.primaryLight}
+            onPress={() => navigation.navigate(Screen.healthRecords)}
+          />
+          <ListRow
             title="Import care plan"
             subtitle="Enter a plan code from your clinician"
             icon={<Ionicons name="qr-code-outline" size={22} color="#946BFA" />}

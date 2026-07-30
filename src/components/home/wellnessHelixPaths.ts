@@ -64,12 +64,13 @@ export function buildDnaHelixSegments(
   size: number,
   orbitRadius: number,
 ): { strand1: HelixSegment[]; strand2: HelixSegment[] } {
-  const nodeCount = 52;
+  // Keep the helix readable but light — fewer nodes + no glow stroke
+  // (was ~312 SVG paths; now ~48).
+  const nodeCount = 24;
   const layoutScale = Math.max(0.78, Math.min(1.12, orbitRadius / 60));
   const helixAmplitude = 10 * layoutScale;
   const helixFrequency = 5.5;
   const backboneWidth = Math.max(3.6, helixAmplitude * 0.46);
-  const glowWidth = backboneWidth + 2.8;
 
   const cx = size / 2;
   const cy = size / 2;
@@ -98,7 +99,6 @@ export function buildDnaHelixSegments(
       const d = smoothSegmentD(points, index);
       const color = helixColorAt(midPosition);
 
-      segments.push({ d, color, width: glowWidth, opacity: 0.22 });
       segments.push({ d, color, width: backboneWidth });
       segments.push({ d, color, width: Math.max(1.2, backboneWidth * 0.35), opacity: 0.35 });
     }

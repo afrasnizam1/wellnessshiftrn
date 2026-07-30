@@ -117,6 +117,10 @@ export interface ActivitySnapshot {
   distanceKm: number;
   exerciseMinutes: number;
   heartRate?: number;
+  /** Hours slept in the most recent overnight window (Apple Watch / Health). */
+  sleepHours?: number;
+  /** Average resting heart rate when available. */
+  restingHeartRate?: number;
 }
 
 export interface DailyActivityPoint {
@@ -503,6 +507,7 @@ export type MyCareStackParamList = {
   [Screen.programDetail]: { programId: string };
   [Screen.coaching]: undefined;
   [Screen.scanCustomPlan]: undefined;
+  [Screen.healthRecords]: undefined;
   [Screen.subscriptionPaywall]: { feature?: string; fromOnboarding?: boolean };
 };
 
@@ -528,6 +533,9 @@ export type FitnessStackParamList = {
   [Screen.learningGuide]: { topicId: string };
   [Screen.guidedProgram]: { module: FitnessModule };
   [Screen.mealPlanner]: undefined;
+  [Screen.foodScan]: undefined;
+  [Screen.bodyMetrics]: undefined;
+  [Screen.healthRecords]: undefined;
   [Screen.activityDashboard]: undefined;
   [Screen.stepsDetail]: undefined;
   [Screen.premiumShop]: undefined;
@@ -566,6 +574,9 @@ export type HomeStackParamList = {
   [Screen.activityDashboard]: undefined;
   [Screen.stepsDetail]: undefined;
   [Screen.healthPermissions]: undefined;
+  [Screen.bodyMetrics]: undefined;
+  [Screen.foodScan]: undefined;
+  [Screen.healthRecords]: undefined;
 };
 
 export type AIInsightsStackParamList = {
@@ -607,8 +618,8 @@ export type MoreStackParamList = {
   [Screen.blog]: undefined;
   [Screen.forum]: undefined;
   [Screen.scanCustomPlan]: undefined;
-  [Screen.goals]: undefined;
-  [Screen.habitTracking]: undefined;
+  [Screen.healthRecords]: undefined;
+  [Screen.goals]: undefined;  [Screen.habitTracking]: undefined;
   [Screen.socialHub]: undefined;
   [Screen.socialFeed]: undefined;
   [Screen.leaderboard]: undefined;

@@ -11,7 +11,6 @@ import { contentsquareService } from '../services/contentsquareService';
 import { Colors, navigationTheme } from '../theme';
 import type { RootStackParamList, UserProfile } from '../types';
 
-import { MainTabNavigator } from './MainTabNavigator';
 import { ClinicianStackNavigator } from './ClinicianStackNavigator';
 import { clinicianService } from '../services/clinicianService';
 import { syncNativeRoleDoc } from '../services/firestoreSchema';
@@ -55,7 +54,7 @@ import { navigationRef, navigateFromNotification } from './navigationRef';
 import { screenviewFromNavigationState } from './screenTracking';
 import { enterDemoSession, isDemoModeActive, isDemoProfile, shouldSkipToApp } from '../services/demoSession';
 import { signOutCurrentUser } from '../services/authSession';
-import { registerPreAuthRouteListener } from '../services/onboardingNavigation';
+import { registerPreAuthRouteListener, registerWelcomeVideoCompletedListener } from '../services/onboardingNavigation';
 import {
   clearDeferredSimulatorSession,
   isSimulatorOrEmulator,
@@ -65,6 +64,12 @@ import { Screen } from './screenNames';
 import { logger } from '../utils/logger';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+/** Lazy so Food Scan / Health stacks can't break guest boot if a native module fails. */
+function PatientAppScreen() {
+  const { MainTabNavigator } = require('./MainTabNavigator') as typeof import('./MainTabNavigator');
+  return <MainTabNavigator />;
+}
 
 type LegacyOnboardingRoute = typeof Screen.wellnessQuiz | typeof Screen.wellnessResults;
 type PatientOnboardingRoute = PostAuthOnboardingRoute | LegacyOnboardingRoute;
@@ -178,6 +183,8 @@ export default function RootNavigator() {
   const [onboardingRoute, setOnboardingRoute] = useState<PatientOnboardingRoute | null>(null);
   const [onboardingRouteReady, setOnboardingRouteReady] = useState(false);
   const [clinicianGateReady, setClinicianGateReady] = useState(false);
+  /** Signed-in patients who never saw launch breath/welcome on this install. */
+  const [launchWelcomeGate, setLaunchWelcomeGate] = useState<'loading' | 'needed' | 'done'>('loading');
   const lastAuthUidRef = useRef<string | null>(null);
   const freezePreAuthRouteRef = useRef(false);
   const guestNavActiveRef = useRef(false);
@@ -191,6 +198,34 @@ export default function RootNavigator() {
       setPreAuthRoute(route);
     });
   }, []);
+
+  useEffect(() => {
+    return registerWelcomeVideoCompletedListener(() => {
+      setLaunchWelcomeGate('done');
+    });
+  }, []);
+
+  // Physical device / signed-in: show launch breathe+welcome once per account
+  // (again after signup even if they already watched it as a guest).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!user || user.role !== 'patient') {
+        if (!cancelled) setLaunchWelcomeGate('done');
+        return;
+      }
+      if (!cancelled) setLaunchWelcomeGate('loading');
+      try {
+        const seen = await onboardingStorage.hasSeenWelcomeVideo(user.uid);
+        if (!cancelled) setLaunchWelcomeGate(seen ? 'done' : 'needed');
+      } catch {
+        if (!cancelled) setLaunchWelcomeGate('done');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid, user?.role]);
 
   useEffect(() => {
     if (user) {
@@ -435,17 +470,29 @@ export default function RootNavigator() {
   }, [user?.uid, user?.role, user?.onboardingComplete, clinicianProfileReady]);
 
   const showEmailVerification = !!user && needsEmailVerification();
+  const showLaunchWelcome =
+    !!user && user.role === 'patient' && !showEmailVerification && launchWelcomeGate === 'needed';
   const showPatientOnboarding =
-    !!user && user.role === 'patient' && !user.onboardingComplete && !showEmailVerification;
+    !!user &&
+    user.role === 'patient' &&
+    !user.onboardingComplete &&
+    !showEmailVerification &&
+    launchWelcomeGate === 'done';
   const showClinicianOnboarding =
     !!user && user.role === 'clinician' && clinicianGateReady && !clinicianProfileReady && !showEmailVerification;
   const showClinician =
     !!user && user.role === 'clinician' && clinicianGateReady && clinicianProfileReady && !showEmailVerification;
-  const showPatientMain = !!user && user.role === 'patient' && user.onboardingComplete && !showEmailVerification;
+  const showPatientMain =
+    !!user &&
+    user.role === 'patient' &&
+    user.onboardingComplete &&
+    !showEmailVerification &&
+    launchWelcomeGate === 'done';
 
   if (
     (isAuthLoading && !guestNavActiveRef.current) ||
     (!user && preAuthRoute === null) ||
+    (user?.role === 'patient' && launchWelcomeGate === 'loading') ||
     (showPatientOnboarding && !onboardingRouteReady) ||
     (!!user && user.role === 'clinician' && !clinicianGateReady)
   ) {
@@ -457,6 +504,8 @@ export default function RootNavigator() {
     initialRouteName = preAuthRoute ?? Screen.introVideo;
   } else if (showEmailVerification) {
     initialRouteName = Screen.emailVerification;
+  } else if (showLaunchWelcome) {
+    initialRouteName = Screen.introVideo;
   } else if (showPatientOnboarding && onboardingRouteReady && onboardingRoute) {
     initialRouteName = onboardingRoute;
   } else if (showClinicianOnboarding) {
@@ -479,7 +528,7 @@ export default function RootNavigator() {
     <NavigationContainer
       ref={navigationRef}
       theme={navigationTheme}
-      key={`${user?.uid ?? 'guest'}-${sessionEpoch}-${user?.role ?? 'none'}-${user?.onboardingComplete ? 'main' : 'onboard'}`}
+      key={`${user?.uid ?? 'guest'}-${sessionEpoch}-${user?.role ?? 'none'}-${user?.onboardingComplete ? 'main' : 'onboard'}-${launchWelcomeGate}`}
       onReady={() => {
         lastCsqScreenviewRef.current = null;
         reportNavigationScreenview();
@@ -513,6 +562,8 @@ export default function RootNavigator() {
           </Stack.Group>
         ) : showEmailVerification ? (
           <Stack.Screen name={Screen.emailVerification} component={EmailVerificationScreen} />
+        ) : showLaunchWelcome ? (
+          <Stack.Screen name={Screen.introVideo} component={IntroVideoScreen} />
         ) : showPatientOnboarding && onboardingRouteReady ? (
           <Stack.Group>
             <Stack.Screen name={Screen.introVideo} component={IntroVideoScreen} />
@@ -535,7 +586,7 @@ export default function RootNavigator() {
         ) : showClinician ? (
           <Stack.Screen name={Screen.clinicianPortal} component={ClinicianStackNavigator} />
         ) : showPatientMain ? (
-          <Stack.Screen name={Screen.patientApp} component={MainTabNavigator} />
+          <Stack.Screen name={Screen.patientApp} component={PatientAppScreen} />
         ) : null}
 
         {user && showPatientMain ? (

@@ -111,6 +111,12 @@
 	<string>Wellness Shift reads your health data — steps, heart rate, sleep and more — to personalise your wellness score and daily plan. We never write to Apple Health.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Wellness Shift does not write data to Apple Health.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Wellness Shift uses the camera so you can photograph meals for calorie and macro estimates.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Wellness Shift accesses your photos so you can upload meals and health records for your care vault.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Wellness Shift may save meal photos you capture for your food log.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>

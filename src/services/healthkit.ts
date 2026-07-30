@@ -59,6 +59,7 @@ const EMPTY_ACTIVITY: ActivitySnapshot = {
   calories: 0,
   distanceKm: 0,
   exerciseMinutes: 0,
+  sleepHours: 0,
 };
 
 let healthKitInitialized = false;
@@ -122,6 +123,11 @@ async function getTodayActivityIOS(): Promise<ActivitySnapshot> {
   return new Promise((resolve) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    // Overnight window: yesterday noon → now (captures Apple Watch sleep).
+    const sleepStart = new Date(today);
+    sleepStart.setDate(sleepStart.getDate() - 1);
+    sleepStart.setHours(12, 0, 0, 0);
 
     const options: HealthInputOptions = {
       date: today.toISOString(),
@@ -146,7 +152,7 @@ async function getTodayActivityIOS(): Promise<ActivitySnapshot> {
               AppleHealthKit.getHeartRateSamples(
                 {
                   startDate: today.toISOString(),
-                  endDate: new Date().toISOString(),
+                  endDate: now.toISOString(),
                   ascending: false,
                   limit: 1,
                 },
@@ -154,13 +160,35 @@ async function getTodayActivityIOS(): Promise<ActivitySnapshot> {
                   const hrValue =
                     err5 || hr.length === 0 ? undefined : hr[0].value;
 
-                  resolve({
-                    steps: Math.round(stepsValue),
-                    calories: Math.round(calValue),
-                    distanceKm: Math.round(distValue * 10) / 10,
-                    exerciseMinutes: Math.round(exerciseValue),
-                    heartRate: hrValue ? Math.round(hrValue) : undefined,
-                  });
+                  AppleHealthKit.getSleepSamples(
+                    {
+                      startDate: sleepStart.toISOString(),
+                      endDate: now.toISOString(),
+                    },
+                    (err6, sleep) => {
+                      let sleepHours = 0;
+                      if (!err6 && Array.isArray(sleep)) {
+                        for (const s of sleep) {
+                          const value = String(s.value ?? '').toUpperCase();
+                          // Exclude awake; keep ASLEEP / CORE / DEEP / REM / INBED.
+                          if (value.includes('AWAKE')) continue;
+                          const startMs = new Date(s.startDate).getTime();
+                          const endMs = new Date(s.endDate).getTime();
+                          if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) continue;
+                          sleepHours += (endMs - startMs) / 3600000;
+                        }
+                      }
+
+                      resolve({
+                        steps: Math.round(stepsValue),
+                        calories: Math.round(calValue),
+                        distanceKm: Math.round(distValue * 10) / 10,
+                        exerciseMinutes: Math.round(exerciseValue),
+                        heartRate: hrValue ? Math.round(hrValue) : undefined,
+                        sleepHours: Math.round(Math.min(sleepHours, 16) * 10) / 10,
+                      });
+                    },
+                  );
                 }
               );
             });

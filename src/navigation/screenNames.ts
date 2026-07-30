@@ -66,6 +66,9 @@ export const Screen = {
   learningGuide: 'Learning Guide',
   guidedProgram: 'Guided Program',
   mealPlanner: 'Meal Planner',
+  foodScan: 'Food Scan',
+  bodyMetrics: 'Body Metrics',
+  healthRecords: 'Health Records',
   premiumShop: 'Premium Shop',
   organHealthNutrition: 'Organ Health & Nutrition',
 

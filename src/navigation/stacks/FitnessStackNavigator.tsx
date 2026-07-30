@@ -20,6 +20,9 @@ import ActivityDashboardScreen from '../../screens/home/ActivityDashboardScreen'
 import StepsDetailScreen from '../../screens/home/StepsDetailScreen';
 import PremiumShopScreen from '../../screens/fitness/PremiumShopScreen';
 import OrganHealthNutritionScreen from '../../screens/fitness/OrganHealthNutritionScreen';
+import FoodScanScreen from '../../screens/home/FoodScanScreen';
+import BodyMetricsScreen from '../../screens/home/BodyMetricsScreen';
+import HealthRecordsScreen from '../../screens/home/HealthRecordsScreen';
 import { Screen } from '../screenNames';
 
 const Stack = createNativeStackNavigator<FitnessStackParamList>();
@@ -41,6 +44,9 @@ export default function FitnessStackNavigator() {
       <Stack.Screen name={Screen.learningGuide} component={LearningGuideDetailScreen} />
       <Stack.Screen name={Screen.guidedProgram} component={GuidedProgramScreen} />
       <Stack.Screen name={Screen.mealPlanner} component={MealPlannerScreen} />
+      <Stack.Screen name={Screen.foodScan} component={FoodScanScreen} />
+      <Stack.Screen name={Screen.bodyMetrics} component={BodyMetricsScreen} />
+      <Stack.Screen name={Screen.healthRecords} component={HealthRecordsScreen} />
       <Stack.Screen name={Screen.activityDashboard} component={ActivityDashboardScreen} />
       <Stack.Screen name={Screen.stepsDetail} component={StepsDetailScreen} />
       <Stack.Screen name={Screen.premiumShop} component={PremiumShopScreen} />

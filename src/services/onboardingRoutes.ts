@@ -66,7 +66,7 @@ export async function resolvePreAuthRoute(_introSeen: boolean | null): Promise<P
 
 /**
  * Post-auth funnel (signed-in patient, !onboardingComplete):
- * Welcome video (if not already seen pre-auth) → Why are you here → Quiz → …
+ * Breathe / welcome video (again after account creation) → Why are you here → Quiz → …
  */
 export async function resolvePostAuthOnboardingRoute(
   user: UserProfile,
@@ -74,10 +74,8 @@ export async function resolvePostAuthOnboardingRoute(
 ): Promise<PostAuthOnboardingRoute | 'complete'> {
   if (user.role !== 'patient') return 'complete';
 
-  const pending = await pendingOnboardingStorage.get();
-  if (pending.welcomeVideoComplete) {
-    await onboardingStorage.markWelcomeVideoSeen(user.uid);
-  } else if (!(await onboardingStorage.hasSeenWelcomeVideo(user.uid))) {
+  // Per-user flag only — guest `welcomeVideoComplete` must not skip post-signup breath.
+  if (!(await onboardingStorage.hasSeenWelcomeVideo(user.uid))) {
     return Screen.introVideo;
   }
 

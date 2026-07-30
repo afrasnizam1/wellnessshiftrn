@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -20,41 +20,41 @@ const COPY: Record<
   clinician: {
     icon: 'medkit-outline',
     title: 'Connect with your clinician',
-    body: 'Link with an invite code to share progress, receive care plans, and message your care team.',
-    cta: 'Connect clinician',
+    body: 'Share progress and receive care plans.',
+    cta: 'Connect',
     colors: ['#F24D80', '#D93A6A'],
   },
   wellness_score: {
     icon: 'analytics-outline',
     title: 'Grow your wellness score',
-    body: 'Workouts, nutrition, sleep, mood, and clinician input all feed one score you can watch improve.',
-    cta: 'View analytics',
+    body: 'Watch workouts, nutrition, and sleep lift one score.',
+    cta: 'Analytics',
     colors: ['#8C59BF', '#946BFA'],
   },
   learn: {
     icon: 'book-outline',
     title: 'Learn something useful today',
-    body: 'Explore health topics, nutrition, and fitness modules tailored to how you scored.',
-    cta: 'Open Fitness Hub',
+    body: 'Health topics tailored to how you scored.',
+    cta: 'Fitness Hub',
     colors: ['#2EDBBD', '#389EFA'],
   },
   fitness: {
     icon: 'barbell-outline',
     title: 'Keep your routine moving',
-    body: 'Jump into workouts, guided programs, and daily movement that lift your wellness score.',
-    cta: 'Start training',
+    body: 'Workouts and programs that lift your score.',
+    cta: 'Train',
     colors: ['#389EFA', '#007AFF'],
   },
   all: {
     icon: 'apps-outline',
     title: 'Your full wellness toolkit',
-    body: 'Score, learning, fitness, and clinician care — all feeding one wellness score.',
-    cta: 'View your score',
+    body: 'Score, learning, fitness, and clinician care.',
+    cta: 'View score',
     colors: ['#007AFF', '#8C59BF'],
   },
 };
 
-export default function HomePurposeLeadCard({ purpose, linkedToClinician, onPress }: Props) {
+export default memo(function HomePurposeLeadCard({ purpose, linkedToClinician, onPress }: Props) {
   // Once linked, clinician purpose no longer needs the connect CTA as the hero lead.
   if (purpose === 'clinician' && linkedToClinician) return null;
 
@@ -75,62 +75,66 @@ export default function HomePurposeLeadCard({ purpose, linkedToClinician, onPres
       />
       <View style={styles.content}>
         <View style={styles.iconCircle}>
-          <Ionicons name={copy.icon} size={22} color={Colors.white} />
+          <Ionicons name={copy.icon} size={16} color={Colors.white} />
         </View>
         <View style={styles.textCol}>
-          <Text style={styles.title}>{copy.title}</Text>
-          <Text style={styles.body}>{copy.body}</Text>
-          <View style={styles.ctaRow}>
-            <Text style={styles.cta}>{copy.cta}</Text>
-            <Ionicons name="arrow-forward" size={14} color={Colors.white} />
-          </View>
+          <Text style={styles.title} numberOfLines={1}>
+            {copy.title}
+          </Text>
+          <Text style={styles.body} numberOfLines={1}>
+            {copy.body}
+          </Text>
+        </View>
+        <View style={styles.ctaRow}>
+          <Text style={styles.cta}>{copy.cta}</Text>
+          <Ionicons name="arrow-forward" size={12} color={Colors.white} />
         </View>
       </View>
     </AnimatedPressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrap: {
-    borderRadius: Radius.xl,
+    borderRadius: Radius.lg,
     overflow: 'hidden',
   },
   content: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    padding: Spacing.lg,
-    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    alignItems: 'center',
   },
   iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  textCol: { flex: 1, gap: 6 },
+  textCol: { flex: 1, gap: 2, minWidth: 0 },
   title: {
-    fontSize: Typography.size.lg,
+    fontSize: Typography.size.sm,
     fontWeight: '800',
     color: Colors.white,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   body: {
-    fontSize: Typography.size.sm,
-    color: 'rgba(255,255,255,0.9)',
-    lineHeight: 20,
+    fontSize: Typography.size.xs,
+    color: 'rgba(255,255,255,0.88)',
+    lineHeight: 16,
   },
   ctaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    marginTop: Spacing.xs,
-    alignSelf: 'flex-start',
+    gap: 4,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
     borderRadius: Radius.pill,
+    flexShrink: 0,
   },
-  cta: { color: Colors.white, fontWeight: '700', fontSize: Typography.size.sm },
+  cta: { color: Colors.white, fontWeight: '700', fontSize: Typography.size.xs },
 });

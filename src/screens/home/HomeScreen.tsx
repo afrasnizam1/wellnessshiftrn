@@ -9,6 +9,7 @@ import { AppCard, SectionHeader, QuickActionCard, AnimatedPressable, ListRow, Ic
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useShallow } from 'zustand/react/shallow';
 import { Colors, Typography, Spacing, Radius, WELLNESS_CATEGORIES } from '../../theme';
 import { useAppStore } from '../../store';
 import type { WellnessCategoryKey } from '../../types';
@@ -35,12 +36,16 @@ import GoalReminderCard from '../../components/home/GoalReminderCard';
 import NextBestActions from '../../components/home/NextBestActions';
 import WeeklyStepChallenge from '../../components/home/WeeklyStepChallenge';
 import AssessmentInsights from '../../components/home/AssessmentInsights';
+import BiologicalAgeCard from '../../components/home/BiologicalAgeCard';
+import BodyMetricsCard from '../../components/home/BodyMetricsCard';
 import HomePurposeLeadCard from '../../components/home/HomePurposeLeadCard';
 import ClinicianRecommendationsCard from '../../components/home/ClinicianRecommendationsCard';
 import { healthKitService } from '../../services/healthkit';
+import { applyLifestyleMetricsToWellnessScore } from '../../services/lifestyleScoreService';
 import { clinicianService } from '../../services/clinicianService';
 import { gamificationService } from '../../services/gamificationService';
 import { getRouteForModuleId } from '../../utils/fitnessModuleRouter';
+import { greetingName } from '../../utils/greetingName';
 import { getOrGeneratePlan } from '../../services/planGenerator';
 import {
   wellnessService,
@@ -54,15 +59,55 @@ import { onboardingStorage } from '../../services/onboardingStorage';
 import type { AppPurpose } from '../../types/onboardingPrefs';
 import { format } from 'date-fns';
 
+const HEALTH_SYNC_MIN_MS = 60_000;
+
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const {
-    user, wellnessScore, dailyPlan, activity, carePlan,
-    setActivity, setDailyPlan, setWellnessScore, setCarePlan, setUser,
-    markTaskComplete, setGymVisit,
-    checkInStreak, hasCheckedInToday, streakFreezes, streakBroken, longestStreak, setCheckInMeta,
-    clinicianRecommendations, setClinicianRecommendations,
-  } = useAppStore();
+    user,
+    wellnessScore,
+    dailyPlan,
+    activity,
+    carePlan,
+    setActivity,
+    setDailyPlan,
+    setWellnessScore,
+    setCarePlan,
+    setUser,
+    markTaskComplete,
+    setGymVisit,
+    checkInStreak,
+    hasCheckedInToday,
+    streakFreezes,
+    streakBroken,
+    longestStreak,
+    setCheckInMeta,
+    clinicianRecommendations,
+    setClinicianRecommendations,
+  } = useAppStore(
+    useShallow((s) => ({
+      user: s.user,
+      wellnessScore: s.wellnessScore,
+      dailyPlan: s.dailyPlan,
+      activity: s.activity,
+      carePlan: s.carePlan,
+      setActivity: s.setActivity,
+      setDailyPlan: s.setDailyPlan,
+      setWellnessScore: s.setWellnessScore,
+      setCarePlan: s.setCarePlan,
+      setUser: s.setUser,
+      markTaskComplete: s.markTaskComplete,
+      setGymVisit: s.setGymVisit,
+      checkInStreak: s.checkInStreak,
+      hasCheckedInToday: s.hasCheckedInToday,
+      streakFreezes: s.streakFreezes,
+      streakBroken: s.streakBroken,
+      longestStreak: s.longestStreak,
+      setCheckInMeta: s.setCheckInMeta,
+      clinicianRecommendations: s.clinicianRecommendations,
+      setClinicianRecommendations: s.setClinicianRecommendations,
+    })),
+  );
 
   const [refreshing, setRefreshing] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
@@ -76,7 +121,11 @@ export default function HomeScreen() {
   const [startHereDone, setStartHereDone] = useState(true);
   const [dayOneDone, setDayOneDone] = useState(true);
   const [appPurpose, setAppPurpose] = useState<AppPurpose | null>(null);
+  const [screenFocused, setScreenFocused] = useState(true);
   const offeredDayOne = useRef(false);
+  const lastHealthSyncAt = useRef(0);
+  const healthSyncInFlight = useRef(false);
+  const lastHomeInitUid = useRef<string | null>(null);
   const funnelComplete = !!user?.onboardingComplete;
   const CSQ_SCREEN = 'Home - Dashboard';
   const WELLNESS_RING = { screen: CSQ_SCREEN, chart: 'Wellness Ring' } as const;
@@ -112,30 +161,145 @@ export default function HomeScreen() {
     });
   }, []);
 
-  useEffect(() => {
-    initHome();
+  const syncHealthKit = useCallback(
+    async (opts?: { force?: boolean; applyLifestyle?: boolean }) => {
+      if (healthSyncInFlight.current) return;
+      const now = Date.now();
+      if (!opts?.force && now - lastHealthSyncAt.current < HEALTH_SYNC_MIN_MS) {
+        return;
+      }
+
+      healthSyncInFlight.current = true;
+      try {
+        const connected = await healthKitService.isConnected();
+        setHealthAvailable(connected);
+        if (!connected) {
+          lastHealthSyncAt.current = Date.now();
+          return;
+        }
+
+        const [snapshot, history] = await Promise.all([
+          healthKitService.getTodayActivity(),
+          healthKitService.getActivityHistory(7),
+        ]);
+        setActivity(snapshot);
+        setWeeklySteps(history.reduce((sum, d) => sum + d.steps, 0));
+
+        if (opts?.applyLifestyle !== false && user?.uid) {
+          const updated = await applyLifestyleMetricsToWellnessScore(user.uid, snapshot);
+          if (updated) setWellnessScore(updated);
+        }
+        lastHealthSyncAt.current = Date.now();
+      } catch {
+        // HealthKit can fail on simulator / denied permission
+      } finally {
+        healthSyncInFlight.current = false;
+      }
+    },
+    [user?.uid, setActivity, setWellnessScore],
+  );
+
+  const loadCheckInMeta = useCallback(async () => {
     if (!user) return;
+    try {
+      let freezes = user.streakFreezes ?? 0;
+      const status = await checkInService.getStreakStatus(user.uid, freezes);
+      if (status.broken && freezes > 0) {
+        const freezeResult = await checkInService.maybeApplyStreakFreeze(user.uid, freezes);
+        if (freezeResult.used) {
+          freezes = freezeResult.remaining;
+          await userService.updateProfile(user.uid, { streakFreezes: freezes });
+          setUser({ ...user, streakFreezes: freezes });
+        }
+      }
+      const [checkedIn, todaysCheckIn] = await Promise.all([
+        checkInService.hasCheckedInToday(user.uid),
+        checkInService.getTodaysCheckIn(user.uid),
+      ]);
+      const refreshedStatus = await checkInService.getStreakStatus(user.uid, freezes);
+      setCheckInMeta({
+        streak: refreshedStatus.current,
+        hasCheckedInToday: checkedIn,
+        todaysCheckIn,
+        streakFreezes: freezes,
+        streakBroken: refreshedStatus.broken,
+        longestStreak: refreshedStatus.longest,
+      });
+    } catch {}
+  }, [user, setUser, setCheckInMeta]);
+
+  const fetchLatestScore = useCallback(async () => {
+    if (!user) return null;
+    try {
+      const score = await wellnessService.getLatestScore(user.uid);
+      if (score) setWellnessScore(score);
+      return score;
+    } catch {
+      return useAppStore.getState().wellnessScore;
+    }
+  }, [user, setWellnessScore]);
+
+  const initHome = useCallback(async () => {
+    await syncHealthKit({ force: true, applyLifestyle: true });
+    await loadCheckInMeta();
+    const score = await fetchLatestScore();
+    const currentUser = useAppStore.getState().user;
+    const currentCarePlan = useAppStore.getState().carePlan;
+    if (currentUser && score) {
+      const plan = await getOrGeneratePlan(
+        currentUser.uid,
+        score,
+        currentCarePlan,
+        currentUser.primaryGoal ?? undefined,
+        {
+          experienceLevel: currentUser.experienceLevel,
+          trainingDaysPerWeek: currentUser.trainingDaysPerWeek,
+        },
+      );
+      setDailyPlan(plan);
+    }
+  }, [syncHealthKit, loadCheckInMeta, fetchLatestScore, setDailyPlan]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    if (lastHomeInitUid.current !== user.uid) {
+      lastHomeInitUid.current = user.uid;
+      lastHealthSyncAt.current = 0;
+      initHome();
+    }
+
+    let cancelled = false;
     (async () => {
       const done = await onboardingStorage.hasCompletedStartHere(user.uid);
-      // Funnel already collected goals/quiz — don't re-ask via Start Here.
-      if (done || funnelComplete || user.quizComplete || (user.healthGoals?.length ?? 0) > 0 || !!user.primaryGoal) {
+      if (cancelled) return;
+      if (
+        done ||
+        funnelComplete ||
+        user.quizComplete ||
+        (user.healthGoals?.length ?? 0) > 0 ||
+        !!user.primaryGoal
+      ) {
         if (!done) await onboardingStorage.markStartHereComplete(user.uid);
         setStartHereDone(true);
         return;
       }
       setStartHereDone(false);
     })();
-    onboardingStorage.hasCompletedDayOneChecklist(user.uid).then((done) => setDayOneDone(done));
+    onboardingStorage.hasCompletedDayOneChecklist(user.uid).then((done) => {
+      if (!cancelled) setDayOneDone(done);
+    });
     onboardingStorage.shouldShowAppTour(user.uid).then((show) => {
-      if (show) setShowInAppGuide(true);
+      if (!cancelled && show) setShowInAppGuide(true);
     });
     (async () => {
       const fromProfile = user.appPurpose as AppPurpose | undefined;
       if (fromProfile) {
-        setAppPurpose(fromProfile);
+        if (!cancelled) setAppPurpose(fromProfile);
         return;
       }
       const stored = await onboardingStorage.getAppPurpose(user.uid);
+      if (cancelled) return;
       if (stored) {
         setAppPurpose(stored as AppPurpose);
         return;
@@ -144,32 +308,34 @@ export default function HomeScreen() {
         setAppPurpose('clinician');
         return;
       }
-      // Legacy users who picked clinician-oriented goals before purpose existed.
       if (user.primaryGoal === 'condition' || user.healthGoals?.includes('condition')) {
         setAppPurpose('clinician');
       }
     })();
+
     const unsubPlans = carePlanService.watchCarePlans(user.uid, (plans) => {
       setCarePlan(plans[0] ?? null);
     });
     const unsubRecs = clinicianService.watchFitnessHubRecommendations(
       user.uid,
-      setClinicianRecommendations
+      setClinicianRecommendations,
     );
     return () => {
+      cancelled = true;
       unsubPlans();
       unsubRecs();
     };
-  }, [user?.uid, funnelComplete, user?.quizComplete, user?.primaryGoal, user?.healthGoals, user?.appPurpose, setCarePlan, setClinicianRecommendations]);
+    // Intentionally uid-scoped — avoid re-init on array identity churn from setUser.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   useFocusEffect(
     useCallback(() => {
-      syncHealthKit();
-      if (!user) return;
-      onboardingStorage.shouldShowAppTour(user.uid).then((show) => {
-        if (show) setShowInAppGuide(true);
-      });
-    }, [user?.uid])
+      setScreenFocused(true);
+      // Skip lifestyle rewrite on every tab return — activity refresh only, throttled.
+      syncHealthKit({ applyLifestyle: false });
+      return () => setScreenFocused(false);
+    }, [syncHealthKit]),
   );
 
   const maybeOfferDayOne = useCallback(() => {
@@ -178,14 +344,17 @@ export default function HomeScreen() {
     setTimeout(() => setShowDayOne(true), 700);
   }, [user, dayOneDone]);
 
-  const openClinicianModule = (moduleId: string) => {
-    const route = getRouteForModuleId(moduleId);
-    if (route) {
-      navigation.navigate(Screen.tabFitness, { screen: route.screen, params: route.params });
-    } else {
-      navigation.navigate(Screen.tabFitness, { screen: Screen.fitnessHub });
-    }
-  };
+  const openClinicianModule = useCallback(
+    (moduleId: string) => {
+      const route = getRouteForModuleId(moduleId);
+      if (route) {
+        navigation.navigate(Screen.tabFitness, { screen: route.screen, params: route.params });
+      } else {
+        navigation.navigate(Screen.tabFitness, { screen: Screen.fitnessHub });
+      }
+    },
+    [navigation],
+  );
 
   const handleInAppGuideAction = (destination: InAppGuideDestination) => {
     setShowInAppGuide(false);
@@ -222,63 +391,6 @@ export default function HomeScreen() {
     maybeOfferDayOne();
   };
 
-  const initHome = async () => {
-    await syncHealthKit();
-    await loadCheckInMeta();
-    const score = await fetchLatestScore();
-    if (user && score) {
-      const plan = await getOrGeneratePlan(user.uid, score, carePlan, user.primaryGoal ?? undefined, {
-        experienceLevel: user.experienceLevel,
-        trainingDaysPerWeek: user.trainingDaysPerWeek,
-      });
-      setDailyPlan(plan);
-    }
-  };
-
-  const syncHealthKit = async () => {
-    try {
-      const connected = await healthKitService.isConnected();
-      setHealthAvailable(connected);
-      if (!connected) return;
-
-      const [snapshot, history] = await Promise.all([
-        healthKitService.getTodayActivity(),
-        healthKitService.getActivityHistory(7),
-      ]);
-      setActivity(snapshot);
-      setWeeklySteps(history.reduce((sum, d) => sum + d.steps, 0));
-    } catch {}
-  };
-
-  const loadCheckInMeta = async () => {
-    if (!user) return;
-    try {
-      let freezes = user.streakFreezes ?? 0;
-      const status = await checkInService.getStreakStatus(user.uid, freezes);
-      if (status.broken && freezes > 0) {
-        const freezeResult = await checkInService.maybeApplyStreakFreeze(user.uid, freezes);
-        if (freezeResult.used) {
-          freezes = freezeResult.remaining;
-          await userService.updateProfile(user.uid, { streakFreezes: freezes });
-          setUser({ ...user, streakFreezes: freezes });
-        }
-      }
-      const [checkedIn, todaysCheckIn] = await Promise.all([
-        checkInService.hasCheckedInToday(user.uid),
-        checkInService.getTodaysCheckIn(user.uid),
-      ]);
-      const refreshedStatus = await checkInService.getStreakStatus(user.uid, freezes);
-      setCheckInMeta({
-        streak: refreshedStatus.current,
-        hasCheckedInToday: checkedIn,
-        todaysCheckIn,
-        streakFreezes: freezes,
-        streakBroken: refreshedStatus.broken,
-        longestStreak: refreshedStatus.longest,
-      });
-    } catch {}
-  };
-
   const loadPlan = async () => {
     if (!user || !wellnessScore) return;
     try {
@@ -290,22 +402,11 @@ export default function HomeScreen() {
     } catch {}
   };
 
-  const fetchLatestScore = async () => {
-    if (!user) return null;
-    try {
-      const score = await wellnessService.getLatestScore(user.uid);
-      if (score) setWellnessScore(score);
-      return score;
-    } catch {
-      return wellnessScore;
-    }
-  };
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await initHome();
     setRefreshing(false);
-  }, [user, wellnessScore, carePlan]);
+  }, [initHome]);
 
   const handleTaskComplete = async (taskId: string) => {
     if (!user || !dailyPlan) return;
@@ -344,12 +445,46 @@ export default function HomeScreen() {
     }
   };
 
+  const openProfile = useCallback(() => {
+    navigation.navigate(Screen.tabMore, { screen: Screen.profile });
+  }, [navigation]);
+
+  const openWellnessQuiz = useCallback(() => {
+    navigation.getParent()?.navigate(Screen.wellnessQuiz);
+  }, [navigation]);
+
+  const openPurposeLead = useCallback(() => {
+    if (appPurpose === 'clinician') {
+      navigation.navigate(Screen.tabMyCare, { screen: Screen.connectClinician });
+      return;
+    }
+    if (appPurpose === 'wellness_score' || appPurpose === 'all') {
+      navigation.navigate(Screen.tabAnalytics);
+      return;
+    }
+    navigation.navigate(Screen.tabFitness);
+  }, [appPurpose, navigation]);
+
+  const openBodyMetrics = useCallback(() => {
+    navigation.navigate(Screen.bodyMetrics);
+  }, [navigation]);
+
+  const openHealthPermissions = useCallback(() => {
+    navigation.navigate(Screen.healthPermissions);
+  }, [navigation]);
+
+  const openActivityDashboard = useCallback(() => {
+    navigation.navigate(Screen.activityDashboard);
+  }, [navigation]);
+
   const greeting = () => {
     const h = new Date().getHours();
     if (h < 12) return 'Good morning';
     if (h < 18) return 'Good afternoon';
     return 'Good evening';
   };
+
+  const nameForGreeting = greetingName(user);
 
   const weeklyStepsTotal = weeklySteps || (activity?.steps ?? 0) * 5;
   const scoreImproved = wellnessScore && wellnessScore.overall >= 8;
@@ -368,19 +503,19 @@ export default function HomeScreen() {
         <TrialCountdownBanner />
 
         {!hasAssessment && (
-          <MarketingHero onStartQuiz={() => navigation.getParent()?.navigate(Screen.wellnessQuiz)} />
+          <MarketingHero onStartQuiz={openWellnessQuiz} />
         )}
 
         <View style={styles.greetingRow}>
           <AnimatedPressable
-            onPress={() => navigation.navigate(Screen.tabMore, { screen: Screen.profile })}
+            onPress={openProfile}
             accessibilityRole="button"
             accessibilityLabel="Open profile"
           >
             <LinearGradient colors={['#F24D80', '#FF6699']} style={styles.avatarCircle}>
               <SensitiveCSQMask>
                 <Text style={styles.avatarLetter}>
-                  {user?.displayName?.[0]?.toUpperCase() ?? 'P'}
+                  {nameForGreeting[0]?.toUpperCase() ?? 'P'}
                 </Text>
               </SensitiveCSQMask>
             </LinearGradient>
@@ -388,7 +523,7 @@ export default function HomeScreen() {
           <View style={styles.greetingText}>
             <Text style={styles.greetingLine}>{greeting()} 👋</Text>
             <SensitiveCSQMask>
-              <Text style={styles.greetingName}>{user?.displayName ?? 'there'}</Text>
+              <Text style={styles.greetingName}>{nameForGreeting}</Text>
             </SensitiveCSQMask>
           </View>
           <View style={styles.datePill}>
@@ -404,17 +539,7 @@ export default function HomeScreen() {
           <HomePurposeLeadCard
             purpose={appPurpose}
             linkedToClinician={!!user?.clinicianId}
-            onPress={() => {
-              if (appPurpose === 'clinician') {
-                navigation.navigate(Screen.tabMyCare, { screen: Screen.connectClinician });
-                return;
-              }
-              if (appPurpose === 'wellness_score' || appPurpose === 'all') {
-                navigation.navigate(Screen.tabAnalytics);
-                return;
-              }
-              navigation.navigate(Screen.tabFitness);
-            }}
+            onPress={openPurposeLead}
           />
         ) : null}
 
@@ -426,6 +551,7 @@ export default function HomeScreen() {
               score={wellnessScore?.overall ?? 0}
               categories={wellnessScore?.categories}
               size={ringLayoutSize}
+              spin={screenFocused}
               selectedCategory={selectedCategory}
               onCategorySelect={(key) => toggleCategory(key)}
               onCenterPress={() => setSelectedCategory(null)}
@@ -475,10 +601,28 @@ export default function HomeScreen() {
           </View>
         </AppCard>
 
+        <BiologicalAgeCard
+          dateOfBirth={user?.dateOfBirth}
+          wellnessScore={wellnessScore}
+          heightCm={user?.heightCm}
+          weightKg={user?.weightKg}
+          onImproveScore={openWellnessQuiz}
+          onAddDateOfBirth={openProfile}
+        />
+
+        <BodyMetricsCard
+          activity={activity}
+          healthConnected={healthAvailable}
+          onPress={openBodyMetrics}
+          onConnectHealth={openHealthPermissions}
+        />
+
         <ActivityBar
           activity={activity}
-          onRefresh={syncHealthKit}
-          onPress={() => navigation.navigate(Screen.activityDashboard)}
+          onRefresh={() => {
+            void syncHealthKit({ force: true, applyLifestyle: true });
+          }}
+          onPress={openActivityDashboard}
         />
 
         <View style={styles.guidanceGroup}>
@@ -690,11 +834,13 @@ export default function HomeScreen() {
 }
 
 const SHORTCUTS = [
+  { icon: 'camera-outline', label: 'Food Scan', subtitle: 'AI macros', colors: ['#2EDBBD', '#27AE60'] as [string, string], tab: Screen.tabHome, params: { screen: Screen.foodScan } },
+  { icon: 'pulse-outline', label: 'Recovery', subtitle: 'Strain & sleep', colors: ['#389EFA', '#5B6EE1'] as [string, string], tab: Screen.tabHome, params: { screen: Screen.bodyMetrics } },
+  { icon: 'folder-open-outline', label: 'Records', subtitle: 'GP vault', colors: ['#F24D80', '#FF8561'] as [string, string], tab: Screen.tabMyCare, params: { screen: Screen.healthRecords } },
   { icon: 'game-controller-outline', label: 'Brain Games', subtitle: 'Train focus', colors: ['#7A57F5', '#946BFA'] as [string, string], tab: Screen.tabFitness, params: { screen: Screen.brainGame, params: { gameId: 'memory-match' } } },
   { icon: 'leaf-outline', label: 'Breathing', subtitle: 'Calm down', colors: ['#2EDBBD', '#389EFA'] as [string, string], tab: Screen.tabFitness, params: { screen: Screen.breathingExercise } },
   { icon: 'moon-outline', label: 'Meditate', subtitle: 'Mindfulness', colors: ['#946BFA', '#7A57F5'] as [string, string], tab: Screen.tabFitness, params: { screen: Screen.meditationTimer } },
   { icon: 'trending-up-outline', label: 'Progress', subtitle: 'Your stats', colors: ['#389EFA', '#2EDBBD'] as [string, string], tab: Screen.tabAnalytics, params: { screen: Screen.analyticsDashboard } },
-  { icon: 'bed-outline', label: 'Sleep', subtitle: 'Rest better', colors: ['#5B6EE1', '#946BFA'] as [string, string], tab: Screen.tabFitness, params: { screen: Screen.healthTracker, params: { trackerId: 'sleep-tools' } } },
   { icon: 'chatbubble-ellipses-outline', label: 'AI Coach', subtitle: 'Ask anything', colors: ['#F24D80', '#FF6699'] as [string, string], tab: Screen.tabAiInsights, params: { screen: Screen.aiHealthCoach } },
 ];
 

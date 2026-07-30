@@ -13,6 +13,7 @@ import {
   getMealById, type WeekPlan,
 } from '../../data/mealPlannerData';
 import AppScreen from '../../components/common/AppScreen';
+import { Screen } from '../../navigation/screenNames';
 
 const STORAGE_KEY = 'wellnessShift.mealPlanWeek';
 const TARGET_KEY = 'wellnessShift.mealPlanTargetCal';
@@ -114,6 +115,11 @@ export default function MealPlannerScreen() {
                 <Text style={styles.resetText}>Reset</Text>
               </TouchableOpacity>
             </View>
+            <BrandButton
+              label="Scan a meal with photo"
+              variant="outline"
+              onPress={() => navigation.navigate(Screen.foodScan)}
+            />
           </AppCard>
 
           {DAYS.map((day) => {
