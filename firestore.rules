@@ -1,0 +1,207 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isClinicianForPatient(patientId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/patients/$(patientId)).data.linkedClinicianId == request.auth.uid;
+    }
+
+    /** Patient may add/remove only themselves on a clinician's users doc. */
+    function isPatientLinkedPatientsPatch(clinicianUserId) {
+      return isSignedIn() &&
+        request.auth.uid != clinicianUserId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['linkedPatients']);
+    }
+
+    // RN legacy user profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isSignedIn();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isPatientLinkedPatientsPatch(userId);
+      allow delete: if isOwner(userId);
+
+      match /carePlans/{planId} {
+        allow read: if isOwner(userId) || isClinicianForPatient(userId);
+        allow write: if isClinicianForPatient(userId) || isOwner(userId);
+      }
+
+      match /wellnessScores/{scoreId} {
+        allow read: if isOwner(userId) || isClinicianForPatient(userId);
+        allow write: if isOwner(userId);
+      }
+
+      match /dailyPlans/{planId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /dailyCheckIns/{checkInId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /activePrograms/{programId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /completedPrograms/{programId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /achievements/{achievementId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /stats/{statId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /habits/{habitId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /goals/{goalId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /friends/{friendId} {
+        allow read: if isOwner(userId) || isOwner(friendId);
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isOwner(userId) || isOwner(friendId);
+      }
+
+      match /accountabilityBoard/{entryId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    match /patients/{patientId} {
+      allow read: if isOwner(patientId) || isClinicianForPatient(patientId) ||
+        (isSignedIn() && resource.data.linkedClinicianId == request.auth.uid);
+      allow create: if isOwner(patientId);
+      allow update: if isOwner(patientId) || isClinicianForPatient(patientId);
+
+      match /fitnessHubRecommendations/{recId} {
+        allow read: if isOwner(patientId);
+        allow write: if isClinicianForPatient(patientId);
+      }
+
+      match /pendingClinicianRequests/{requestId} {
+        allow read: if isOwner(patientId);
+        allow create: if isSignedIn() && request.resource.data.clinicianId == request.auth.uid;
+        allow update, delete: if isOwner(patientId);
+      }
+
+      match /clinicalNotes/{noteId} {
+        allow read: if isOwner(patientId) || isClinicianForPatient(patientId);
+        allow write: if isClinicianForPatient(patientId);
+      }
+    }
+
+    match /challenges/{challengeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+
+      match /participants/{participantId} {
+        allow read: if isSignedIn();
+        allow create, update: if isOwner(participantId);
+        allow delete: if isOwner(participantId);
+      }
+    }
+
+    match /clinicians/{clinicianId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(clinicianId);
+
+      match /linkedPatients/{patientId} {
+        allow read: if isOwner(clinicianId) || isOwner(patientId);
+        allow create, update, delete: if isOwner(clinicianId) || isOwner(patientId);
+      }
+
+      match /outgoingRequests/{requestId} {
+        allow read, write: if isOwner(clinicianId);
+        allow update, delete: if isOwner(clinicianId) ||
+          (isSignedIn() && resource.data.patientId == request.auth.uid);
+      }
+    }
+
+    match /customCarePlans/{planId} {
+      allow read: if isSignedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        resource.data.clinicianId == request.auth.uid
+      );
+      allow create: if isSignedIn() && (
+        request.resource.data.clinicianId == request.auth.uid ||
+        request.resource.data.patientId == request.auth.uid
+      );
+      allow update: if isSignedIn() && resource.data.clinicianId == request.auth.uid;
+    }
+
+    match /messageThreads/{threadId} {
+      allow read: if isSignedIn() && (
+        resource.data.patientId == request.auth.uid ||
+        resource.data.clinicianId == request.auth.uid
+      );
+      allow create, update: if isSignedIn() && (
+        request.resource.data.patientId == request.auth.uid ||
+        request.resource.data.clinicianId == request.auth.uid
+      );
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/messageThreads/$(threadId)).data.patientId == request.auth.uid ||
+          get(/databases/$(database)/documents/messageThreads/$(threadId)).data.clinicianId == request.auth.uid
+        );
+        allow create: if isSignedIn() &&
+          request.resource.data.senderId == request.auth.uid &&
+          (
+            get(/databases/$(database)/documents/messageThreads/$(threadId)).data.patientId == request.auth.uid ||
+            get(/databases/$(database)/documents/messageThreads/$(threadId)).data.clinicianId == request.auth.uid
+          );
+        allow update: if isSignedIn() &&
+          (
+            get(/databases/$(database)/documents/messageThreads/$(threadId)).data.patientId == request.auth.uid ||
+            get(/databases/$(database)/documents/messageThreads/$(threadId)).data.clinicianId == request.auth.uid
+          );
+      }
+    }
+
+    match /inviteCodes/{code} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /userProfiles/{userId} {
+      allow read: if isOwner(userId) || isClinicianForPatient(userId);
+      allow create, update: if isOwner(userId);
+    }
+
+    match /userTrials/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /fcmTokens/{userId} {
+      allow read: if isOwner(userId) || isClinicianForPatient(userId);
+      allow create, update, delete: if isOwner(userId);
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.patientId == request.auth.uid;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource.data.patientId == request.auth.uid;
+    }
+
+    match /notificationQueue/{queueId} {
+      allow create: if isSignedIn();
+      allow read, update: if false;
+    }
+  }
+}

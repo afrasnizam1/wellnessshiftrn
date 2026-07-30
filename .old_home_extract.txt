@@ -1,0 +1,231 @@
+=== LINE 708 OLD (1047) ===
+        <TrialCountdownBanner />
+
+        {!hasAssessment && (
+          <MarketingHero onStartQuiz={() => navigation.getParent()?.navigate(Screen.wellnessQuiz)} />
+        )}
+
+        <View style={styles.greetingRow}>
+          <AnimatedPressable onPress={() => navigation.navigate(Screen.tabMore, { screen: Screen.profile })}>
+            <LinearGradient colors={[...Gradients.brandDeep]} style={styles.avatarCircle}>
+              <Text style={styles.avatarLetter}>
+                {user?.displayName?.[0]?.toUpperCase() ?? 'P'}
+              </Text>
+            </LinearGradient>
+          </AnimatedPressable>
+          <View style={styles.greetingText}>
+            <Text style={styles.greetingLine}>{greeting()} 👋</Text>
+            <Text style={styles.greetingName}>{user?.displayName ?? 'there'}</Text>
+          </View>
+          <View style={styles.datePill}>
+            <Text style={styles.dateText}>{format(new Date(), 'EEE, d MMM')}</Text>
+          </View>
+        </View>
+
+        <AppCard style={styles.scoreCard} padded={false}>
+
+=== LINE 708 NEW (3053) ===
+        <TrialCountdownBanner />
+
+        <View style={styles.greetingRow}>
+          <AnimatedPressable onPress={() => navigation.navigate(Screen.tabMore, { screen: Screen.profile })}>
+            <LinearGradient colors={[...Gradients.brandDeep]} style={styles.avatarCircle}>
+              <Text style={styles.avatarLetter}>
+                {user?.displayName?.[0]?.toUpperCase() ?? 'P'}
+              </Text>
+            </LinearGradient>
+          </AnimatedPressable>
+          <View style={styles.greetingText}>
+            <Text style={styles.greetingLine}>{greeting()} 👋</Text>
+            <Text style={styles.greetingName}>{user?.displayName ?? 'there'}</Text>
+            {hasAssessment ? (
+              <Text style={styles.greetingHint}>Your home base — start with the focus card below</Text>
+            ) : null}
+          </View>
+          <View style={styles.datePill}>
+            <Text style={styles.dateText}>{format(new Date(), 'EEE, d MMM')}</Text>
+          </View>
+        </View>
+
+        {!hasAssessment && (
+          <MarketingHero onStartQuiz={() => navigation.getParent()?.navigate(Screen.wellnessQuiz)} />
+        )}
+
+        {hasAssessment && (
+          <PatientHomeGuide
+            startHereDone={startHereDone}
+            dayOneDone={dayOneDone}
+            hasCheckedInToday={hasCheckedInToday}
+            dailyPlan={dailyPlan}
+            carePlan={carePlan}
+            onStartHere={() => setShowStartHere(true)}
+            onCheckIn={() => navigation.navigate(Screen.dailyCheckIn)}
+            onDailyPlan={() => navigation.navigate(Screen.dailyPlan)}
+            onOpenDayOne={() => setShowDayOne(true)}
+            onCarePlan={() => navigation.navigate(Screen.tabMore, { screen: Screen.carePlan })}
+            onExploreFitness={() => navigation.navigate(Screen.tabFitness, { screen: Screen.fitnessHub })}
+            onOpenAnalytics={() => navigation.navigate(Screen.tabAnalytics, { screen: Screen.analyticsDashboard })}
+            onOpenAiCoach={() => navigation.navigate(Screen.tabAiInsights, { screen: Screen.aiHealthCoach })}
+            onOpenMore={() => navigation.navigate(Screen.tabMore)}
+          />
+        )}
+
+        {hasAssessment && dailyPlan ? (
+          <DailyPlanCard
+            plan={dailyPlan}
+            onStart={() => navigation.navigate(Screen.dailyPlan)}
+            onTaskPress={(task) => navigation.navigate(Screen.taskDetail, { task })}
+            onTaskComplete={handleTaskComplete}
+            onGymVisit={handleGymVisit}
+          />
+        ) : hasAssessment ? (
+          <TouchableOpacity style={styles.planEmptyCTA} onPress={loadPlan}>
+            <Text style={styles.planEmptyIcon}>📋</Text>
+            <View>
+              <Text style={styles.planEmptyTitle}>Generate today's plan</Text>
+              <Text style={styles.planEmptySub}>Tap to create personalised tasks for today</Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        <Text style={styles.sectionLabel}>Wellness score</Text>
+
+=== LINE 708 OLD (542) ===
+          {!wellnessScore && (
+            <AnimatedPressable
+              style={styles.quizCTA}
+              onPress={() => navigation.getParent()?.navigate(Screen.wellnessQuiz)}
+            >
+              <Ionicons name="clipboard-outline" size={18} color={Colors.primary} />
+              <Text style={styles.quizCTAText}>Take wellness assessment to get your score</Text>
+              <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
+            </AnimatedPressable>
+          )}
+          </View>
+        </AppCard>
+
+=== LINE 710 OLD (437) ===
+import DailyPlanCard from '../../components/home/DailyPlanCard';
+import CarePlanBanner from '../../components/home/CarePlanBanner';
+import MedicalDisclaimerBanner from '../../components/common/MedicalDisclaimerBanner';
+import CheckInStreakCard from '../../components/home/CheckInStreakCard';
+import NextBestActions from '../../components/home/NextBestActions';
+import WeeklyStepChallenge from '../../components/home/WeeklyStepChallenge';
+
+=== LINE 710 NEW (439) ===
+import PatientHomeGuide from '../../components/home/PatientHomeGuide';
+import DailyPlanCard from '../../components/home/DailyPlanCard';
+import CarePlanBanner from '../../components/home/CarePlanBanner';
+import MedicalDisclaimerBanner from '../../components/common/MedicalDisclaimerBanner';
+import CheckInStreakCard from '../../components/home/CheckInStreakCard';
+import WeeklyStepChallenge from '../../components/home/WeeklyStepChallenge';
+
+=== LINE 710 OLD (327) ===
+  useEffect(() => {
+    if (!user || !wellnessScore || dayOneDone || offeredDayOne.current) return;
+    offeredDayOne.current = true;
+    const t = setTimeout(() => setShowDayOne(true), 1200);
+    return () => clearTimeout(t);
+  }, [user?.uid, wellnessScore, dayOneDone]);
+
+  const openClinicianModule = (moduleId: string) => {
+
+=== LINE 710 OLD (110) ===
+        <Text style={styles.sectionLabel}>Wellness score</Text>
+          <View style={styles.scoreCardInner}>
+
+=== LINE 710 NEW (168) ===
+        <Text style={styles.sectionLabel}>Wellness score</Text>
+        <AppCard style={styles.scoreCard} padded={false}>
+          <View style={styles.scoreCardInner}>
+
+=== LINE 710 OLD (1979) ===
+        {!startHereDone && hasAssessment && (
+          <AnimatedPressable onPress={() => setShowStartHere(true)}>
+            <AppCard style={styles.startHereCard}>
+              <ListRow
+                title="Start Here"
+                subtitle="Create your personalised wellness journey"
+                icon={<Ionicons name="sparkles" size={22} color={Colors.primary} />}
+                iconBg={Colors.primaryLight}
+                showDivider={false}
+              />
+            </AppCard>
+          </AnimatedPressable>
+        )}
+
+        {hasAssessment && (
+          <AnimatedPressable onPress={() => navigation.navigate(Screen.activityDashboard)}>
+            <AppCard style={styles.activityDashCard}>
+              <ListRow
+                title="Today's Activity"
+                subtitle={`${activity?.steps?.toLocaleString() ?? '—'} steps · tap for dashboard`}
+                icon={<Ionicons name="pulse-outline" size={22} color={Colors.brand} />}
+                iconBg="rgba(242, 77, 128, 0.12)"
+                showDivider={false}
+              />
+            </AppCard>
+          </AnimatedPressable>
+        )}
+
+        {hasAssessment && dailyPlan ? (
+          <DailyPlanCard
+            plan={dailyPlan}
+            onStart={() => navigation.navigate(Screen.dailyPlan)}
+            onTaskPress={(task) => navigation.navigate(Screen.taskDetail, { task })}
+            onTaskComplete={handleTaskComplete}
+            onGymVisit={handleGymVisit}
+          />
+        ) : hasAssessment ? (
+          <TouchableOpacity style={styles.planEmptyCTA} onPress={loadPlan}>
+            <Text style={styles.planEmptyIcon}>📋</Text>
+            <View>
+              <Text style={styles.planEmptyTitle}>No plan yet</Text>
+              <Text style={styles.planEmptySub}>Tap to generate today's plan</Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {hasAssessment && wellnessScore && (
+
+=== LINE 710 OLD (378) ===
+        {hasAssessment && (
+          <NextBestActions
+            activity={activity}
+            carePlan={carePlan}
+            onCheckIn={() => navigation.navigate(Screen.dailyCheckIn)}
+            onCarePlan={() => navigation.navigate(Screen.tabMore, { screen: Screen.carePlan })}
+          />
+        )}
+
+        <SectionHeader title="Quick Access" icon="flash-outline" />
+
+=== LINE 710 OLD (108) ===
+  startHereCard: { padding: 0, overflow: 'hidden' },
+  activityDashCard: { padding: 0, overflow: 'hidden' },
+
+=== LINE 710 NEW (547) ===
+  activityDashCard: { padding: 0, overflow: 'hidden' },
+  greetingHint: {
+    fontSize: Typography.size.xs,
+    color: Colors.textTertiary,
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  sectionLabel: {
+    fontSize: Typography.size.xs,
+    fontWeight: '800',
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: Spacing.xs,
+    marginBottom: -Spacing.xs,
+  },
+  scoreHint: {
+    fontSize: Typography.size.xs,
+    color: Colors.textTertiary,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+  },

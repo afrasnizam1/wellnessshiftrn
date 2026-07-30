@@ -1,0 +1,1 @@
+export { navigateToLinkedModule } from './fitnessModuleRouter';

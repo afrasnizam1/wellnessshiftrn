@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "wellnessshift-rn-ios",
+    "dev": "wellnessshift-dev"
+  }
+}

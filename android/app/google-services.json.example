@@ -1,0 +1,21 @@
+{
+  "project_info": {
+    "project_number": "REPLACE_ME",
+    "project_id": "wellnessshift-dev",
+    "storage_bucket": "wellnessshift-dev.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:REPLACE_ME:android:REPLACE_ME",
+        "android_client_info": {
+          "package_name": "afras.wellnessshiftrn.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [{ "current_key": "REPLACE_ME" }],
+      "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,101 @@
+# ios/Podfile
+# WellnessShift — React Native 0.73
+
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+platform :ios, '17.0'
+prepare_react_native_project!
+
+# Required for @react-native-firebase with static linking
+$RNFirebaseAsStaticFramework = true
+
+# Firebase Apple SDK — https://github.com/firebase/firebase-ios-sdk
+$FirebaseSDKVersion = '10.29.0'
+$FirebaseSDKGit = {
+  :git => 'https://github.com/firebase/firebase-ios-sdk.git',
+  :tag => $FirebaseSDKVersion,
+}
+
+def install_firebase_ios_sdk_from_github
+  %w[
+    Firebase/CoreOnly
+    Firebase/Core
+    Firebase/Auth
+    Firebase/Firestore
+    Firebase/Messaging
+    Firebase/Crashlytics
+    Firebase/RemoteConfig
+    Firebase/Analytics
+    Firebase/AppCheck
+  ].each do |firebase_pod|
+    pod firebase_pod, $FirebaseSDKGit
+  end
+end
+
+# Disable Flipper in production
+flipper_config = ENV['NO_FLIPPER'] == "1" ? FlipperConfiguration.disabled : FlipperConfiguration.enabled
+
+linkage = ENV['USE_FRAMEWORKS']
+if linkage != nil
+  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+  use_frameworks! :linkage => linkage.to_sym
+end
+
+target 'WellnessShift' do
+  install_firebase_ios_sdk_from_github
+
+  config = use_native_modules!
+
+  # React Native core
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => true,
+    :fabric_enabled => false,
+    :flipper_configuration => flipper_config,
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  # ── Google Sign In ────────────────────────────────────────────────────
+  pod 'GoogleSignIn', '~> 7.0'
+
+  # ── Apple Sign In (via @invertase/react-native-apple-authentication) ──
+  # Handled automatically via use_native_modules
+
+  # ── HealthKit (react-native-health) ───────────────────────────────────
+  # Handled automatically via use_native_modules
+
+  # ── React Native Reanimated ───────────────────────────────────────────
+  # Included via use_native_modules
+
+  target 'WellnessShiftTests' do
+    inherit! :complete
+  end
+
+  post_install do |installer|
+    # React Native post-install
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false
+    )
+
+    # Fix deployment target for all pods
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
+        # Required for Firebase on newer Xcode
+        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+      end
+    end
+
+    # Fix signing for test targets
+    installer.pods_project.targets.each do |target|
+      if target.respond_to?(:product_type) && target.product_type == "com.apple.product-type.bundle"
+        target.build_configurations.each do |config|
+          config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,124 @@
+# ios/Podfile
+# WellnessShift — React Native 0.73
+
+# Build React Native from source (not the prebuilt React-Core/ReactNativeDependencies
+# artifacts) so React is a proper framework module under use_frameworks! — required
+# for @react-native-firebase to resolve React headers.
+ENV['RCT_USE_PREBUILT_RNCORE'] = '0'
+ENV['RCT_USE_RN_DEP'] = '0'
+
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+# Expo autolinking (required for expo-gl, expo-sensors, ExpoModulesCore)
+require File.join(File.dirname(`node --print "require.resolve('expo/package.json')"`), "scripts/autolinking")
+
+platform :ios, '17.0'
+prepare_react_native_project!
+
+# Required for @react-native-firebase with static linking
+$RNFirebaseAsStaticFramework = true
+
+# Firebase Apple SDK — https://github.com/firebase/firebase-ios-sdk
+# Pin to the version expected by @react-native-firebase/app (see sdkVersions.ios.firebase).
+$FirebaseSDKVersion = '12.15.0'
+
+def install_firebase_ios_sdk_from_github
+  # Pin Firebase pods to $FirebaseSDKVersion from the CocoaPods CDN.
+  # Declared before use_native_modules! so RN Firebase resolves against these pods.
+  %w[
+    Firebase/CoreOnly
+    Firebase/Core
+    Firebase/Auth
+    Firebase/Firestore
+    Firebase/Messaging
+    Firebase/Crashlytics
+    Firebase/RemoteConfig
+    Firebase/Analytics
+    Firebase/AppCheck
+  ].each do |firebase_pod|
+    pod firebase_pod, $FirebaseSDKVersion
+  end
+end
+
+# Flipper conflicts with Firebase — keep disabled
+
+use_frameworks! :linkage => :static
+
+target 'WellnessShift' do
+  install_firebase_ios_sdk_from_github
+
+  use_expo_modules!
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => true,
+    :fabric_enabled => false,
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  pod 'GoogleSignIn', '~> 7.0'
+
+  target 'WellnessShiftTests' do
+    inherit! :complete
+  end
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false
+    )
+
+    # Fix BoringSSL-GRPC `-G` compiler flag issue on newer Xcode
+    installer.pods_project.targets.each do |target|
+      if target.name == 'BoringSSL-GRPC'
+        target.source_build_phase.files.each do |file|
+          if file.settings && file.settings['COMPILER_FLAGS']
+            flags = file.settings['COMPILER_FLAGS'].split
+            flags.reject! { |flag| flag == '-GCC_WARN_INHIBIT_ALL_WARNINGS' }
+            file.settings['COMPILER_FLAGS'] = flags.join(' ')
+          end
+        end
+      end
+    end
+
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |build_config|
+        build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
+        # Allow RN Firebase (and other) headers to #include React-Core headers
+        # non-modularly under use_frameworks! :linkage => :static.
+        build_config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        if ['gRPC-Core', 'gRPC-C++', 'BoringSSL-GRPC'].include?(target.name)
+          build_config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
+          build_config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -Wno-missing-template-arg-list-after-template-kw'
+        end
+        # Contentsquare / Reanimated ship headers without nullability annotations
+        if ['ContentsquareBridgeModule', 'RNReanimated'].include?(target.name)
+          build_config.build_settings['CLANG_WARN_NULLABILITY_COMPLETENESS'] = 'NO'
+        end
+      end
+    end
+
+    installer.pods_project.targets.each do |target|
+      if target.respond_to?(:product_type) && target.product_type == "com.apple.product-type.bundle"
+        target.build_configurations.each do |build_config|
+          build_config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+        end
+      end
+    end
+
+    # Disable User Script Sandboxing on the app target so the CocoaPods
+    # "Embed Pods Frameworks" rsync phase can copy frameworks (e.g. CSCrashReporter)
+    # without hitting sandbox deny errors on Xcode 15+.
+    installer.aggregate_targets.each do |aggregate_target|
+      user_project = aggregate_target.user_project
+      next if user_project.nil?
+      user_project.native_targets.each do |native_target|
+        native_target.build_configurations.each do |build_config|
+          build_config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+        end
+      end
+      user_project.save
+    end
+  end
+end

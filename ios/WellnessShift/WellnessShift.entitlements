@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+  <!-- ── HealthKit ─────────────────────────────────────────────────────── -->
+  <key>com.apple.developer.healthkit</key>
+  <true/>
+  <key>com.apple.developer.healthkit.access</key>
+  <array/>
+
+  <!-- ── Push Notifications ────────────────────────────────────────────── -->
+  <key>aps-environment</key>
+  <string>production</string>
+
+  <!-- ── Sign in with Apple ────────────────────────────────────────────── -->
+  <key>com.apple.developer.applesignin</key>
+  <array>
+    <string>Default</string>
+  </array>
+
+  <!-- ── Associated Domains (universal links) ──────────────────────────── -->
+  <key>com.apple.developer.associated-domains</key>
+  <array>
+    <string>applinks:wellnessshift.co.uk</string>
+  </array>
+
+  <!-- ── Firebase App Check (App Attest) ──────────────────────────────── -->
+  <key>com.apple.developer.devicecheck.appattest-environment</key>
+  <string>production</string>
+
+  <!-- Apple Pay merchant IDs belong here (must start with "merchant.").
+       StoreKit subscription product IDs do NOT go in entitlements.
+  <key>com.apple.developer.in-app-payments</key>
+  <array>
+    <string>merchant.com.wellnessshift.app</string>
+  </array>
+  -->
+
+</dict>
+</plist>
