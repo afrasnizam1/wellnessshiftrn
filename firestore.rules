@@ -22,9 +22,9 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['linkedPatients']);
     }
 
-    // RN legacy user profiles
+    // RN legacy user profiles — owner or linked clinician only (never any signed-in user)
     match /users/{userId} {
-      allow read: if isOwner(userId) || isSignedIn();
+      allow read: if isOwner(userId) || isClinicianForPatient(userId);
       allow create: if isOwner(userId);
       allow update: if isOwner(userId) || isPatientLinkedPatientsPatch(userId);
       allow delete: if isOwner(userId);

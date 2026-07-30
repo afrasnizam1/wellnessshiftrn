@@ -31,6 +31,7 @@ export const SUBSCRIPTION_PRODUCTS = [
     productId: PRODUCT_IDS.growthMonthly,
     tier: 'growth' as SubscriptionTier,
     period: 'monthly' as const,
+    /** Fallback only — UI must prefer store-localized price via getLocalizedPrice() */
     price: '£6.99',
     title: 'Growth Monthly',
   },

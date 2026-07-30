@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Screen } from '../../navigation/screenNames';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
@@ -16,6 +16,7 @@ import { userService } from '../../services/firebase';
 import type { SubscriptionTier } from '../../types';
 import AppScreen from '../../components/common/AppScreen';
 import { BrandButton, IconBadge } from '../../components/ui';
+import { appConfig } from '../../config/appConfig';
 
 function tierRank(tier: SubscriptionTier) {
   if (tier === 'pro') return 2;
@@ -194,7 +195,13 @@ export default function PaywallScreen() {
   return (
     <AppScreen style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeBtn} onPress={completeOnboarding} hitSlop={8}>
+        <TouchableOpacity
+          style={styles.closeBtn}
+          onPress={completeOnboarding}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Close paywall"
+        >
           <Ionicons name="close" size={22} color={Colors.textSecondary} />
         </TouchableOpacity>
       </View>
@@ -274,7 +281,7 @@ export default function PaywallScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <BrandButton
+          <BrandButton
           label={primaryLabel}
           onPress={handlePrimary}
           loading={loading}
@@ -283,26 +290,61 @@ export default function PaywallScreen() {
 
         {!alreadyUnlocked && (
           <Text style={styles.trialNote}>
-            Billed through your App Store / Play account · Cancel anytime
+            {selectedTier === 'pro' ? 'Pro' : 'Growth'} · {billingPeriod === 'yearly' ? '1 year' : '1 month'} ·{' '}
+            {selectedTier === 'pro' ? proPrice : growthPrice}
+            {periodSuffix}
+            {'\n'}
+            Auto-renews unless cancelled at least 24 hours before the period ends. Payment is charged to your Apple ID / Google Play account. Manage or cancel in store settings.
           </Text>
         )}
 
         <View style={styles.footerLinks}>
-          <TouchableOpacity onPress={handleRestore} disabled={loading}>
+          <TouchableOpacity
+            onPress={handleRestore}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Restore purchases"
+          >
             <Text style={styles.linkText}>Restore</Text>
           </TouchableOpacity>
           <Text style={styles.linkDivider}>·</Text>
-          <TouchableOpacity onPress={goToSubscriptionPlans}>
+          <TouchableOpacity
+            onPress={goToSubscriptionPlans}
+            accessibilityRole="button"
+            accessibilityLabel="Compare plans"
+          >
             <Text style={styles.linkText}>Compare plans</Text>
           </TouchableOpacity>
           {fromOnboarding ? (
             <>
               <Text style={styles.linkDivider}>·</Text>
-              <TouchableOpacity onPress={completeOnboarding}>
+              <TouchableOpacity
+                onPress={completeOnboarding}
+                accessibilityRole="button"
+                accessibilityLabel="Continue free"
+              >
                 <Text style={styles.linkText}>Continue free</Text>
               </TouchableOpacity>
             </>
           ) : null}
+        </View>
+
+        <View style={styles.legalLinks}>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(appConfig.privacyPolicyUrl)}
+            accessibilityRole="link"
+            accessibilityLabel="Privacy Policy"
+          >
+            <Text style={styles.linkText}>Privacy Policy</Text>
+          </TouchableOpacity>
+          <Text style={styles.linkDivider}>·</Text>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(appConfig.termsOfServiceUrl)}
+            accessibilityRole="link"
+            accessibilityLabel="Terms of Use"
+          >
+            <Text style={styles.linkText}>Terms of Use</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.legalText}>{subscriptionService.billingLegalText}</Text>
@@ -489,6 +531,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexWrap: 'wrap',
+    gap: 4,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
   },
   linkText: {

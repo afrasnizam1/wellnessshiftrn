@@ -38,6 +38,8 @@ export default function BrandButton({
         onPress={onPress}
         disabled={isDisabled}
         style={[styles.wrap, style]}
+        accessibilityRole="button"
+        accessibilityLabel={label}
       >
         <View style={[styles.outlineBtn, compact && styles.btnCompact, isDisabled && styles.disabled]}>
           {loading ? (
@@ -58,6 +60,8 @@ export default function BrandButton({
       disabled={isDisabled}
       activeOpacity={0.88}
       style={[styles.wrap, styles.wrapGlow, style, isDisabled && styles.disabled]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
     >
       <View style={[styles.btn, compact && styles.btnCompact]}>
         <LinearGradient

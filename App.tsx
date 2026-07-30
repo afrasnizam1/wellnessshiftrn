@@ -15,6 +15,7 @@ import { ensureFirestoreSettings } from './src/services/firestoreHelpers';
 import { useAppStore } from './src/store';
 import { appConfig, isGoogleSignInConfigured } from './src/config/appConfig';
 import { Colors } from './src/theme';
+import AppErrorBoundary from './src/components/common/AppErrorBoundary';
 
 if (__DEV__) {
   LogBox.ignoreLogs([
@@ -77,7 +78,9 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.background }}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
       <SafeAreaProvider>
-        <RootNavigator />
+        <AppErrorBoundary>
+          <RootNavigator />
+        </AppErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
