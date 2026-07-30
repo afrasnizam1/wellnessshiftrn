@@ -62,7 +62,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   },
   {
     title: '6. Analytics & session replay (Contentsquare)',
-    body: 'Contentsquare analytics and session replay are off by default. If you turn “Allow analytics” on in Profile while signed in, we may collect screen views, interaction events, and session replay of the app UI to improve the product. UI is masked by default; text fields and web views remain masked by the SDK. Guests are not tracked. You can turn analytics off anytime in Profile.',
+    body: 'Contentsquare analytics and session replay are on by default so we can improve the product. We may collect screen views, interaction events, and session replay of the app UI. You can turn “Allow analytics” off anytime in Profile to stop collection.',
   },
   {
     title: '7. Clinician Sharing',

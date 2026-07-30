@@ -13,6 +13,7 @@ import { onboardingStorage } from '../../services/onboardingStorage';
 import { notificationService } from '../../services/notifications';
 import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
 import { goToExperienceLevel, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
+import { Screen } from '../../navigation/screenNames';
 
 export type PrimaryGoal =
   | 'sleep'
@@ -153,6 +154,15 @@ export default function GoalSelectionScreen() {
           disabled={selectionCount === 0}
           loading={saving}
         />
+        {!user ? (
+          <AnimatedPressable
+            onPress={() => navigation.navigate(Screen.authentication, { screen: Screen.signIn })}
+            accessibilityRole="button"
+            accessibilityLabel="Sign in"
+          >
+            <Text style={styles.signInLink}>Already have an account? Sign in</Text>
+          </AnimatedPressable>
+        ) : null}
       </View>
     </AppScreen>
   );
@@ -243,5 +253,12 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  signInLink: {
+    fontSize: Typography.size.sm,
+    color: Colors.primary,
+    textAlign: 'center',
+    fontWeight: '600',
+    paddingVertical: Spacing.xs,
   },
 });

@@ -65,10 +65,10 @@ export const appConfig = {
   /**
    * Start session replay with the SDK so Contentsquare can capture replays.
    * activateAnalytics() also calls startSessionReplay() after opt-in as a backup.
-   * Users can still opt out in Profile.
+   * Collection is ON by default; users can still opt out in Profile.
    */
   contentsquareSessionReplayAutoStart: true,
-  /** Mask UI by default; set false so Session Replay shows real screens. */
+  /** false = Session Replay shows real screens (unmasked). */
   contentsquareDefaultMasking: false,
 
   /** Canonical app IDs — must match Xcode / Android / Firebase / ASC. */

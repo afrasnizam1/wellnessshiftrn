@@ -12,25 +12,25 @@
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		244888DE59A94F288F359EF5 /* Brain_hologram.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 2CAA1FF37D604B4FB13E859E /* Brain_hologram.usdz */; settings = {ASSET_TAGS = (holograms_large, ); }; };
-		32E7E5A2695D4E479A81044B /* Free_Pack_-_Human_Skeleton.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 92365BDCFF204E38BFE64CB5 /* Free_Pack_-_Human_Skeleton.usdz */; settings = {ASSET_TAGS = (holograms_large, ); }; };
-		51E9A9487F704C5CA0B917F3 /* Realistic_Human_Stomach.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 60D52A471CB54787AD9C88FA /* Realistic_Human_Stomach.usdz */; settings = {ASSET_TAGS = (holograms_large, ); }; };
+		244888DE59A94F288F359EF5 /* Brain_hologram.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 2CAA1FF37D604B4FB13E859E /* Brain_hologram.usdz */; };
+		32E7E5A2695D4E479A81044B /* Free_Pack_-_Human_Skeleton.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 92365BDCFF204E38BFE64CB5 /* Free_Pack_-_Human_Skeleton.usdz */; };
+		51E9A9487F704C5CA0B917F3 /* Realistic_Human_Stomach.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 60D52A471CB54787AD9C88FA /* Realistic_Human_Stomach.usdz */; };
 		60F48CAE15C5D8256BEFB67A /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635E3F11CB88C507A706CD95 /* ExpoModulesProvider.swift */; };
-		7B40C67A97FE4B748FF21186 /* Beating-heart.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 0D2A309BA9DC4672B9651C9C /* Beating-heart.usdz */; settings = {ASSET_TAGS = (holograms_large, ); }; };
-		8185BB10D62441769B3F61F0 /* Struktur_Paru-Paru_Manusia_3D_Model.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 90BBBF7293E849CF96FE0A29 /* Struktur_Paru-Paru_Manusia_3D_Model.usdz */; settings = {ASSET_TAGS = (holograms_large, ); }; };
+		7B40C67A97FE4B748FF21186 /* Beating-heart.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 0D2A309BA9DC4672B9651C9C /* Beating-heart.usdz */; };
+		8185BB10D62441769B3F61F0 /* Struktur_Paru-Paru_Manusia_3D_Model.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 90BBBF7293E849CF96FE0A29 /* Struktur_Paru-Paru_Manusia_3D_Model.usdz */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		8F95EF4C055FFA027D24EABD /* Pods_WellnessShift_WellnessShiftTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8589FC914B7DB8DBB099648B /* Pods_WellnessShift_WellnessShiftTests.framework */; };
-		976F94AD270D49CFBD9D48DA /* Ecorche_-_Anatomy_study.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 8E4526D9085B4941AA53A266 /* Ecorche_-_Anatomy_study.usdz */; settings = {ASSET_TAGS = (holograms_large, ); }; };
+		976F94AD270D49CFBD9D48DA /* Ecorche_-_Anatomy_study.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 8E4526D9085B4941AA53A266 /* Ecorche_-_Anatomy_study.usdz */; };
 		9F41C407FF3A9AD39C28D35E /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164A75F119B0E809EC77E38B /* ExpoModulesProvider.swift */; };
 		A1B2C3D401234567890AB01 /* AnatomyViewerModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D401234567890AB11 /* AnatomyViewerModule.swift */; };
 		A1B2C3D401234567890AB02 /* AnatomyViewerModule.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D401234567890AB12 /* AnatomyViewerModule.m */; };
-		A42D098067BA44E3A3A349FD /* adult_heart_and_lungs.usdz in Resources */ = {isa = PBXBuildFile; fileRef = F85599496DA34BB7A79F8995 /* adult_heart_and_lungs.usdz */; settings = {ASSET_TAGS = (holograms_large, ); }; };
+		A42D098067BA44E3A3A349FD /* adult_heart_and_lungs.usdz in Resources */ = {isa = PBXBuildFile; fileRef = F85599496DA34BB7A79F8995 /* adult_heart_and_lungs.usdz */; };
 		AD0403F0E0AB494697D3BBCB /* HologramSceneViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = A59F15143F8446B3AEAAA405 /* HologramSceneViewManager.m */; };
 		B2C3D4E501234567890AB01 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = B2C3D4E501234567890AB11 /* GoogleService-Info.plist */; };
 		E29AC42157CF130F2221E98A /* Pods_WellnessShift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BB72FE7F2A67408F122A1CD3 /* Pods_WellnessShift.framework */; };
-		EB085E64278244DBB14DDF5E /* adult_heart_and_bronchial_airways.usdz in Resources */ = {isa = PBXBuildFile; fileRef = A92FD7AF12154101BDFD3623 /* adult_heart_and_bronchial_airways.usdz */; settings = {ASSET_TAGS = (holograms_large, ); }; };
+		EB085E64278244DBB14DDF5E /* adult_heart_and_bronchial_airways.usdz in Resources */ = {isa = PBXBuildFile; fileRef = A92FD7AF12154101BDFD3623 /* adult_heart_and_bronchial_airways.usdz */; };
 		F9FED6CCF0DA48B48001E35A /* HologramSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 826D6846970B489AA7ED0EBB /* HologramSceneView.swift */; };
-		FCA0DF149DA646E49C4A99A0 /* Male_Full_Body_Ecorche.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 51D67845B51E4E10B8021BBB /* Male_Full_Body_Ecorche.usdz */; settings = {ASSET_TAGS = (holograms_large, ); }; };
+		FCA0DF149DA646E49C4A99A0 /* Male_Full_Body_Ecorche.usdz in Resources */ = {isa = PBXBuildFile; fileRef = 51D67845B51E4E10B8021BBB /* Male_Full_Body_Ecorche.usdz */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */

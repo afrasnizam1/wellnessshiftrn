@@ -184,15 +184,9 @@ export default function RootNavigator() {
 
   useEffect(() => {
     return registerPreAuthRouteListener((route) => {
-      // Always accept post-quiz progress so remounts don't reopen Assessment Path / Quiz.
-      const postQuiz =
-        route === Screen.wellnessResults ||
-        route === Screen.onboardingMood ||
-        route === Screen.firstWinActivity ||
-        route === Screen.authentication;
-      if (!freezePreAuthRouteRef.current || postQuiz) {
-        setPreAuthRoute(route);
-      }
+      // Explicit progress from refreshPreAuthRouteFromPending — always apply.
+      // Freeze only blocks the cold-start useEffect re-resolve below.
+      setPreAuthRoute(route);
     });
   }, []);
 

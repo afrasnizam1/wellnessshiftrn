@@ -198,7 +198,7 @@ export default function ProfileScreen() {
           <AppCard>
             <Text style={styles.sectionTitle}>Analytics & Session Replay</Text>
             <Text style={styles.analyticsHint}>
-              Usage analytics and session replay run while you are signed in. Turn this off anytime to stop collection.
+              Usage analytics and session replay are on by default. Turn this off anytime to stop collection.
             </Text>
             <View style={styles.analyticsRow}>
               <Text style={styles.dataRowText}>Allow analytics</Text>

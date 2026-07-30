@@ -15,7 +15,21 @@ const CORE_MODULES: FitnessModule[] = [
   { id: 'mindfulness',        title: 'Mindfulness',               subtitle: 'Mindfulness practices',                        category: 'mindBody',     icon: '☯️',  color: Colors.mindfulness, isPremium: false, wellnessCategory: 'mindfulness' },
   { id: 'stretching',         title: 'Stretching Routines',       subtitle: 'Full-body mobility & flexibility',             category: 'mindBody',     icon: '🤸',  color: Colors.fitness,    isPremium: false, wellnessCategory: 'fitness' },
   { id: 'yoga',               title: 'Yoga & Pilates',            subtitle: 'Mind-body movement practices',                 category: 'mindBody',     icon: '🧘‍♀️',  color: Colors.mindfulness, isPremium: true,  wellnessCategory: 'mindfulness' },
-  { id: 'sleep-tools',        title: 'Sleep Tools',               subtitle: 'Sleep tracking & debt calculator',             category: 'mindBody',     icon: '😴',  color: Colors.sleep,      isPremium: false, wellnessCategory: 'sleep' },
+  { id: 'sleep-tools',        title: 'Sleep Tools',               subtitle: 'Sleep tracking & debt calculator',             category: 'mindBody',     icon: '😴',  color: Colors.sleep,      isPremium: false, wellnessCategory: 'sleep', domain: 'Sleep', exploreTags: ['Sleep'] },
+
+  // Sleep, meditation & relaxation
+  { id: 'bedtime-wind-down',  title: 'Bedtime Wind-Down',         subtitle: '20-minute routine to fall asleep easier',      category: 'mindBody',     icon: '🌙',  color: Colors.sleep,      isPremium: false, wellnessCategory: 'sleep', domain: 'Sleep', exploreTags: ['Sleep'] },
+  { id: 'power-nap',          title: 'Power Nap Guide',           subtitle: 'Short restorative naps without grogginess',   category: 'mindBody',     icon: '💤',  color: Colors.sleep,      isPremium: false, wellnessCategory: 'sleep', domain: 'Sleep', exploreTags: ['Sleep', 'Energy'] },
+  { id: 'circadian-reset',    title: 'Circadian Reset',           subtitle: 'Light, timing & habits for better sleep',     category: 'mindBody',     icon: '☀️',  color: Colors.sleep,      isPremium: false, wellnessCategory: 'sleep', domain: 'Sleep', exploreTags: ['Sleep', 'Lifestyle'] },
+  { id: 'sleep-quality-log',  title: 'Sleep Quality Log',         subtitle: 'Track how rested you feel each morning',      category: 'trackers',     icon: '🛏️',  color: Colors.sleep,      isPremium: false, wellnessCategory: 'sleep', domain: 'Sleep', exploreTags: ['Sleep', 'Health Tracking'] },
+  { id: 'body-scan',          title: 'Body Scan Meditation',      subtitle: 'Release tension from head to toe',            category: 'mindBody',     icon: '🫧',  color: Colors.mindfulness, isPremium: false, wellnessCategory: 'mindfulness', exploreTags: ['Mindfulness', 'Stress & Anxiety'] },
+  { id: 'loving-kindness',    title: 'Loving-Kindness',           subtitle: 'Compassion meditation for calm & mood',       category: 'mindBody',     icon: '💗',  color: Colors.mindfulness, isPremium: false, wellnessCategory: 'mindfulness', exploreTags: ['Mindfulness', 'Mental Health'] },
+  { id: 'walking-meditation', title: 'Walking Meditation',        subtitle: 'Mindful steps for outdoor or indoor calm',    category: 'mindBody',     icon: '🚶',  color: Colors.mindfulness, isPremium: false, wellnessCategory: 'mindfulness', exploreTags: ['Mindfulness', 'Fitness'] },
+  { id: 'breath-anchor',      title: 'Breath Anchor',             subtitle: 'Simple seated focus meditation',              category: 'mindBody',     icon: '🍃',  color: Colors.mindfulness, isPremium: false, wellnessCategory: 'mindfulness', exploreTags: ['Mindfulness', 'Breathing'] },
+  { id: 'progressive-relax',  title: 'Progressive Relaxation',    subtitle: 'Tense & release muscles to unwind',           category: 'mindBody',     icon: '🌊',  color: Colors.stress,     isPremium: false, wellnessCategory: 'stress', exploreTags: ['Mindfulness', 'Stress & Anxiety'] },
+  { id: 'five-minute-calm',   title: '5-Minute Calm',             subtitle: 'Quick reset when stress spikes',              category: 'mindBody',     icon: '🕊️',  color: Colors.stress,     isPremium: false, wellnessCategory: 'stress', exploreTags: ['Stress & Anxiety', 'Mindfulness'] },
+  { id: 'tension-release',    title: 'Tension Release',           subtitle: 'Jaw, neck & shoulder unwind stretches',       category: 'mindBody',     icon: '😮‍💨',  color: Colors.stress,     isPremium: false, wellnessCategory: 'stress', exploreTags: ['Stress & Anxiety', 'Mobility'] },
+  { id: 'evening-unwind',     title: 'Evening Unwind',            subtitle: 'Relaxation sequence before bed',              category: 'mindBody',     icon: '🕯️',  color: Colors.sleep,      isPremium: false, wellnessCategory: 'sleep', domain: 'Sleep', exploreTags: ['Sleep', 'Mindfulness'] },
 
   // 3D Anatomy — native iOS USDZ holograms only
   { id: 'heart-hologram',     title: 'Beating Heart Hologram',    subtitle: 'Interactive 3D heart anatomy',                 category: 'anatomy',      icon: '❤️',  color: '#E74C3C',         isPremium: false },
@@ -106,6 +120,17 @@ function enrichModuleTags(m: FitnessModule): FitnessModule {
     tags.add('Mindfulness');
     if (wc === 'stress') tags.add('Stress & Anxiety');
     if (wc === 'sleep') tags.add('Sleep');
+    if (
+      id.includes('relax') ||
+      id.includes('calm') ||
+      id.includes('tension') ||
+      id.includes('unwind')
+    ) {
+      tags.add('Stress & Anxiety');
+    }
+    if (id.includes('meditat') || id.includes('body-scan') || id.includes('loving') || id.includes('breath-anchor')) {
+      tags.add('Mindfulness');
+    }
   }
   if (m.category === 'anatomy') tags.add('Cardiovascular');
   if (m.category === 'calculators') tags.add('Assessments');
@@ -159,6 +184,9 @@ export function getModulesForExploreCategory(categoryName: string): FitnessModul
 }
 
 function inferDomain(m: FitnessModule): FitnessDomainSection {
+  if (m.wellnessCategory === 'sleep' || m.id.includes('sleep') || m.exploreTags?.includes('Sleep')) {
+    return 'Sleep';
+  }
   switch (m.category) {
     case 'trackers': return 'Health Tracking';
     case 'calculators': return 'Assessments & Analysis';
@@ -200,7 +228,7 @@ export const FITNESS_SECTIONS = [
   {
     title: 'Mind & Body Practices',
     icon: '🧘',
-    subtitle: 'Breathing, meditation, mindfulness and more',
+    subtitle: 'Sleep, meditation, breathing, relaxation and more',
     data: FITNESS_MODULES.filter((m) => m.category === 'mindBody'),
   },
   {

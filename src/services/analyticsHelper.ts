@@ -15,9 +15,7 @@ function trackEvent(eventName: string, properties?: EventProps) {
   } else {
     CSQ.trackEvent(eventName);
   }
-  if (__DEV__) {
-    logger.log(`📊 CSQ event: ${eventName}`, properties ?? '');
-  }
+  logger.log(`📊 CSQ event: ${eventName}`, properties ?? '');
 }
 
 /** Mirrors native AnalyticsHelper CSQ custom events (not Firebase-only helpers). */

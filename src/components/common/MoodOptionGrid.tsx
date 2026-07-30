@@ -1,23 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Typography, Spacing, Radius } from '../../theme';
-import { IconBadge } from '../ui';
-import type { IoniconName } from '../../theme/icons';
+import LinearGradient from 'react-native-linear-gradient';
+import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
 import type { MoodLevel } from '../../types';
+import MoodFaceIcon from './MoodFaceIcon';
 
 export type MoodOption = {
-  icon: IoniconName;
   label: string;
   value: MoodLevel;
-  bg: string;
-  color: string;
+  /** Soft well gradient (top → bottom) */
+  well: [string, string];
+  accent: string;
 };
 
 export const ONBOARDING_MOOD_OPTIONS: MoodOption[] = [
-  { icon: 'sad-outline', label: 'Low', value: 'low', bg: '#EDE8FF', color: '#7C6FD6' },
-  { icon: 'ellipse-outline', label: 'Okay', value: 'neutral', bg: '#EEF2F7', color: '#64748B' },
-  { icon: 'happy-outline', label: 'Good', value: 'good', bg: '#E3F9EC', color: '#22C55E' },
-  { icon: 'sparkles-outline', label: 'Great', value: 'great', bg: '#FFF4DE', color: '#F59E0B' },
+  { label: 'Low', value: 'low', well: ['#F3EEFF', '#E4DBFF'], accent: '#7C6FD6' },
+  { label: 'Okay', value: 'neutral', well: ['#F1F5F9', '#E2E8F0'], accent: '#64748B' },
+  { label: 'Good', value: 'good', well: ['#ECFDF5', '#D1FAE5'], accent: '#16A34A' },
+  { label: 'Great', value: 'great', well: ['#FFFBEB', '#FEF3C7'], accent: '#F59E0B' },
 ];
 
 type Props = {
@@ -35,15 +35,25 @@ export default function MoodOptionGrid({ options, onSelect, disabled, selected }
         return (
           <TouchableOpacity
             key={m.value}
-            style={[styles.card, isSelected && styles.cardSelected]}
+            style={[
+              styles.card,
+              isSelected && { borderColor: m.accent, backgroundColor: `${m.accent}12` },
+            ]}
             onPress={() => onSelect(m.value)}
             disabled={disabled}
-            activeOpacity={0.85}
+            activeOpacity={0.88}
+            accessibilityRole="button"
+            accessibilityLabel={`Feeling ${m.label}`}
           >
-            <View style={[styles.iconCircle, { backgroundColor: m.bg }]}>
-              <IconBadge name={m.icon} color={m.color} size="lg" variant="plain" />
-            </View>
-            <Text style={styles.label}>{m.label}</Text>
+            <LinearGradient
+              colors={m.well}
+              start={{ x: 0.15, y: 0 }}
+              end={{ x: 0.85, y: 1 }}
+              style={[styles.iconWell, isSelected && styles.iconWellSelected]}
+            >
+              <MoodFaceIcon mood={m.value} size={44} />
+            </LinearGradient>
+            <Text style={[styles.label, isSelected && { color: m.accent }]}>{m.label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -67,22 +77,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: Colors.borderLight,
+    ...Shadow.sm,
   },
-  cardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primaryBg,
-  },
-  iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+  iconWell: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+  iconWellSelected: {
+    transform: [{ scale: 1.04 }],
   },
   label: {
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
     fontSize: Typography.size.sm,
     fontWeight: '700',
     color: Colors.text,
+    letterSpacing: 0.2,
   },
 });

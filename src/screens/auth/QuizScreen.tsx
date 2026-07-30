@@ -40,7 +40,7 @@ export default function QuizScreen() {
     (async () => {
       // Guest-only resume: never teleport signed-in users into the create-account stack.
       if (!user) {
-        const resumed = await resumePreAuthOnboardingFromPending(navigation);
+        const resumed = await resumePreAuthOnboardingFromPending(navigation, hasSeenIntro);
         if (cancelled || resumed === 'handled') return;
       }
 

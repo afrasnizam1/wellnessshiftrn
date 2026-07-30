@@ -40,9 +40,14 @@ function learningRoute(guideId: string): { screen: string; params?: object } {
 
 function ScrollProgressBar({ progress }: { progress: number }) {
   const clamped = Math.max(0, Math.min(1, progress));
+  // Sliding thumb (not a left-growing fill) — moves right as you scroll.
+  const thumbPct = 32;
+  const leftPct = clamped * (100 - thumbPct);
   return (
-    <View style={styles.progressTrack} accessibilityRole="progressbar">
-      <View style={[styles.progressFill, { width: `${clamped * 100}%` }]} />
+    <View style={styles.progressWrap} accessibilityRole="progressbar">
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressThumb, { width: `${thumbPct}%`, left: `${leftPct}%` }]} />
+      </View>
     </View>
   );
 }
@@ -297,18 +302,29 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: Typography.size.base, color: Colors.text, padding: 0 },
 
+  progressWrap: {
+    alignSelf: 'flex-end',
+    width: '42%',
+    minWidth: 120,
+  },
   progressTrack: {
     height: 4,
     borderRadius: 2,
     backgroundColor: Colors.borderLight,
     overflow: 'hidden',
+    position: 'relative',
   },
-  progressFill: {
-    height: '100%',
+  progressThumb: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
     borderRadius: 2,
     backgroundColor: Colors.brand,
   },
-  learningProgressWrap: { marginBottom: Spacing.sm },
+  learningProgressWrap: {
+    marginBottom: Spacing.sm,
+    alignItems: 'flex-end',
+  },
 
   featuredRow: { paddingBottom: Spacing.xs, paddingRight: Spacing.base },
 

@@ -157,6 +157,122 @@ export const GUIDED_PROGRAMS: Record<string, GuidedProgram> = {
     ],
     tips: ['Caffeine cutoff 8 hours before bed.', 'Alcohol fragments sleep — limit evening intake.', 'Start the 21-Day Sleep Improvement program for structured support.'],
   },
+  'bedtime-wind-down': {
+    intro: 'A repeatable wind-down signals your brain that sleep is coming — same sequence, same time, most nights.',
+    steps: [
+      { title: 'Dim the lights', duration: '1 min', description: 'Switch to warm lamps. Bright overhead light delays melatonin.' },
+      { title: 'Screen curfew', duration: 'now', description: 'Park phones outside the bedroom. Use a paper book or audio if you need a wind-down activity.' },
+      { title: 'Light stretch', duration: '5 min', description: 'Neck rolls, shoulder openers, gentle forward fold — nothing vigorous.' },
+      { title: '4-7-8 breathing', duration: '4 cycles', description: 'Inhale 4, hold 7, exhale 8. Lie on your back or side.' },
+      { title: 'Lights out', duration: 'fixed time', description: 'Aim for a consistent bedtime within a 30-minute window.' },
+    ],
+    tips: ['Keep the room cool (~16–19°C).', 'If you cannot sleep after ~20 minutes, get up and do something calm in dim light.'],
+  },
+  'power-nap': {
+    intro: 'A short nap can restore alertness without wrecking night sleep — timing and length matter.',
+    steps: [
+      { title: 'Set a 10–20 min alarm', description: 'Longer naps often cause sleep inertia (grogginess).' },
+      { title: 'Dark + quiet', description: 'Eye mask or dark room, phone on Do Not Disturb.' },
+      { title: 'Lie down early afternoon', description: 'Ideal window is roughly 1–3pm — avoid after 4pm.' },
+      { title: 'Rise gently', description: 'Splash cool water on your face or take 30 seconds of light movement.' },
+    ],
+    tips: ['Skip naps if you have insomnia — protect night sleep first.', 'Caffeine before a nap (“coffee nap”) can help some people wake sharper.'],
+  },
+  'circadian-reset': {
+    intro: 'Your body clock runs on light, meals, and movement. Small daily anchors beat weekend catch-up sleep.',
+    steps: [
+      { title: 'Morning outdoor light', duration: '5–10 min', description: 'Within 30 minutes of waking — even on cloudy days.' },
+      { title: 'Consistent wake time', description: 'Same wake time daily (including weekends) is the strongest circadian cue.' },
+      { title: 'Daytime movement', duration: '20+ min', description: 'A walk outdoors doubles as light exposure and stress relief.' },
+      { title: 'Evening dim-down', duration: 'from 2 hrs before bed', description: 'Lower brightness, warm colour temperature, fewer intense screens.' },
+    ],
+    tips: ['Shift bedtime by 15–30 minutes when adjusting — not 2 hours at once.', 'Jet lag: seek light at the destination morning, avoid late-night light.'],
+  },
+  'body-scan': {
+    intro: 'Body scan meditation trains awareness of physical sensation and gently releases held tension.',
+    warmup: 'Lie down or sit supported. Soften the jaw and drop the shoulders.',
+    steps: [
+      { title: 'Settle', duration: '1 min', description: 'Notice the contact points of your body with the floor or chair.' },
+      { title: 'Head to torso', duration: '3 min', description: 'Forehead, eyes, jaw, neck, chest, belly — soften each on the exhale.' },
+      { title: 'Arms & hands', duration: '2 min', description: 'Shoulders → elbows → wrists → fingers. Unclench without forcing.' },
+      { title: 'Legs & feet', duration: '3 min', description: 'Hips, thighs, knees, calves, feet. Let heaviness spread.' },
+      { title: 'Whole-body awareness', duration: '1 min', description: 'Feel the body as one field of sensation. Return when the mind wanders.' },
+    ],
+    tips: ['Falling asleep is fine at night — for daytime practice, sit upright.', 'Use the Meditation Timer for longer scans.'],
+  },
+  'loving-kindness': {
+    intro: 'Loving-kindness (metta) softens self-criticism and builds a calmer emotional baseline.',
+    steps: [
+      { title: 'Toward yourself', duration: '2 min', description: 'Silently: “May I be safe. May I be well. May I live with ease.”' },
+      { title: 'Someone you care about', duration: '2 min', description: 'Picture them and repeat the same phrases with their name.' },
+      { title: 'A neutral person', duration: '2 min', description: 'Someone you barely know — offer the same wishes.' },
+      { title: 'Widen the circle', duration: '2 min', description: 'Extend to your neighbourhood, then all beings — keep it simple and sincere.' },
+    ],
+    tips: ['If phrases feel awkward, shorten to “May I be okay.”', 'Resistance is normal — notice it kindly and continue.'],
+  },
+  'walking-meditation': {
+    intro: 'Walking meditation pairs mindful attention with gentle movement — ideal when sitting feels restless.',
+    steps: [
+      { title: 'Choose a path', description: 'A quiet hallway, garden loop, or short outdoor route you can reverse.' },
+      { title: 'Slow your pace', duration: '5–10 min', description: 'Feel heel → sole → toe. Match breath to steps if helpful.' },
+      { title: 'Anchor on sensation', description: 'Feet, air on skin, or ambient sound — pick one and return when distracted.' },
+      { title: 'Pause & turn', description: 'At the end of the path, stop fully, then turn with awareness.' },
+    ],
+    tips: ['Phones on silent in a pocket — not in hand.', 'Outdoors counts as both mindfulness and light exposure.'],
+  },
+  'breath-anchor': {
+    intro: 'A classic seated practice: the breath is your home base whenever attention drifts.',
+    steps: [
+      { title: 'Posture', duration: '30s', description: 'Sit tall, soft belly, eyes closed or soft gaze downward.' },
+      { title: 'Feel the breath', duration: '3–8 min', description: 'Notice cool in, warm out — nose or belly, wherever clearest.' },
+      { title: 'Count gently', description: 'Count exhales 1–10, then restart. Losing count is part of training.' },
+      { title: 'Close', duration: '30s', description: 'Widen awareness to the room, then open your eyes.' },
+    ],
+    tips: ['Start with 3 minutes — consistency beats duration.', 'Pair with the Meditation Timer for structured sessions.'],
+  },
+  'progressive-relax': {
+    intro: 'Progressive muscle relaxation (PMR) reduces physical tension that fuels anxiety and sleep trouble.',
+    warmup: 'Lie down. Loosen clothing. Breathe slowly for 30 seconds.',
+    steps: [
+      { title: 'Hands & arms', duration: '1 min', description: 'Make fists 5s, release 10s. Then tense biceps, release.' },
+      { title: 'Face & neck', duration: '1 min', description: 'Scrunch face, then soften. Gently tip chin, release neck.' },
+      { title: 'Shoulders & chest', duration: '1 min', description: 'Shrug to ears, hold, drop. Expand chest briefly, release.' },
+      { title: 'Legs & feet', duration: '1 min', description: 'Point toes, then flex; tense thighs, release into heaviness.' },
+      { title: 'Full-body release', duration: '1 min', description: 'Scan for leftover tension and let it melt on each exhale.' },
+    ],
+    tips: ['Never tense into pain — 50–70% effort is enough.', 'Excellent as part of your bedtime wind-down.'],
+  },
+  'five-minute-calm': {
+    intro: 'When stress spikes, you do not need a long practice — you need a reliable 5-minute reset.',
+    steps: [
+      { title: 'Stop & name it', duration: '30s', description: 'Silently: “This is stress.” Naming reduces intensity.' },
+      { title: 'Box breathing', duration: '2 min', description: 'Inhale 4, hold 4, exhale 4, hold 4 — four to six rounds.' },
+      { title: '5-4-3-2-1 senses', duration: '2 min', description: '5 see, 4 touch, 3 hear, 2 smell, 1 taste.' },
+      { title: 'One next step', duration: '30s', description: 'Choose one tiny action: water, a stretch, or a short walk.' },
+    ],
+    tips: ['Practise when calm so it is automatic under pressure.', 'Open Breathing Exercises for a guided timer.'],
+  },
+  'tension-release': {
+    intro: 'Desk and phone posture store tension in the jaw, neck, and shoulders. Release it in under 10 minutes.',
+    steps: [
+      { title: 'Jaw drop', duration: '60s', description: 'Tongue off the roof of the mouth. Gently open and close the jaw.' },
+      { title: 'Neck mobility', duration: '2 min', description: 'Ear to shoulder each side; slow chin tucks — no forcing.' },
+      { title: 'Shoulder rolls', duration: '1 min', description: 'Big circles backward, then shrug-and-drop 5 times.' },
+      { title: 'Chest opener', duration: '90s', description: 'Hands clasped behind back or doorframe stretch — breathe into the chest.' },
+      { title: 'Settle', duration: '1 min', description: 'Hands on belly, slow exhales longer than inhales.' },
+    ],
+    tips: ['Set a hourly reminder to unclench jaw and drop shoulders.', 'Pair with Stretching Routines for a fuller mobility session.'],
+  },
+  'evening-unwind': {
+    intro: 'Bridge daytime stress into night rest with a short relaxation sequence designed for bedtime.',
+    steps: [
+      { title: 'Transition cue', duration: '1 min', description: 'Change into sleep clothes, wash face, dim lights — same order nightly.' },
+      { title: 'PMR or body scan', duration: '5–8 min', description: 'Use Progressive Relaxation or Body Scan — pick one and stick with it.' },
+      { title: 'Gratitude note', duration: '2 min', description: 'Write three small things that went okay today — keeps rumination down.' },
+      { title: 'Lights out ritual', description: 'Same bedtime phrase or breath pattern as you settle under the covers.' },
+    ],
+    tips: ['Avoid email and news in this window.', 'If worried thoughts arise, jot them on a “tomorrow” list and return to the breath.'],
+  },
 };
 
 export function getGuidedProgram(module: FitnessModule): GuidedProgram {

@@ -156,21 +156,12 @@ class HologramSceneUIView: UIView {
 // MARK: - Loader (mirrors native Hologram*3DView / BeatingHeart3DView)
 
 enum HologramLoader {
-  /// On-Demand Resource tag for all USDZ packs (~68MB) — not in the initial IPA.
+  /// On-Demand Resource tag reserved for future large packs (App Store only).
+  /// Simulator/local debug does not reliably serve ODR, so models ship in the base bundle.
   static let onDemandTag = "holograms_large"
 
-  /// Models tagged in Xcode as `holograms_large` (see project.pbxproj ASSET_TAGS).
-  static let onDemandModels: Set<String> = [
-    "Beating-heart",
-    "Brain_hologram",
-    "Ecorche_-_Anatomy_study",
-    "Free_Pack_-_Human_Skeleton",
-    "Male_Full_Body_Ecorche",
-    "Realistic_Human_Stomach",
-    "Struktur_Paru-Paru_Manusia_3D_Model",
-    "adult_heart_and_bronchial_airways",
-    "adult_heart_and_lungs",
-  ]
+  /// Empty while models are bundled — ODR download path kept for a future App Store setup.
+  static let onDemandModels: Set<String> = []
 
   enum Preset: String {
     case brain
@@ -191,10 +182,29 @@ enum HologramLoader {
   }
 
   static func bundleURL(for fileName: String) -> URL? {
-    [
+    let candidates = [
       Bundle.main.url(forResource: fileName, withExtension: "usdz", subdirectory: "Models"),
       Bundle.main.url(forResource: fileName, withExtension: "usdz"),
-    ].compactMap { $0 }.first
+    ].compactMap { $0 }
+    if let hit = candidates.first { return hit }
+
+    // Debug / local ODR: asset packs live next to the .app under OnDemandResources/
+    if let resourceURL = Bundle.main.resourceURL {
+      let odrRoot = resourceURL
+        .deletingLastPathComponent()
+        .appendingPathComponent("OnDemandResources", isDirectory: true)
+      if let enumerator = FileManager.default.enumerator(
+        at: odrRoot,
+        includingPropertiesForKeys: nil,
+        options: [.skipsHiddenFiles]
+      ) {
+        let target = "\(fileName).usdz"
+        for case let fileURL as URL in enumerator where fileURL.lastPathComponent == target {
+          return fileURL
+        }
+      }
+    }
+    return nil
   }
 
   static func apply(preset: Preset, to scene: SCNScene, sceneView: SCNView) {

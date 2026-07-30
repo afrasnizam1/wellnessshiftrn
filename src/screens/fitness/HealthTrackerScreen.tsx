@@ -19,6 +19,7 @@ const TRACKERS: Record<string, { title: string; color: string; unit: string; log
   'pain-scale': { title: 'Pain Scale', color: '#E74C3C', unit: '/10', logLabel: 'Pain level (1–10)', entries: [] },
   'energy-level': { title: 'Energy Level', color: '#F39C12', unit: '/10', logLabel: 'Energy (1–10)', entries: [{ time: 'This morning', value: '6/10' }] },
   'mindfulness-tracker': { title: 'Mindfulness', color: Colors.mindfulness, unit: 'min', logLabel: 'Minutes practised', entries: [] },
+  'sleep-quality-log': { title: 'Sleep Quality', color: Colors.sleep, unit: '/10', logLabel: 'How rested (1–10)', entries: [] },
   'heart-monitoring': { title: 'Heart Monitoring', color: '#E74C3C', unit: 'bpm', logLabel: 'Heart rate', entries: [] },
   'resting-heart-rate': { title: 'Resting Heart Rate', color: '#E74C3C', unit: 'bpm', logLabel: 'Morning RHR', entries: [] },
   'diabetes-management': { title: 'Blood Glucose Log', color: '#E74C3C', unit: 'mmol/L', logLabel: 'Glucose reading', entries: [] },

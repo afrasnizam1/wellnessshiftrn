@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, Modal, TouchableOpacity,
+  View, Text, StyleSheet, Modal, TouchableOpacity, useWindowDimensions,
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors, Typography, Spacing, Radius } from '../../theme';
-import { IconBadge, BrandButton } from '../ui';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { Colors, Typography, Spacing, Radius, Shadow, Gradients } from '../../theme';
+import { BrandButton } from '../ui';
 import type { IoniconName } from '../../theme/icons';
 import { getContextualGuideDestination } from '../../utils/onboardingGuide';
 
@@ -23,6 +26,7 @@ type TourStep = {
   description: string;
   icon: IoniconName;
   color: string;
+  well: [string, string];
   tabHint?: string;
   destination?: InAppGuideDestination;
   actionTitle?: string;
@@ -36,17 +40,19 @@ function buildTourSteps(primaryGoal?: string | null): TourStep[] {
       title: 'Welcome to Wellness Shift',
       description:
         'Your personal hub for daily wellness — track how you feel, follow a plan, train, and get AI guidance tailored to your goals.',
-      icon: 'sparkles-outline',
+      icon: 'sparkles',
       color: Colors.brand,
+      well: [...Gradients.brand],
     },
     {
       id: 'home',
       title: 'Home — your wellness hub',
       description:
         'See your wellness score, daily motivation, and progress signals. Start daily check-ins and open today’s plan from here.',
-      icon: 'home-outline',
+      icon: 'home',
       color: Colors.primary,
-      tabHint: 'Bottom tab: Home',
+      well: [...Gradients.primary],
+      tabHint: 'Bottom tab · Home',
       destination: 'home',
       actionTitle: 'Stay on Home',
     },
@@ -57,9 +63,10 @@ function buildTourSteps(primaryGoal?: string | null): TourStep[] {
         focus === 'fitness'
           ? 'Log how you feel each day, then follow your daily plan. Based on your goals, Fitness Hub is a great next stop after this.'
           : 'Log today’s mood in one tap — it personalises your plan and AI insights. Your daily plan lives on Home too.',
-      icon: focus === 'fitness' ? 'barbell-outline' : 'flame-outline',
+      icon: focus === 'fitness' ? 'barbell' : 'flame',
       color: focus === 'fitness' ? Colors.fitness : Colors.warning,
-      tabHint: 'Home → Check-in / Daily plan',
+      well: focus === 'fitness' ? ['#389EFA', '#007AFF'] : ['#FF9500', '#FFB340'],
+      tabHint: focus === 'fitness' ? 'Tab · Fitness' : 'Home · Check-in',
       destination: focus === 'fitness' ? 'fitness' : 'dailyCheckIn',
       actionTitle: focus === 'fitness' ? 'Open Fitness' : 'Do check-in',
     },
@@ -68,9 +75,10 @@ function buildTourSteps(primaryGoal?: string | null): TourStep[] {
       title: 'Fitness',
       description:
         'Guided modules, workouts, and brain training live in the Fitness tab. Pick a session that matches your energy today.',
-      icon: 'barbell-outline',
+      icon: 'barbell',
       color: Colors.fitness,
-      tabHint: 'Bottom tab: Fitness',
+      well: ['#389EFA', '#5BB8FF'],
+      tabHint: 'Bottom tab · Fitness',
       destination: 'fitness',
       actionTitle: 'Open Fitness',
     },
@@ -79,9 +87,10 @@ function buildTourSteps(primaryGoal?: string | null): TourStep[] {
       title: 'AI Insights',
       description:
         'Chat with your AI health coach, review insights, and get next-best actions based on your quiz and check-ins.',
-      icon: 'sparkles-outline',
+      icon: 'sparkles',
       color: Colors.brand,
-      tabHint: 'Bottom tab: AI Insights',
+      well: [...Gradients.brand],
+      tabHint: 'Bottom tab · AI Insights',
       destination: 'aiInsights',
       actionTitle: 'Open AI Insights',
     },
@@ -90,9 +99,10 @@ function buildTourSteps(primaryGoal?: string | null): TourStep[] {
       title: 'Analytics & assessments',
       description:
         'Track trends over time, revisit wellness assessments, and export a year summary when you’re on a paid plan.',
-      icon: 'stats-chart-outline',
+      icon: 'stats-chart',
       color: Colors.physical,
-      tabHint: 'Bottom tab: Analytics',
+      well: ['#389EFA', '#2EDBBD'],
+      tabHint: 'Bottom tab · Analytics',
       destination: 'analytics',
       actionTitle: 'Open Analytics',
     },
@@ -101,9 +111,10 @@ function buildTourSteps(primaryGoal?: string | null): TourStep[] {
       title: 'More — settings & account',
       description:
         'Manage your profile, subscription, privacy, connected health data, and reopen this guide anytime.',
-      icon: 'menu-outline',
+      icon: 'grid',
       color: Colors.mental,
-      tabHint: 'Bottom tab: More',
+      well: ['#946BFA', '#B794F6'],
+      tabHint: 'Bottom tab · More',
       destination: 'more',
       actionTitle: 'Open More',
     },
@@ -120,6 +131,7 @@ type Props = {
 export default function InAppGuideModal({ visible, primaryGoal, onAction, onDismiss }: Props) {
   const steps = buildTourSteps(primaryGoal);
   const [index, setIndex] = useState(0);
+  const { height } = useWindowDimensions();
 
   useEffect(() => {
     if (visible) setIndex(0);
@@ -127,6 +139,7 @@ export default function InAppGuideModal({ visible, primaryGoal, onAction, onDism
 
   const step = steps[index] ?? steps[0];
   const isLast = index >= steps.length - 1;
+  const progress = (index + 1) / steps.length;
 
   const goNext = () => {
     if (isLast) {
@@ -142,144 +155,233 @@ export default function InAppGuideModal({ visible, primaryGoal, onAction, onDism
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onDismiss}>
-      <View style={styles.safe}>
-        <View style={styles.toolbar}>
-          <Text style={styles.navTitle}>App tour</Text>
-          <TouchableOpacity onPress={onDismiss} hitSlop={8}>
-            <Text style={styles.close}>Skip</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.body}>
-          <View style={styles.progressRow}>
-            {steps.map((s, i) => (
-              <View
-                key={s.id}
-                style={[styles.progressDot, i === index && styles.progressDotActive, i < index && styles.progressDotDone]}
-              />
-            ))}
-          </View>
-
-          <Text style={styles.stepCount}>
-            {index + 1} of {steps.length}
-          </Text>
-
-          <View style={styles.hero}>
-            <IconBadge name={step.icon} color={step.color} size="lg" />
-            {step.tabHint ? (
-              <View style={styles.tabHint}>
-                <Ionicons name="navigate-outline" size={14} color={Colors.primary} />
-                <Text style={styles.tabHintText}>{step.tabHint}</Text>
-              </View>
-            ) : null}
-            <Text style={styles.title}>{step.title}</Text>
-            <Text style={styles.sub}>{step.description}</Text>
-          </View>
-        </View>
-
-        <View style={styles.footer}>
-          {step.destination && step.actionTitle && index > 0 ? (
+      <LinearGradient
+        colors={['#FFF5F8', '#F7F8FC', '#EEF1F8']}
+        locations={[0, 0.45, 1]}
+        style={styles.root}
+      >
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+          <View style={styles.toolbar}>
+            <View>
+              <Text style={styles.eyebrow}>Quick tour</Text>
+              <Text style={styles.navTitle}>Get oriented</Text>
+            </View>
             <TouchableOpacity
-              style={styles.secondaryAction}
-              onPress={() => onAction(step.destination!)}
+              onPress={onDismiss}
+              hitSlop={10}
+              style={styles.skipBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Skip tour"
             >
-              <Text style={styles.secondaryActionText}>{step.actionTitle}</Text>
-              <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
+              <Text style={styles.skipText}>Skip</Text>
             </TouchableOpacity>
-          ) : null}
+          </View>
 
-          <View style={styles.navRow}>
-            {index > 0 ? (
-              <TouchableOpacity style={styles.backBtn} onPress={goBack} hitSlop={8}>
-                <Ionicons name="chevron-back" size={20} color={Colors.textSecondary} />
-                <Text style={styles.backText}>Back</Text>
+          <View style={styles.progressBlock}>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
+            </View>
+            <Text style={styles.stepCount}>
+              Step {index + 1}
+              <Text style={styles.stepCountMuted}> / {steps.length}</Text>
+            </Text>
+          </View>
+
+          <View style={[styles.body, { minHeight: Math.min(420, height * 0.52) }]}>
+            <Animated.View
+              key={step.id}
+              entering={FadeIn.duration(280)}
+              exiting={FadeOut.duration(160)}
+              style={styles.hero}
+            >
+              <View style={styles.orbGlow}>
+                <LinearGradient
+                  colors={step.well}
+                  start={{ x: 0.1, y: 0 }}
+                  end={{ x: 0.9, y: 1 }}
+                  style={styles.orb}
+                >
+                  <Ionicons name={step.icon} size={40} color="#fff" />
+                </LinearGradient>
+              </View>
+
+              {step.tabHint ? (
+                <View style={styles.tabHint}>
+                  <Ionicons name="navigate" size={13} color={Colors.brand} />
+                  <Text style={styles.tabHintText}>{step.tabHint}</Text>
+                </View>
+              ) : (
+                <View style={styles.brandPill}>
+                  <Text style={styles.brandPillText}>Wellness Shift</Text>
+                </View>
+              )}
+
+              <Text style={styles.title}>{step.title}</Text>
+              <Text style={styles.sub}>{step.description}</Text>
+            </Animated.View>
+          </View>
+
+          <View style={styles.footer}>
+            {step.destination && step.actionTitle && index > 0 ? (
+              <TouchableOpacity
+                style={styles.secondaryAction}
+                onPress={() => onAction(step.destination!)}
+                accessibilityRole="button"
+                accessibilityLabel={step.actionTitle}
+              >
+                <Text style={styles.secondaryActionText}>{step.actionTitle}</Text>
+                <Ionicons name="arrow-forward" size={15} color={Colors.brand} />
               </TouchableOpacity>
             ) : (
-              <View style={styles.backPlaceholder} />
+              <View style={styles.secondarySpacer} />
             )}
-            <BrandButton
-              label={isLast ? "Got it — let's go" : 'Next'}
-              onPress={goNext}
-              style={styles.nextBtn}
-            />
+
+            <View style={styles.navRow}>
+              {index > 0 ? (
+                <TouchableOpacity
+                  style={styles.backBtn}
+                  onPress={goBack}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Back"
+                >
+                  <Ionicons name="chevron-back" size={18} color={Colors.textSecondary} />
+                  <Text style={styles.backText}>Back</Text>
+                </TouchableOpacity>
+              ) : null}
+              <BrandButton
+                label={isLast ? "Got it — let's go" : 'Next'}
+                onPress={goNext}
+                style={styles.nextBtn}
+              />
+            </View>
           </View>
-        </View>
-      </View>
+        </SafeAreaView>
+      </LinearGradient>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+  root: { flex: 1 },
+  safe: { flex: 1 },
   toolbar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.borderLight,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
-  navTitle: { fontSize: Typography.size.base, fontWeight: '700', color: Colors.text },
-  close: { fontSize: Typography.size.sm, fontWeight: '600', color: Colors.primary },
-  body: {
-    flex: 1,
-    paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.lg,
-    gap: Spacing.md,
+  eyebrow: {
+    fontSize: Typography.size.xs,
+    fontWeight: '700',
+    color: Colors.brand,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 2,
   },
-  progressRow: {
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'center',
+  navTitle: {
+    fontSize: Typography.size.xl,
+    fontWeight: '800',
+    color: Colors.text,
+    letterSpacing: -0.4,
   },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.borderLight,
+  skipBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: Radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
-  progressDotActive: {
-    backgroundColor: Colors.primary,
-    width: 20,
+  skipText: {
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
   },
-  progressDotDone: {
-    backgroundColor: Colors.primary + '88',
+  progressBlock: {
+    paddingHorizontal: Spacing.xl,
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(28, 28, 30, 0.08)',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: Colors.brand,
   },
   stepCount: {
-    textAlign: 'center',
-    fontSize: Typography.size.xs,
-    fontWeight: '600',
+    fontSize: Typography.size.sm,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  stepCountMuted: {
+    fontWeight: '500',
     color: Colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+  },
+  body: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
   },
   hero: {
     alignItems: 'center',
     gap: Spacing.md,
-    paddingTop: Spacing.xl,
-    paddingHorizontal: Spacing.sm,
+  },
+  orbGlow: {
+    marginBottom: Spacing.xs,
+    borderRadius: 48,
+    ...Shadow.md,
+    shadowColor: Colors.brand,
+    shadowOpacity: 0.22,
+  },
+  orb: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.brandSubtle,
+  },
+  brandPillText: {
+    fontSize: Typography.size.xs,
+    fontWeight: '700',
+    color: Colors.brand,
+    letterSpacing: 0.3,
   },
   tabHint: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.brandSubtle,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
+    paddingVertical: 6,
     borderRadius: Radius.pill,
   },
   tabHintText: {
     fontSize: Typography.size.xs,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.brand,
   },
   title: {
     fontSize: Typography.size['2xl'],
     fontWeight: '800',
     color: Colors.text,
-    letterSpacing: -0.5,
+    letterSpacing: -0.6,
     textAlign: 'center',
+    lineHeight: 34,
+    maxWidth: 320,
   },
   sub: {
     fontSize: Typography.size.base,
@@ -289,12 +391,10 @@ const styles = StyleSheet.create({
     maxWidth: 340,
   },
   footer: {
-    paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.md,
     paddingTop: Spacing.sm,
-    gap: Spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.borderLight,
+    gap: Spacing.xs,
   },
   secondaryAction: {
     flexDirection: 'row',
@@ -306,8 +406,9 @@ const styles = StyleSheet.create({
   secondaryActionText: {
     fontSize: Typography.size.sm,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.brand,
   },
+  secondarySpacer: { height: 12 },
   navRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -317,13 +418,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
-    paddingRight: Spacing.sm,
+    paddingRight: Spacing.xs,
   },
   backText: {
     fontSize: Typography.size.sm,
     fontWeight: '600',
     color: Colors.textSecondary,
   },
-  backPlaceholder: { width: 64 },
   nextBtn: { flex: 1 },
 });

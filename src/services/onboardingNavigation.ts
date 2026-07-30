@@ -1,11 +1,7 @@
 import { CommonActions, type NavigationProp } from '@react-navigation/native';
 import { Screen } from '../navigation/screenNames';
 import { resolvePreAuthRoute, type PreAuthRoute } from './onboardingRoutes';
-import {
-  pendingCanShowResults,
-  pendingJustFinishedQuiz,
-  pendingOnboardingStorage,
-} from './pendingOnboardingStorage';
+import { pendingOnboardingStorage } from './pendingOnboardingStorage';
 import type { RootStackParamList } from '../types';
 
 type RootNavigation = NavigationProp<RootStackParamList>;
@@ -78,18 +74,14 @@ export function goToCreateAccount(navigation: RootNavigation) {
 }
 
 /**
- * Skip screens already completed — only jumps to Results when awaitingResultsPreview
- * was set by an actual quiz finish.
+ * Skip screens already completed — mirrors resolvePreAuthRoute so remounts
+ * land on the correct pre-auth step (quiz → results → mood → first win → account).
  */
 export async function resumePreAuthOnboardingFromPending(
   navigation: RootNavigation,
+  introSeen: boolean | null = null,
 ): Promise<'handled' | 'continue'> {
   const pending = await pendingOnboardingStorage.get();
-
-  if (pendingCanShowResults(pending) || pendingJustFinishedQuiz(pending)) {
-    resetOnboardingStack(navigation, Screen.wellnessResults);
-    return 'handled';
-  }
 
   // Stale quizComplete/score without the results gate → force quiz, don't teleport.
   // Never wipe when awaitingResultsPreview is still set.
@@ -104,18 +96,19 @@ export async function resumePreAuthOnboardingFromPending(
     }
   }
 
-  if (pending.resultsPreviewComplete) {
-    if (!pending.moodStepComplete) {
-      resetOnboardingStack(navigation, Screen.onboardingMood);
-      return 'handled';
-    }
-    if (!pending.firstWinComplete) {
-      resetOnboardingStack(navigation, Screen.firstWinActivity);
-      return 'handled';
-    }
+  const route = await resolvePreAuthRoute(introSeen);
+  onPreAuthRouteResolved?.(route);
+
+  if (route === Screen.authentication) {
     goToCreateAccount(navigation);
     return 'handled';
   }
 
-  return 'continue';
+  // Breath welcome is only for cold start — don't bounce quiz remounts back there.
+  if (route === Screen.breathWelcome) {
+    return 'continue';
+  }
+
+  resetOnboardingStack(navigation, route);
+  return 'handled';
 }

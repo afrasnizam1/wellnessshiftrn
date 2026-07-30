@@ -1,6 +1,10 @@
 import { Screen } from '../navigation/screenNames';
 import { onboardingStorage } from './onboardingStorage';
-import { pendingOnboardingStorage } from './pendingOnboardingStorage';
+import {
+  pendingCanShowResults,
+  pendingJustFinishedQuiz,
+  pendingOnboardingStorage,
+} from './pendingOnboardingStorage';
 import { isSimulatorOrEmulator } from './simulatorLaunch';
 import type { UserProfile } from '../types';
 
@@ -26,22 +30,57 @@ export type PostAuthOnboardingRoute =
   | typeof Screen.subscriptionPaywall;
 
 /**
- * Pre-auth (guest) launch route.
+ * Pre-auth launch route — personalisation first, account after value.
+ *
  * Cold start with no Firebase session:
- *   1. Breath welcome (first launch on device)
- *   2. Login / signup landing
- * Simulators / emulators always open the auth landing (skip breath).
+ *   1. Breath welcome (skipped on simulator for faster iteration)
+ *   2. Goals → experience → habits → baseline → assessment path
+ *   3. Quiz → results → mood → first win
+ *   4. Create account / sign in (after they've seen personalised results)
+ *
+ * Returning users can still Sign in from Breath Welcome or Goal Selection.
  * Signed-in restore is handled by RootNavigator (not this function).
  */
 export async function resolvePreAuthRoute(_introSeen: boolean | null): Promise<PreAuthRoute> {
-  if (isSimulatorOrEmulator()) {
-    return Screen.authentication;
-  }
-
   const pending = await pendingOnboardingStorage.get();
-  if (!pending.breathWelcomeComplete) {
+
+  // Simulators skip the breath animation; everyone else sees it once.
+  if (!isSimulatorOrEmulator() && !pending.breathWelcomeComplete) {
     return Screen.breathWelcome;
   }
+
+  if (!pending.primaryGoal) {
+    return Screen.goalSelection;
+  }
+  if (!pending.experienceLevel) {
+    return Screen.experienceLevel;
+  }
+  if (pending.trainingDaysPerWeek == null || pending.reminderAnchor == null) {
+    return Screen.onboardingHabits;
+  }
+  if (!pending.baselineStepComplete) {
+    return Screen.onboardingBaseline;
+  }
+  if (!pending.assessmentPath) {
+    return Screen.assessmentPath;
+  }
+
+  // Quiz just finished → Results (never teleport back to a blank quiz).
+  if (pendingCanShowResults(pending) || pendingJustFinishedQuiz(pending)) {
+    return Screen.wellnessResults;
+  }
+
+  if (!pending.resultsPreviewComplete) {
+    return Screen.wellnessQuiz;
+  }
+  if (!pending.moodStepComplete) {
+    return Screen.onboardingMood;
+  }
+  if (!pending.firstWinComplete) {
+    return Screen.firstWinActivity;
+  }
+
+  // Personalisation complete — now ask for an account.
   return Screen.authentication;
 }
 

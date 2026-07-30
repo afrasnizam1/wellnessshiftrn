@@ -104,7 +104,7 @@ export default function AnatomyViewerScreen() {
               <HologramViewer
                 modelFile={model.usdzFile}
                 preset={model.preset}
-                height={420}
+                height={300}
               />
             </View>
             {tutor?.importance && <ModuleImportanceCard data={tutor.importance} />}
