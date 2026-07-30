@@ -19,7 +19,12 @@ export default function ContextualGoalTooltip({ title, body, cta, onPress, onDis
         <View style={styles.header}>
           <Ionicons name="sparkles" size={18} color={Colors.brand} />
           <Text style={styles.title}>{title}</Text>
-          <TouchableOpacity onPress={onDismiss} hitSlop={8}>
+          <TouchableOpacity
+            onPress={onDismiss}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss tip"
+          >
             <Ionicons name="close" size={18} color={Colors.textTertiary} />
           </TouchableOpacity>
         </View>

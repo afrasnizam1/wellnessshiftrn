@@ -94,7 +94,12 @@ export default function AuthLandingScreen({
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.topBar}>
-          <TouchableOpacity onPress={onBack} style={styles.circleBtn}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.circleBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          >
             <Ionicons name="close" size={20} color="#fff" />
           </TouchableOpacity>
           <View style={styles.topSpacer} />

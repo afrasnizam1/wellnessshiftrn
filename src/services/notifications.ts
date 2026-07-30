@@ -8,6 +8,7 @@ import {
   notificationPrefsStorage,
   type NotificationPrefs,
 } from './localNotifications';
+import { logger } from '../utils/logger';
 
 export { notificationPrefsStorage, DEFAULT_NOTIFICATION_PREFS } from './localNotifications';
 export type { NotificationPrefs } from './notificationPrefsStorage';
@@ -95,7 +96,7 @@ export const notificationService = {
   setBackgroundHandler: () => {
     if (!appConfig.isFirebaseConfigured) return;
     messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-      console.log('Background message:', remoteMessage);
+      logger.log('Background message:', remoteMessage);
     });
   },
 

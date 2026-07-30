@@ -19,6 +19,7 @@ import type {
   InboxThread,
   WellnessCategoryKey,
 } from '../types';
+import { logger } from '../utils/logger';
 
 // ─── Auth ─────────────────────────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ export const firebaseAuth = {
         url: appConfig.emailVerificationContinueUrl,
         handleCodeInApp: false,
       });
-      console.log('Verification email sent successfully');
+      logger.log('Verification email sent successfully');
       return;
     } catch (primaryError: any) {
       console.warn(
@@ -58,7 +59,7 @@ export const firebaseAuth = {
       );
       try {
         await currentUser.sendEmailVerification();
-        console.log('Verification email sent successfully (fallback)');
+        logger.log('Verification email sent successfully (fallback)');
         return;
       } catch (fallbackError: any) {
         console.error('Failed to send verification email:', fallbackError);

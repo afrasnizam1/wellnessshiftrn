@@ -11,7 +11,13 @@ type Props = {
 
 export default function BackButton({ onPress, color = Colors.primary, style }: Props) {
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.btn, style]} hitSlop={8}>
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.btn, style]}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel="Back"
+    >
       <Ionicons name="chevron-back" size={24} color={color} />
     </TouchableOpacity>
   );

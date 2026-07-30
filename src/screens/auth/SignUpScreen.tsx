@@ -22,6 +22,7 @@ import { AppConsentModal, MedicalDisclaimerModal, LegalCheckboxRow } from '../..
 import { enterDemoSession, enterDemoQuestionnaireSession, enterDemoClinicianSession, canSkipToApp } from '../../services/demoSession';
 import { authErrorMessage } from '../../utils/authErrorMessage';
 import { appConfig, isGoogleSignInConfigured } from '../../config/appConfig';
+import { logger } from '../../utils/logger';
 
 export default function SignUpScreen() {
   const navigation = useNavigation<any>();
@@ -131,7 +132,7 @@ export default function SignUpScreen() {
       });
       try {
         await firebaseAuth.sendEmailVerification();
-        console.log('Email verification sent after sign-up');
+        logger.log('Email verification sent after sign-up');
       } catch (verifyErr) {
         console.warn('Email verification send failed:', verifyErr);
         Alert.alert(
@@ -271,7 +272,12 @@ export default function SignUpScreen() {
           automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity onPress={() => setMode('landing')} style={styles.closeBtn}>
+          <TouchableOpacity
+            onPress={() => setMode('landing')}
+            style={styles.closeBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          >
             <Ionicons name="close" size={20} color={Colors.text} />
           </TouchableOpacity>
 

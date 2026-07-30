@@ -6,6 +6,7 @@ import { contentsquareConfig, hasContentsquareStartId } from '../config/contents
 import type { UserProfile } from '../types';
 import { contentsquareStorage } from './contentsquareStorage';
 import { analyticsHelper } from './analyticsHelper';
+import { logger } from '../utils/logger';
 
 type CsqGlobal = typeof globalThis & { __csqStarted?: boolean };
 
@@ -44,7 +45,7 @@ function ensureSessionReplayRunning(reason: string): void {
 
   try {
     CSQ.startSessionReplay();
-    console.log(`[CSQ] session replay started (${reason}) on ${Platform.OS}`);
+    logger.log(`[CSQ] session replay started (${reason}) on ${Platform.OS}`);
   } catch (e) {
     console.warn(`[CSQ] startSessionReplay failed (${reason}):`, e);
   }
@@ -97,7 +98,7 @@ async function activateAnalytics(user?: UserProfile | null, userInitiated = fals
     contentsquareService.identifyUser(user);
   }
 
-  console.log(`[CSQ] analytics active on ${Platform.OS} — autocapture + session replay on`);
+  logger.log(`[CSQ] analytics active on ${Platform.OS} — autocapture + session replay on`);
 }
 
 async function deactivateAnalytics(userInitiated = false): Promise<void> {
@@ -167,14 +168,14 @@ function attachDebugLogging(): void {
   const idLabel = contentsquareConfig.dataSourceId
     ? `dataSource:${contentsquareConfig.dataSourceId}`
     : `project:${contentsquareConfig.environmentId}`;
-  console.log(
+  logger.log(
     '[CSQ]',
     idLabel,
     Platform.OS === 'ios' ? `bundle: ${appConfig.iosBundleId}` : `bundle: ${appConfig.androidApplicationId}`,
   );
 
   metadataUnsubscribe = CSQ.onMetadataChange((metadata) => {
-    console.log(
+    logger.log(
       '[CSQ] session:',
       metadata.sessionID,
       'project:',
@@ -186,7 +187,7 @@ function attachDebugLogging(): void {
     );
   });
   replayLinkUnsubscribe = CSQ.onSessionReplayLinkChange((link) => {
-    console.log('[CSQ] replay link:', link);
+    logger.log('[CSQ] replay link:', link);
   });
 }
 
@@ -221,7 +222,7 @@ function attachInAppFeatureUrlHandling(): void {
         CSQ.handleUrl(url);
         ensureSessionReplayRunning('in_app_features');
         if (__DEV__) {
-          console.log('[CSQ] handleUrl:', url);
+          logger.log('[CSQ] handleUrl:', url);
         }
       } catch (e) {
         console.warn('[CSQ] handleUrl failed:', e);
@@ -349,7 +350,7 @@ export const contentsquareService = {
 
     CSQ.trackScreenview(screenview);
     if (__DEV__) {
-      console.log(`[CSQ] screenview: ${screenview}`);
+      logger.log(`[CSQ] screenview: ${screenview}`);
     }
   },
 

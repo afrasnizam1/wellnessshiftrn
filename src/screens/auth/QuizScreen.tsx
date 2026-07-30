@@ -192,7 +192,13 @@ export default function QuizScreen() {
       </View>
 
       <View style={styles.header}>
-        <AnimatedPressable onPress={handleBack} style={styles.backBtn} disabled={inputLocked}>
+        <AnimatedPressable
+          onPress={handleBack}
+          style={styles.backBtn}
+          disabled={inputLocked}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
           <Ionicons name="chevron-back" size={22} color={Colors.primary} />
         </AnimatedPressable>
         <View style={styles.progressBadge}>

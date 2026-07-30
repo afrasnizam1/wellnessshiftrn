@@ -156,14 +156,18 @@ class HologramSceneUIView: UIView {
 // MARK: - Loader (mirrors native Hologram*3DView / BeatingHeart3DView)
 
 enum HologramLoader {
-  /// On-Demand Resource tag for large USDZ packs (~56MB) — not in the initial IPA.
+  /// On-Demand Resource tag for all USDZ packs (~68MB) — not in the initial IPA.
   static let onDemandTag = "holograms_large"
 
   /// Models tagged in Xcode as `holograms_large` (see project.pbxproj ASSET_TAGS).
   static let onDemandModels: Set<String> = [
+    "Beating-heart",
     "Brain_hologram",
     "Ecorche_-_Anatomy_study",
+    "Free_Pack_-_Human_Skeleton",
     "Male_Full_Body_Ecorche",
+    "Realistic_Human_Stomach",
+    "Struktur_Paru-Paru_Manusia_3D_Model",
     "adult_heart_and_bronchial_airways",
     "adult_heart_and_lungs",
   ]

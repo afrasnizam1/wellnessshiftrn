@@ -17,6 +17,7 @@ import {
   CSQ_WEBVIEW_REPLAY_PAGEVIEW_SCRIPT,
   urlForContentsquareWebViewTracking,
 } from '../../utils/contentsquareWebView';
+import { logger } from '../../utils/logger';
 
 type TrackedWebViewRoute = RouteProp<Record<string, WebViewScreenParams>, string>;
 
@@ -58,7 +59,7 @@ export default function TrackedWebViewScreen() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data?.type === 'csq_webview_probe') {
-        console.log('[CSQ WebView probe]', data);
+        logger.log('[CSQ WebView probe]', data);
       }
     } catch {
       // ignore non-JSON messages

@@ -178,7 +178,12 @@ export default function SignInScreen() {
     <View style={styles.root}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.formScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <TouchableOpacity onPress={() => setMode('landing')} style={styles.closeBtn}>
+          <TouchableOpacity
+            onPress={() => setMode('landing')}
+            style={styles.closeBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          >
             <Ionicons name="close" size={20} color={Colors.text} />
           </TouchableOpacity>
 

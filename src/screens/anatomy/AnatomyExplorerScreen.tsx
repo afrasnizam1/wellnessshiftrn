@@ -320,7 +320,12 @@ export default function AnatomyExplorerScreen() {
               <Text style={styles.hotspotTitle}>
                 {selectedHotspot?.name}
               </Text>
-              <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
+              <TouchableOpacity
+                onPress={closeModal}
+                style={styles.closeButton}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
                 <Ionicons name="close" size={24} color={Colors.text} />
               </TouchableOpacity>
             </View>

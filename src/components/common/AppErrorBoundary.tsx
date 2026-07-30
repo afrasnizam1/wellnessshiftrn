@@ -1,7 +1,7 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Typography, Spacing, Radius } from '../theme';
-import { crashlyticsService } from '../services/crashlyticsService';
+import { Colors, Typography, Spacing, Radius } from '../../theme';
+import { crashlyticsService } from '../../services/crashlyticsService';
 
 type Props = {
   children: ReactNode;

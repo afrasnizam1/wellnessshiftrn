@@ -1,5 +1,6 @@
 import { CSQ } from '@contentsquare/react-native-bridge';
 import { appConfig } from '../config/appConfig';
+import { logger } from '../utils/logger';
 
 type EventProps = Record<string, string | number | boolean>;
 
@@ -15,7 +16,7 @@ function trackEvent(eventName: string, properties?: EventProps) {
     CSQ.trackEvent(eventName);
   }
   if (__DEV__) {
-    console.log(`📊 CSQ event: ${eventName}`, properties ?? '');
+    logger.log(`📊 CSQ event: ${eventName}`, properties ?? '');
   }
 }
 

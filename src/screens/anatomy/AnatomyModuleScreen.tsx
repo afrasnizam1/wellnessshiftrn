@@ -9,6 +9,7 @@ import AppScreen from '../../components/common/AppScreen';
 import { AppCard } from '../../components/ui';
 import { Colors, Typography, Spacing, Radius } from '../../theme';
 import { Screen } from '../../navigation/screenNames';
+import { logger } from '../../utils/logger';
 
 interface Lesson {
   id: string;
@@ -213,13 +214,13 @@ export default function AnatomyModuleScreen() {
       navigation.navigate(Screen.anatomyExplorer);
     } else if (lesson.type === 'video') {
       // Navigate to video player
-      console.log('Navigate to video player for lesson:', lesson.id);
+      logger.log('Navigate to video player for lesson:', lesson.id);
     } else if (lesson.type === 'quiz') {
       // Navigate to quiz
-      console.log('Navigate to quiz for lesson:', lesson.id);
+      logger.log('Navigate to quiz for lesson:', lesson.id);
     } else if (lesson.type === 'reading') {
       // Navigate to reading content
-      console.log('Navigate to reading for lesson:', lesson.id);
+      logger.log('Navigate to reading for lesson:', lesson.id);
     }
   };
 

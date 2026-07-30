@@ -22,7 +22,13 @@ export default function MedicalDisclaimerBanner({ onDismiss }: Props) {
             Life-threatening emergency: call 999 or visit A&E. Urgent but not life-threatening (NHS England): call 111 or use 111 online.
           </Text>
         </View>
-        <TouchableOpacity onPress={onDismiss} style={styles.dismiss} hitSlop={8}>
+        <TouchableOpacity
+          onPress={onDismiss}
+          style={styles.dismiss}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss medical disclaimer"
+        >
           <Ionicons name="close" size={20} color={Colors.textTertiary} />
         </TouchableOpacity>
       </View>

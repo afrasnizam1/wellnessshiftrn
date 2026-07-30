@@ -349,7 +349,11 @@ export default function HomeScreen() {
         )}
 
         <View style={styles.greetingRow}>
-          <AnimatedPressable onPress={() => navigation.navigate(Screen.tabMore, { screen: Screen.profile })}>
+          <AnimatedPressable
+            onPress={() => navigation.navigate(Screen.tabMore, { screen: Screen.profile })}
+            accessibilityRole="button"
+            accessibilityLabel="Open profile"
+          >
             <LinearGradient colors={['#F24D80', '#FF6699']} style={styles.avatarCircle}>
               <SensitiveCSQMask>
                 <Text style={styles.avatarLetter}>

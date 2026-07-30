@@ -12,6 +12,7 @@ import {
   type NotificationPrefs,
 } from './notificationPrefsStorage';
 import { Screen } from '../navigation/screenNames';
+import { logger } from '../utils/logger';
 
 export const LOCAL_IDS = {
   dailyPlan: 'daily_plan_reminder',
@@ -280,7 +281,7 @@ export function registerBackgroundNotificationHandler() {
   try {
     notifee.onBackgroundEvent(async ({ type, detail }) => {
       if (type === EventType.PRESS) {
-        console.log('Background notification press:', detail.notification?.data);
+        logger.log('Background notification press:', detail.notification?.data);
       }
     });
   } catch (e) {

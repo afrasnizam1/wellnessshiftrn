@@ -60,6 +60,7 @@ import {
   setDeferredSimulatorSession,
 } from '../services/simulatorLaunch';
 import { Screen } from './screenNames';
+import { logger } from '../utils/logger';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -355,7 +356,7 @@ export default function RootNavigator() {
         if (appConfig.forceAuthScreenOnLaunch && !isSimulatorOrEmulator()) {
           try {
             await signOutCurrentUser();
-            console.log('[RootNavigator] cleared session for clean auth launch');
+            logger.log('[RootNavigator] cleared session for clean auth launch');
           } catch (error) {
             console.warn('[RootNavigator] force auth launch sign-out failed:', error);
           }

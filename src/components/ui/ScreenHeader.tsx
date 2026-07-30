@@ -38,7 +38,13 @@ export default function ScreenHeader({
     <View style={styles.wrap}>
       <View style={styles.row}>
         {onBack ? (
-          <AnimatedPressable onPress={onBack} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <AnimatedPressable
+            onPress={onBack}
+            style={styles.backBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={backLabel ? `Back, ${backLabel}` : 'Back'}
+          >
             <View style={styles.backCircle}>
               <Ionicons name="chevron-back" size={22} color={Colors.primary} />
             </View>
@@ -61,6 +67,8 @@ export default function ScreenHeader({
               key={action.icon}
               onPress={action.onPress}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={String(action.icon).replace(/-/g, ' ').replace(/outline/g, '').trim() || 'Action'}
             >
               <IconBadge
                 name={action.icon}
@@ -70,7 +78,12 @@ export default function ScreenHeader({
             </AnimatedPressable>
           ))}
           {rightLabel && onRightPress ? (
-            <AnimatedPressable onPress={onRightPress} disabled={rightDisabled}>
+            <AnimatedPressable
+              onPress={onRightPress}
+              disabled={rightDisabled}
+              accessibilityRole="button"
+              accessibilityLabel={rightLabel}
+            >
               <Text style={[styles.rightLabel, rightDisabled && styles.rightDisabled]}>{rightLabel}</Text>
             </AnimatedPressable>
           ) : null}

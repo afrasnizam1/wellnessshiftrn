@@ -11,6 +11,7 @@ import { Colors, Typography, Spacing, Radius } from '../../theme';
 import { Screen } from '../../navigation/screenNames';
 import { HEALTH_CONDITIONS, type HealthCondition } from '../../data/healthConditions';
 import { resolveConditionContent } from '../../data/conditionContentResolver';
+import { logger } from '../../utils/logger';
 
 export default function ConditionDetailScreen() {
   const navigation = useNavigation<any>();
@@ -29,7 +30,7 @@ export default function ConditionDetailScreen() {
       });
     } else {
       // Handle app-specific resources
-      console.log('Navigate to resource:', resource.type, resource.title);
+      logger.log('Navigate to resource:', resource.type, resource.title);
     }
   };
 

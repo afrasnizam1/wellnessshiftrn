@@ -63,12 +63,12 @@ export function MainTabNavigator() {
       <Tab.Screen
         name={Screen.tabHome}
         component={HomeStackNavigator}
-        options={{ tabBarLabel: 'Home' }}
+        options={{ tabBarLabel: 'Home', tabBarAccessibilityLabel: 'Home tab' }}
       />
       <Tab.Screen
         name={Screen.tabFitness}
         component={FitnessStackNavigator}
-        options={{ tabBarLabel: 'Fitness' }}
+        options={{ tabBarLabel: 'Fitness', tabBarAccessibilityLabel: 'Fitness tab' }}
       />
       <Tab.Screen
         name={Screen.tabAiInsights}
@@ -78,6 +78,7 @@ export function MainTabNavigator() {
           const hideTab = AI_INSIGHTS_HIDE_TAB.has(focused);
           return {
             tabBarLabel: 'AI Insights',
+            tabBarAccessibilityLabel: 'AI Insights tab',
             // Floating tab bar overlays chat/detail input — hide on those screens
             tabBarStyle: hideTab ? { display: 'none' } : styles.tabBar,
           };
@@ -86,18 +87,18 @@ export function MainTabNavigator() {
       <Tab.Screen
         name={Screen.tabAnalytics}
         component={AnalyticsStackNavigator}
-        options={{ tabBarLabel: 'Analytics' }}
+        options={{ tabBarLabel: 'Analytics', tabBarAccessibilityLabel: 'Analytics tab' }}
       />
       <Tab.Screen
         name={Screen.tabMore}
         component={MoreStackNavigator}
-        options={{ tabBarLabel: 'More' }}
+        options={{ tabBarLabel: 'More', tabBarAccessibilityLabel: 'More tab' }}
       />
       {hasClinician && (
         <Tab.Screen
           name={Screen.tabMyCare}
           component={MyCareStackNavigator}
-          options={{ tabBarLabel: 'My Care' }}
+          options={{ tabBarLabel: 'My Care', tabBarAccessibilityLabel: 'My Care tab' }}
         />
       )}
     </Tab.Navigator>

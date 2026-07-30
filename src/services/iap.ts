@@ -16,6 +16,7 @@ import {
 } from 'react-native-iap';
 import type { SubscriptionTier } from '../types';
 import { appConfig } from '../config/appConfig';
+import { logger } from '../utils/logger';
 
 export const PRODUCT_IDS = {
   growthMonthly: 'com.wellnessshift.growth.monthly',
@@ -154,7 +155,7 @@ export const iapService = {
             missing.join(', ')
           );
         } else {
-          console.log('[IAP] All subscription product IDs resolved from the store.');
+          logger.log('[IAP] All subscription product IDs resolved from the store.');
         }
       }
       return storeProducts;

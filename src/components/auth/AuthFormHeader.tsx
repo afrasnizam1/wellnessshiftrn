@@ -30,7 +30,12 @@ export default function AuthFormHeader({ title, subtitle, onBack, children }: Pr
       <View style={[styles.orb, styles.orb2]} />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <AnimatedPressable onPress={onBack} style={styles.backBtn}>
+        <AnimatedPressable
+          onPress={onBack}
+          style={styles.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
           <Ionicons name="chevron-back" size={22} color="#fff" />
         </AnimatedPressable>
 
