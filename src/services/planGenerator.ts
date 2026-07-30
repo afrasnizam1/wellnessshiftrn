@@ -161,6 +161,7 @@ function primaryGoalToCategory(goal?: string): WellnessCategoryKey | null {
     mental: 'mental',
     habits: 'mindfulness',
     condition: 'physical',
+    clinician: 'physical',
     general: 'physical',
   };
   return goal ? map[goal] ?? null : null;

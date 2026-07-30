@@ -120,7 +120,7 @@ export default function AuthMainLandingScreen() {
           <WellnessShiftLogoBadge diameter={140} />
           <View style={styles.titleBlock}>
             <Text style={styles.appName}>Wellness Shift</Text>
-            <Text style={styles.tagline}>Look after your body & mind</Text>
+            <Text style={styles.tagline}>Your wellness score — with your clinician in the loop</Text>
           </View>
         </View>
 

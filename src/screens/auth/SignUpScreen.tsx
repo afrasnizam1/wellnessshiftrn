@@ -1,5 +1,5 @@
 // src/screens/auth/SignUpScreen.tsx
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Screen } from '../../navigation/screenNames';
 import {
   View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, ScrollView,
@@ -23,6 +23,15 @@ import { enterDemoSession, enterDemoQuestionnaireSession, enterDemoClinicianSess
 import { authErrorMessage } from '../../utils/authErrorMessage';
 import { appConfig, isGoogleSignInConfigured } from '../../config/appConfig';
 import { logger } from '../../utils/logger';
+import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
+import {
+  ageFromDateOfBirth,
+  DOB_PLACEHOLDER,
+  maskDateOfBirthInput,
+  parseDateOfBirth,
+  toDateOfBirthInputValue,
+  toStoredDateOfBirth,
+} from '../../utils/dateOfBirth';
 
 export default function SignUpScreen() {
   const navigation = useNavigation<any>();
@@ -37,6 +46,9 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [heightCm, setHeightCm] = useState('');
+  const [weightKg, setWeightKg] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [medicalAcknowledged, setMedicalAcknowledged] = useState(false);
@@ -46,6 +58,14 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<'apple' | 'google' | null>(null);
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+
+  useEffect(() => {
+    pendingOnboardingStorage.get().then((pending) => {
+      if (pending.dateOfBirth) setDateOfBirth(toDateOfBirthInputValue(pending.dateOfBirth));
+      if (pending.heightCm) setHeightCm(String(pending.heightCm));
+      if (pending.weightKg) setWeightKg(String(pending.weightKg));
+    });
+  }, []);
 
   const legalComplete = agreedToTerms && ageConfirmed && medicalAcknowledged;
 
@@ -105,6 +125,26 @@ export default function SignUpScreen() {
     if (!password) e.password = 'Password is required';
     else if (password.length < 8) e.password = 'Password must be at least 8 characters';
     if (password !== confirmPassword) e.confirmPassword = 'Passwords do not match';
+
+    if (role === 'patient') {
+      const dob = parseDateOfBirth(dateOfBirth);
+      if (!dateOfBirth.trim()) e.dateOfBirth = 'Date of birth is required';
+      else if (!dob) e.dateOfBirth = `Use ${DOB_PLACEHOLDER}`;
+      else if (ageFromDateOfBirth(dob) < 16) e.dateOfBirth = 'You must be at least 16 years old';
+
+      const height = Number(heightCm);
+      if (!heightCm.trim()) e.heightCm = 'Height is required';
+      else if (!Number.isFinite(height) || height <= 0 || height > 300) {
+        e.heightCm = 'Enter height in centimetres (e.g. 170)';
+      }
+
+      const weight = Number(weightKg);
+      if (!weightKg.trim()) e.weightKg = 'Weight is required';
+      else if (!Number.isFinite(weight) || weight <= 0 || weight > 500) {
+        e.weightKg = 'Enter weight in kilograms (e.g. 70)';
+      }
+    }
+
     if (!agreedToTerms) e.terms = 'Please accept the Terms of Service and Privacy Policy';
     if (!ageConfirmed) e.age = 'You must confirm you are at least 16 years old';
     if (!medicalAcknowledged) e.medical = 'Please acknowledge the medical disclaimer';
@@ -122,6 +162,8 @@ export default function SignUpScreen() {
     try {
       const cred = await firebaseAuth.signUpWithEmail(email.trim(), password);
       await cred.user.getIdToken();
+      const height = Number(heightCm);
+      const weight = Number(weightKg);
       await userService.createProfile(cred.user.uid, {
         displayName: name.trim(),
         email: email.trim(),
@@ -129,6 +171,13 @@ export default function SignUpScreen() {
         consentAccepted: true,
         medicalDisclaimerAcknowledged: true,
         ageConfirmed: true,
+        ...(role === 'patient'
+          ? {
+              dateOfBirth: toStoredDateOfBirth(parseDateOfBirth(dateOfBirth)!),
+              heightCm: height,
+              weightKg: weight,
+            }
+          : {}),
       });
       try {
         await firebaseAuth.sendEmailVerification();
@@ -323,6 +372,57 @@ export default function SignUpScreen() {
                   onChangeText={(v) => { setEmail(v); setErrors((e) => ({ ...e, email: undefined })); }}
                   error={errors.email}
                 />
+              </SensitiveCSQMask>
+
+              {role === 'patient' ? (
+                <>
+                  <AppTextField
+                    label="Date of birth"
+                    leftIcon="calendar-outline"
+                    placeholder={DOB_PLACEHOLDER}
+                    autoCapitalize="none"
+                    keyboardType="number-pad"
+                    value={dateOfBirth}
+                    onChangeText={(v) => {
+                      setDateOfBirth(maskDateOfBirthInput(v));
+                      setErrors((e) => ({ ...e, dateOfBirth: undefined }));
+                    }}
+                    error={errors.dateOfBirth}
+                  />
+                  <View style={styles.metricsRow}>
+                    <View style={styles.metricField}>
+                      <AppTextField
+                        label="Height (cm)"
+                        leftIcon="resize-outline"
+                        placeholder="e.g. 170"
+                        keyboardType="decimal-pad"
+                        value={heightCm}
+                        onChangeText={(v) => {
+                          setHeightCm(v);
+                          setErrors((e) => ({ ...e, heightCm: undefined }));
+                        }}
+                        error={errors.heightCm}
+                      />
+                    </View>
+                    <View style={styles.metricField}>
+                      <AppTextField
+                        label="Weight (kg)"
+                        leftIcon="scale-outline"
+                        placeholder="e.g. 70"
+                        keyboardType="decimal-pad"
+                        value={weightKg}
+                        onChangeText={(v) => {
+                          setWeightKg(v);
+                          setErrors((e) => ({ ...e, weightKg: undefined }));
+                        }}
+                        error={errors.weightKg}
+                      />
+                    </View>
+                  </View>
+                </>
+              ) : null}
+
+              <SensitiveCSQMask>
                 <AppTextField
                   label="Password"
                   leftIcon="lock-closed-outline"
@@ -491,6 +591,8 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.md },
   cardHeaderText: { fontSize: Typography.size.base, fontWeight: '700', color: Colors.text },
   fieldGap: { gap: Spacing.md },
+  metricsRow: { flexDirection: 'row', gap: Spacing.md },
+  metricField: { flex: 1 },
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, marginTop: Spacing.sm },
   checkbox: {
     width: 22, height: 22, borderRadius: 6,

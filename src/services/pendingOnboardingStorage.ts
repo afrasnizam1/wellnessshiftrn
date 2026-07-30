@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { WellnessScore } from '../types';
 import type { AssessmentAnswerMap } from '../utils/wellnessAssessmentScoring';
-import type { ExperienceLevel, ReminderAnchor } from '../types/onboardingPrefs';
+import type { AppPurpose, ExperienceLevel, ReminderAnchor } from '../types/onboardingPrefs';
 
 const KEY = 'wellnessshift_pending_onboarding_v1';
 
@@ -9,6 +9,10 @@ export type AssessmentPath = 'mini' | 'full';
 
 export interface PendingOnboardingData {
   breathWelcomeComplete: boolean;
+  /** Guest saw the launch welcome video (IntroVideoScreen). */
+  welcomeVideoComplete: boolean;
+  appPurpose: AppPurpose | null;
+  appPurposes: AppPurpose[];
   goals: string[];
   primaryGoal: string | null;
   experienceLevel: ExperienceLevel | null;
@@ -37,6 +41,9 @@ export interface PendingOnboardingData {
 
 const EMPTY: PendingOnboardingData = {
   breathWelcomeComplete: false,
+  welcomeVideoComplete: false,
+  appPurpose: null,
+  appPurposes: [],
   goals: [],
   primaryGoal: null,
   experienceLevel: null,
@@ -103,6 +110,19 @@ export const pendingOnboardingStorage = {
 
   markBreathWelcomeComplete: async () =>
     pendingOnboardingStorage.save({ breathWelcomeComplete: true }),
+
+  markWelcomeVideoComplete: async () =>
+    pendingOnboardingStorage.save({
+      welcomeVideoComplete: true,
+      // Keep legacy breath flag in sync so older gates don't re-open breath welcome.
+      breathWelcomeComplete: true,
+    }),
+
+  savePurpose: async (appPurpose: AppPurpose, appPurposes?: AppPurpose[]) =>
+    pendingOnboardingStorage.save({
+      appPurpose,
+      appPurposes: appPurposes?.length ? appPurposes : [appPurpose],
+    }),
 
   saveGoals: async (goals: string[], primaryGoal: string) =>
     pendingOnboardingStorage.save({ goals, primaryGoal }),

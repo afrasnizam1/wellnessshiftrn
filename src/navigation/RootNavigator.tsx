@@ -36,8 +36,10 @@ import OnboardingHabitsScreen from '../screens/auth/OnboardingHabitsScreen';
 import OnboardingBaselineScreen from '../screens/auth/OnboardingBaselineScreen';
 import FirstWinActivityScreen from '../screens/auth/FirstWinActivityScreen';
 import EmailVerificationScreen from '../screens/auth/EmailVerificationScreen';
+import IntroVideoScreen from '../screens/auth/IntroVideoScreen';
 import QuizScreen from '../screens/auth/QuizScreen';
 import GoalSelectionScreen from '../screens/auth/GoalSelectionScreen';
+import PurposeSelectionScreen from '../screens/auth/PurposeSelectionScreen';
 import AssessmentPathScreen from '../screens/auth/AssessmentPathScreen';
 import EnhancedWellnessResultsScreen from '../screens/auth/EnhancedWellnessResultsScreen';
 import QuizResultsDetailScreen from '../screens/auth/QuizResultsDetailScreen';
@@ -256,7 +258,7 @@ export default function RootNavigator() {
       }
     }).catch(() => {
       if (!freezePreAuthRouteRef.current) {
-        setPreAuthRoute(Screen.breathWelcome);
+        setPreAuthRoute(Screen.introVideo);
       }
     });
   }, [user, introSeen, isAuthLoading, setWellnessScore, setLastQuizAnswers]);
@@ -307,12 +309,14 @@ export default function RootNavigator() {
               }
             };
 
-            // Simulator: always land on auth first; user can tap "Continue with session".
+            // Simulator: keep Firebase session available via "Continue with session",
+            // but still start the personalisation funnel (purpose → goals → …).
             if (isSimulatorOrEmulator() && !simulatorSessionAcceptedRef.current) {
               setDeferredSimulatorSession(acceptSession);
               freezePreAuthRouteRef.current = false;
-              guestNavActiveRef.current = true;
-              setPreAuthRoute(Screen.authentication);
+              guestNavActiveRef.current = false;
+              const route = await resolvePreAuthRoute(introSeen);
+              if (!cancelled) setPreAuthRoute(route);
               setAuthLoading(false);
               lastAuthUidRef.current = firebaseUser.uid;
               return;
@@ -344,21 +348,18 @@ export default function RootNavigator() {
       });
     };
 
-    const start = async () => {
-      if (__DEV__ && (appConfig.forceAuthScreenOnLaunch || isSimulatorOrEmulator())) {
-        // Keep Firebase session for "Continue with session", but always open auth on simulator.
-        if (appConfig.forceAuthScreenOnLaunch && !isSimulatorOrEmulator()) {
-          try {
-            await signOutCurrentUser();
-            logger.log('[RootNavigator] cleared session for clean auth launch');
-          } catch (error) {
-            console.warn('[RootNavigator] force auth launch sign-out failed:', error);
-          }
-        } else if (isSimulatorOrEmulator()) {
-          freezePreAuthRouteRef.current = false;
-          setPreAuthRoute(Screen.authentication);
+      const start = async () => {
+      if (__DEV__ && appConfig.forceAuthScreenOnLaunch && !isSimulatorOrEmulator()) {
+        try {
+          await signOutCurrentUser();
+          logger.log('[RootNavigator] cleared session for clean auth launch');
+        } catch (error) {
+          console.warn('[RootNavigator] force auth launch sign-out failed:', error);
         }
       }
+      // Simulators: do NOT force authentication here — that skipped the
+      // "Why are you here?" → goals funnel. Auth listener sets deferred session
+      // + auth screen only when a Firebase session exists to resume.
       if (cancelled) return;
       attachAuthListener();
     };
@@ -451,9 +452,9 @@ export default function RootNavigator() {
     return <AppLoadingScreen />;
   }
 
-  let initialRouteName: keyof RootStackParamList = Screen.breathWelcome;
+  let initialRouteName: keyof RootStackParamList = Screen.introVideo;
   if (!user) {
-    initialRouteName = preAuthRoute ?? Screen.breathWelcome;
+    initialRouteName = preAuthRoute ?? Screen.introVideo;
   } else if (showEmailVerification) {
     initialRouteName = Screen.emailVerification;
   } else if (showPatientOnboarding && onboardingRouteReady && onboardingRoute) {
@@ -494,9 +495,11 @@ export default function RootNavigator() {
       >
         {!user ? (
           <Stack.Group>
+            <Stack.Screen name={Screen.introVideo} component={IntroVideoScreen} />
             <Stack.Screen name={Screen.breathWelcome} component={BreathWelcomeScreen} />
             <Stack.Screen name={Screen.authentication} component={AuthNavigator} />
             <Stack.Screen name={Screen.welcome} component={SplashScreen} />
+            <Stack.Screen name={Screen.purposeSelection} component={PurposeSelectionScreen} />
             <Stack.Screen name={Screen.goalSelection} component={GoalSelectionScreen} />
             <Stack.Screen name={Screen.experienceLevel} component={ExperienceLevelScreen} />
             <Stack.Screen name={Screen.onboardingHabits} component={OnboardingHabitsScreen} />
@@ -512,6 +515,8 @@ export default function RootNavigator() {
           <Stack.Screen name={Screen.emailVerification} component={EmailVerificationScreen} />
         ) : showPatientOnboarding && onboardingRouteReady ? (
           <Stack.Group>
+            <Stack.Screen name={Screen.introVideo} component={IntroVideoScreen} />
+            <Stack.Screen name={Screen.purposeSelection} component={PurposeSelectionScreen} />
             <Stack.Screen name={Screen.wellnessQuiz} component={QuizScreen} />
             <Stack.Screen name={Screen.wellnessResults} component={EnhancedWellnessResultsScreen} />
             <Stack.Screen name={Screen.quizCategoryDetail} component={QuizResultsDetailScreen} />

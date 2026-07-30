@@ -4,14 +4,15 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors, Typography, Spacing } from '../../theme';
 import type { IoniconName } from '../../theme/icons';
-import { AppCard, AnimatedPressable, BrandButton, IconBadge } from '../../components/ui';
+import { AppCard, AnimatedPressable, BrandButton, IconBadge, BackButton } from '../../components/ui';
 import AppScreen from '../../components/common/AppScreen';
 import { useAppStore } from '../../store';
 import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
 import { onboardingStorage } from '../../services/onboardingStorage';
 import { userService } from '../../services/firebase';
 import type { ExperienceLevel } from '../../types/onboardingPrefs';
-import { goToOnboardingHabits, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
+import { goBackOrTo, goToOnboardingHabits, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
+import { Screen } from '../../navigation/screenNames';
 
 const OPTIONS: {
   id: ExperienceLevel;
@@ -50,6 +51,9 @@ export default function ExperienceLevelScreen() {
 
   return (
     <AppScreen style={styles.safe}>
+      <View style={styles.topBar}>
+        <BackButton onPress={() => goBackOrTo(navigation, Screen.goalSelection)} />
+      </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>What's your experience level?</Text>
         <Text style={styles.subtitle}>
@@ -84,7 +88,8 @@ export default function ExperienceLevelScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.base, paddingTop: Spacing.xl, gap: Spacing.md },
+  topBar: { paddingHorizontal: Spacing.sm, paddingTop: Spacing.xs },
+  content: { padding: Spacing.base, paddingTop: Spacing.md, gap: Spacing.md },
   title: { fontSize: Typography.size['2xl'], fontWeight: '800', color: Colors.text, textAlign: 'center' },
   subtitle: { fontSize: Typography.size.sm, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
   list: { gap: Spacing.sm, marginTop: Spacing.md },

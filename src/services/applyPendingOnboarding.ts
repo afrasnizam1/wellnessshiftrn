@@ -23,6 +23,12 @@ export async function applyPendingOnboardingToAccount(uid: string): Promise<bool
     healthGoals: goals,
     quizComplete: true,
     onboardingComplete: false,
+    appPurpose: pending.appPurpose ?? pending.appPurposes?.[0] ?? undefined,
+    appPurposes: pending.appPurposes?.length
+      ? pending.appPurposes
+      : pending.appPurpose
+        ? [pending.appPurpose]
+        : undefined,
     experienceLevel: pending.experienceLevel ?? undefined,
     trainingDaysPerWeek: pending.trainingDaysPerWeek ?? undefined,
     reminderAnchor: pending.reminderAnchor ?? undefined,
@@ -36,6 +42,19 @@ export async function applyPendingOnboardingToAccount(uid: string): Promise<bool
 
   await onboardingStorage.setUserGoals(uid, goals);
   await onboardingStorage.setSelectedPrimaryGoal(uid, primaryGoal);
+  if (pending.appPurpose || pending.appPurposes?.length) {
+    const purposes = pending.appPurposes?.length
+      ? pending.appPurposes
+      : pending.appPurpose
+        ? [pending.appPurpose]
+        : [];
+    if (pending.appPurpose) {
+      await onboardingStorage.setAppPurpose(uid, pending.appPurpose);
+    }
+    if (purposes.length) {
+      await onboardingStorage.setAppPurposes(uid, purposes);
+    }
+  }
   if (pending.experienceLevel) {
     await onboardingStorage.setExperienceLevel(uid, pending.experienceLevel);
   }

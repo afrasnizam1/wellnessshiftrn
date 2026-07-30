@@ -5,11 +5,12 @@ import {
   pendingJustFinishedQuiz,
   pendingOnboardingStorage,
 } from './pendingOnboardingStorage';
-import { isSimulatorOrEmulator } from './simulatorLaunch';
 import type { UserProfile } from '../types';
 
 export type PreAuthRoute =
+  | typeof Screen.introVideo
   | typeof Screen.breathWelcome
+  | typeof Screen.purposeSelection
   | typeof Screen.goalSelection
   | typeof Screen.experienceLevel
   | typeof Screen.onboardingHabits
@@ -22,6 +23,8 @@ export type PreAuthRoute =
   | typeof Screen.authentication;
 
 export type PostAuthOnboardingRoute =
+  | typeof Screen.introVideo
+  | typeof Screen.purposeSelection
   | typeof Screen.wellnessQuiz
   | typeof Screen.wellnessResults
   | typeof Screen.onboardingMood
@@ -30,71 +33,59 @@ export type PostAuthOnboardingRoute =
   | typeof Screen.subscriptionPaywall;
 
 /**
- * Pre-auth launch route — personalisation first, account after value.
+ * Pre-auth launch route — short funnel, account after quiz.
  *
- * Cold start with no Firebase session:
- *   1. Breath welcome (skipped on simulator for faster iteration)
- *   2. Goals → experience → habits → baseline → assessment path
- *   3. Quiz → results → mood → first win
- *   4. Create account / sign in (after they've seen personalised results)
+ * Cold start with no Firebase session (including simulators):
+ *   1. Welcome video (always shown once — never skipped on simulator)
+ *   2. Why are you here (purpose)
+ *   3. Wellness quiz
+ *   4. Account creation / sign in
  *
- * Returning users can still Sign in from Breath Welcome or Goal Selection.
+ * Results, mood, permissions, paywall, etc. run post-auth (“the rest”).
  * Signed-in restore is handled by RootNavigator (not this function).
  */
 export async function resolvePreAuthRoute(_introSeen: boolean | null): Promise<PreAuthRoute> {
   const pending = await pendingOnboardingStorage.get();
 
-  // Simulators skip the breath animation; everyone else sees it once.
-  if (!isSimulatorOrEmulator() && !pending.breathWelcomeComplete) {
-    return Screen.breathWelcome;
+  if (!pending.welcomeVideoComplete) {
+    return Screen.introVideo;
   }
 
-  if (!pending.primaryGoal) {
-    return Screen.goalSelection;
-  }
-  if (!pending.experienceLevel) {
-    return Screen.experienceLevel;
-  }
-  if (pending.trainingDaysPerWeek == null || pending.reminderAnchor == null) {
-    return Screen.onboardingHabits;
-  }
-  if (!pending.baselineStepComplete) {
-    return Screen.onboardingBaseline;
-  }
-  if (!pending.assessmentPath) {
-    return Screen.assessmentPath;
+  if (!pending.appPurpose && !(pending.appPurposes?.length > 0)) {
+    return Screen.purposeSelection;
   }
 
-  // Quiz just finished → Results (never teleport back to a blank quiz).
-  if (pendingCanShowResults(pending) || pendingJustFinishedQuiz(pending)) {
-    return Screen.wellnessResults;
-  }
-
-  if (!pending.resultsPreviewComplete) {
+  // Quiz not finished — stay on assessment (ignore legacy mid-funnel steps).
+  if (!pending.quizComplete && !pendingJustFinishedQuiz(pending) && !pendingCanShowResults(pending)) {
     return Screen.wellnessQuiz;
   }
-  if (!pending.moodStepComplete) {
-    return Screen.onboardingMood;
-  }
-  if (!pending.firstWinComplete) {
-    return Screen.firstWinActivity;
-  }
 
-  // Personalisation complete — now ask for an account.
+  // After quiz → create account. Results / mood / first-win move post-auth.
   return Screen.authentication;
 }
 
 /**
  * Post-auth funnel (signed-in patient, !onboardingComplete):
- * Quiz (if needed) → Results (if needed) → Mood → Notifications → Health → Paywall
- * After paywall (subscribe or continue free), Home shows the first-run app tour
- * via onboardingStorage pendingInAppGuide / hasCompletedAppTour.
+ * Welcome video (if not already seen pre-auth) → Why are you here → Quiz → …
  */
 export async function resolvePostAuthOnboardingRoute(
   user: UserProfile,
   opts: { hasScore: boolean; resultsSeen: boolean; awaitingResults: boolean },
 ): Promise<PostAuthOnboardingRoute | 'complete'> {
   if (user.role !== 'patient') return 'complete';
+
+  const pending = await pendingOnboardingStorage.get();
+  if (pending.welcomeVideoComplete) {
+    await onboardingStorage.markWelcomeVideoSeen(user.uid);
+  } else if (!(await onboardingStorage.hasSeenWelcomeVideo(user.uid))) {
+    return Screen.introVideo;
+  }
+
+  const storedPurpose = await onboardingStorage.getAppPurpose(user.uid);
+  const storedPurposes = await onboardingStorage.getAppPurposes(user.uid);
+  if (!user.appPurpose && !storedPurpose && !(user.appPurposes?.length) && storedPurposes.length === 0) {
+    return Screen.purposeSelection;
+  }
 
   if (!user.quizComplete || !opts.hasScore) {
     return Screen.wellnessQuiz;

@@ -13,6 +13,8 @@ export const CSQ_LEAF_NAMES: Partial<Record<ScreenName, string>> = {
 
   // Onboarding
   [Screen.emailVerification]: 'Email Verification',
+  [Screen.introVideo]: 'Welcome Video',
+  [Screen.purposeSelection]: 'Why Here',
   [Screen.goalSelection]: 'Goals',
   [Screen.experienceLevel]: 'Experience Level',
   [Screen.onboardingHabits]: 'Habits',
@@ -133,6 +135,7 @@ const TAB_SECTIONS: Partial<Record<ScreenName, string>> = {
 
 const ONBOARDING_SCREENS = new Set<ScreenName>([
   Screen.breathWelcome,
+  Screen.purposeSelection,
   Screen.goalSelection,
   Screen.assessmentPath,
   Screen.wellnessQuiz,
@@ -144,6 +147,7 @@ const ONBOARDING_SCREENS = new Set<ScreenName>([
   Screen.quickStartGuide,
   Screen.healthPermissions,
   Screen.emailVerification,
+  Screen.introVideo,
 ]);
 
 const AUTH_SCREENS = new Set<ScreenName>([

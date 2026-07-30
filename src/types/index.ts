@@ -19,6 +19,10 @@ export interface UserProfile {
   quizComplete: boolean;
   primaryGoal?: string;       // top priority goal from onboarding
   healthGoals?: string[];     // all goals selected during onboarding
+  /** High-level “why are you here” from purpose selection */
+  appPurpose?: 'wellness_score' | 'learn' | 'fitness' | 'clinician' | 'all';
+  /** Multi-select from “Why are you here?” — appPurpose is the Home lead. */
+  appPurposes?: Array<'wellness_score' | 'learn' | 'fitness' | 'clinician' | 'all'>;
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
   trainingDaysPerWeek?: number;
   reminderAnchor?: 'morning' | 'afternoon' | 'evening';
@@ -459,6 +463,8 @@ export type RootStackParamList = {
   [Screen.breathWelcome]: undefined;
   [Screen.authentication]: { screen?: AuthNestedScreen; params?: { savePlan?: boolean } } | undefined;
   [Screen.emailVerification]: undefined;
+  [Screen.introVideo]: undefined;
+  [Screen.purposeSelection]: undefined;
   [Screen.goalSelection]: undefined;
   [Screen.experienceLevel]: undefined;
   [Screen.onboardingHabits]: undefined;

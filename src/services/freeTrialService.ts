@@ -4,12 +4,14 @@ import { onboardingStorage } from './onboardingStorage';
 import { startUserTrialNative, FS } from './firestoreSchema';
 import type { SubscriptionTier } from '../types';
 
-const TRIAL_DAYS = 7;
+const TRIAL_DAYS = 14;
 
 /**
  * In-app complimentary preview for free-tier users (Firestore / local).
  * This is NOT an App Store / Play introductory offer — do not market it as a store free trial.
  */
+
+export const COMPLIMENTARY_PREVIEW_DAYS = TRIAL_DAYS;
 
 export type TrialStatus = {
   isActive: boolean;
@@ -39,16 +41,18 @@ export const freeTrialService = {
 
     let startIso = await onboardingStorage.startTrialIfNeeded(uid);
     let start = new Date(startIso);
-    let end = new Date(start);
-    end.setDate(end.getDate() + TRIAL_DAYS);
 
     const remote = await loadTrialFromFirestore(uid);
     if (remote) {
       start = remote.start;
-      end = remote.end;
     } else {
       await startUserTrialNative(uid).catch(() => {});
     }
+
+    // Always use the current preview length from start (14 days), even if an
+    // older Firestore endDate was written when the preview was 7 days.
+    const end = new Date(start);
+    end.setDate(end.getDate() + TRIAL_DAYS);
 
     const now = new Date();
     if (now > end) {

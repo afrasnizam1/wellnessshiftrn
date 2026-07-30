@@ -35,6 +35,7 @@ import GoalReminderCard from '../../components/home/GoalReminderCard';
 import NextBestActions from '../../components/home/NextBestActions';
 import WeeklyStepChallenge from '../../components/home/WeeklyStepChallenge';
 import AssessmentInsights from '../../components/home/AssessmentInsights';
+import HomePurposeLeadCard from '../../components/home/HomePurposeLeadCard';
 import ClinicianRecommendationsCard from '../../components/home/ClinicianRecommendationsCard';
 import { healthKitService } from '../../services/healthkit';
 import { clinicianService } from '../../services/clinicianService';
@@ -50,6 +51,7 @@ import {
 } from '../../services/firebase';
 import { checkInService } from '../../services/checkInService';
 import { onboardingStorage } from '../../services/onboardingStorage';
+import type { AppPurpose } from '../../types/onboardingPrefs';
 import { format } from 'date-fns';
 
 export default function HomeScreen() {
@@ -73,6 +75,7 @@ export default function HomeScreen() {
   const [showInAppGuide, setShowInAppGuide] = useState(false);
   const [startHereDone, setStartHereDone] = useState(true);
   const [dayOneDone, setDayOneDone] = useState(true);
+  const [appPurpose, setAppPurpose] = useState<AppPurpose | null>(null);
   const offeredDayOne = useRef(false);
   const funnelComplete = !!user?.onboardingComplete;
   const CSQ_SCREEN = 'Home - Dashboard';
@@ -126,6 +129,26 @@ export default function HomeScreen() {
     onboardingStorage.shouldShowAppTour(user.uid).then((show) => {
       if (show) setShowInAppGuide(true);
     });
+    (async () => {
+      const fromProfile = user.appPurpose as AppPurpose | undefined;
+      if (fromProfile) {
+        setAppPurpose(fromProfile);
+        return;
+      }
+      const stored = await onboardingStorage.getAppPurpose(user.uid);
+      if (stored) {
+        setAppPurpose(stored as AppPurpose);
+        return;
+      }
+      if (user.primaryGoal === 'clinician' || user.healthGoals?.includes('clinician')) {
+        setAppPurpose('clinician');
+        return;
+      }
+      // Legacy users who picked clinician-oriented goals before purpose existed.
+      if (user.primaryGoal === 'condition' || user.healthGoals?.includes('condition')) {
+        setAppPurpose('clinician');
+      }
+    })();
     const unsubPlans = carePlanService.watchCarePlans(user.uid, (plans) => {
       setCarePlan(plans[0] ?? null);
     });
@@ -137,7 +160,7 @@ export default function HomeScreen() {
       unsubPlans();
       unsubRecs();
     };
-  }, [user?.uid, funnelComplete, user?.quizComplete, user?.primaryGoal, user?.healthGoals, setCarePlan, setClinicianRecommendations]);
+  }, [user?.uid, funnelComplete, user?.quizComplete, user?.primaryGoal, user?.healthGoals, user?.appPurpose, setCarePlan, setClinicianRecommendations]);
 
   useFocusEffect(
     useCallback(() => {
@@ -376,6 +399,24 @@ export default function HomeScreen() {
         {user?.primaryGoal && (
           <GoalReminderCard goal={user.primaryGoal as any} />
         )}
+
+        {appPurpose ? (
+          <HomePurposeLeadCard
+            purpose={appPurpose}
+            linkedToClinician={!!user?.clinicianId}
+            onPress={() => {
+              if (appPurpose === 'clinician') {
+                navigation.navigate(Screen.tabMyCare, { screen: Screen.connectClinician });
+                return;
+              }
+              if (appPurpose === 'wellness_score' || appPurpose === 'all') {
+                navigation.navigate(Screen.tabAnalytics);
+                return;
+              }
+              navigation.navigate(Screen.tabFitness);
+            }}
+          />
+        ) : null}
 
         <AppCard style={styles.scoreCard} padded={false}>
           <View style={styles.scoreCardInner}>

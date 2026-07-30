@@ -12,6 +12,8 @@ export function getContextualGuideDestination(primaryGoal?: string | null): InAp
     case 'nutrition':
     case 'condition':
       return 'fitness';
+    case 'clinician':
+      return 'more';
     default:
       return 'dailyCheckIn';
   }
@@ -23,6 +25,13 @@ export function getContextualGuideCopy(primaryGoal?: string | null): {
   cta: string;
 } {
   const destination = getContextualGuideDestination(primaryGoal);
+  if (destination === 'more') {
+    return {
+      title: 'Connect with a clinician',
+      body: 'You chose clinician support — open My Care to link with an invite code.',
+      cta: 'Open My Care',
+    };
+  }
   if (destination === 'fitness') {
     return {
       title: 'Your Fitness Hub is ready',

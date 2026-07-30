@@ -152,7 +152,9 @@ export const userService = {
       data.onboardingComplete !== undefined ||
       data.quizComplete !== undefined ||
       data.primaryGoal !== undefined ||
-      data.healthGoals !== undefined;
+      data.healthGoals !== undefined ||
+      data.appPurpose !== undefined ||
+      data.appPurposes !== undefined;
 
     if (shouldSyncRegistry) {
       try {

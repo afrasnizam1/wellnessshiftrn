@@ -8,6 +8,8 @@ export const Screen = {
   breathWelcome: 'Breath Welcome',
   authentication: 'Sign In & Registration',
   emailVerification: 'Email Verification',
+  introVideo: 'Welcome Video',
+  purposeSelection: 'Why Are You Here',
   goalSelection: 'Goal Selection',
   experienceLevel: 'Experience Level',
   onboardingHabits: 'Onboarding Habits',

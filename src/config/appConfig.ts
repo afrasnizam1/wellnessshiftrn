@@ -48,11 +48,15 @@ export const appConfig = {
   privacyPolicyUrl: 'https://wellnessshift.co.uk/privacy',
   termsOfServiceUrl: 'https://wellnessshift.co.uk/terms',
 
-  /** Remote intro video URL — replace with production CDN asset when available */
-  introVideoUrl: 'https://wellnessshift.co.uk/wp-content/uploads/wellnessshift-intro.mp4',
+  /**
+   * Remote welcome video after account creation.
+   * Leave empty to use the built-in cinematic welcome.
+   * Host an mp4 on your CDN and set the URL to play a real video instead.
+   */
+  introVideoUrl: '',
 
-  /** Fallback if introVideoUrl fails to load */
-  introVideoFallbackUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+  /** Optional second URL if introVideoUrl fails — leave empty to use cinematic fallback */
+  introVideoFallbackUrl: '',
 
   /** Crashlytics + App Check — require isFirebaseConfigured: true */
   enableCrashlytics: true,

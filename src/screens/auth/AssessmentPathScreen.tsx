@@ -4,14 +4,14 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '../../navigation/screenNames';
 import { Colors, Typography, Spacing, Radius } from '../../theme';
-import { AppCard, AnimatedPressable, BrandButton } from '../../components/ui';
+import { AppCard, AnimatedPressable, BrandButton, BackButton } from '../../components/ui';
 import {
   pendingCanShowResults,
   pendingJustFinishedQuiz,
   pendingOnboardingStorage,
   type AssessmentPath,
 } from '../../services/pendingOnboardingStorage';
-import { refreshPreAuthRouteFromPending, resetOnboardingStack } from '../../services/onboardingNavigation';
+import { goBackOrTo, refreshPreAuthRouteFromPending, resetOnboardingStack } from '../../services/onboardingNavigation';
 import { useAppStore } from '../../store';
 import AppScreen from '../../components/common/AppScreen';
 
@@ -91,6 +91,9 @@ export default function AssessmentPathScreen() {
 
   return (
     <AppScreen style={styles.safe}>
+      <View style={styles.topBar}>
+        <BackButton onPress={() => goBackOrTo(navigation, Screen.onboardingBaseline)} />
+      </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>How deep should we go?</Text>
         <Text style={styles.subtitle}>
@@ -124,6 +127,7 @@ export default function AssessmentPathScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
+  topBar: { paddingHorizontal: Spacing.sm, paddingTop: Spacing.xs },
   content: { padding: Spacing.base, gap: Spacing.md, paddingBottom: Spacing['3xl'] },
   title: { fontSize: Typography.size['2xl'], fontWeight: '800', color: Colors.text, letterSpacing: -0.4 },
   subtitle: { fontSize: Typography.size.sm, color: Colors.textSecondary, lineHeight: 22 },

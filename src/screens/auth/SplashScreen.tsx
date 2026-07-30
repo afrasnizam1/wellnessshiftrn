@@ -43,7 +43,7 @@ export default function SplashScreen({ navigation }: Props) {
           <WellnessShiftLogoBadge diameter={LOGO_SIZE} />
           <View style={styles.titleBlock}>
             <Text style={styles.appName}>Wellness Shift</Text>
-            <Text style={styles.tagline}>Look after your body & mind</Text>
+            <Text style={styles.tagline}>Your wellness score — with your clinician in the loop</Text>
           </View>
         </View>
 

@@ -39,6 +39,9 @@ export default function EnhancedWellnessResultsScreen() {
   const [programPreview, setProgramPreview] = React.useState<ReturnType<typeof getProgramDayLesson>[]>([]);
   const [saving, setSaving] = useState(false);
   const [ready, setReady] = useState(false);
+  const [purpose, setPurpose] = useState<string | null>(null);
+  const [focusGoals, setFocusGoals] = useState<string[]>([]);
+  const [primaryGoal, setPrimaryGoal] = useState<string | null>(null);
 
   // Results only after an explicit quiz finish (awaitingResultsPreview), never from stale store/score.
   // Run once on mount — do not re-run when wellnessScore updates (that caused a race back to Quiz).
@@ -100,6 +103,12 @@ export default function EnhancedWellnessResultsScreen() {
   React.useEffect(() => {
     if (!ready || !wellnessScore) return;
     if (user) {
+      setPurpose(user.appPurpose ?? null);
+      setFocusGoals([
+        ...(user.healthGoals ?? []),
+        ...(user.appPurposes ?? []),
+      ]);
+      setPrimaryGoal(user.primaryGoal ?? null);
       setRecommended(getRecommendedModules(user.primaryGoal, user.healthGoals ?? []));
       const programId = getRecommendedProgramId(user.primaryGoal);
       const catalog = PROGRAM_CATALOG.find((p) => p.id === programId);
@@ -109,6 +118,13 @@ export default function EnhancedWellnessResultsScreen() {
       return;
     }
     pendingOnboardingStorage.get().then((pending) => {
+      setPurpose(pending.appPurpose);
+      setFocusGoals([
+        ...pending.goals,
+        ...(pending.appPurposes ?? []),
+        ...(pending.appPurpose ? [pending.appPurpose] : []),
+      ]);
+      setPrimaryGoal(pending.primaryGoal);
       setRecommended(getRecommendedModules(pending.primaryGoal, pending.goals));
       const programId = getRecommendedProgramId(pending.primaryGoal);
       const catalog = PROGRAM_CATALOG.find((p) => p.id === programId);
@@ -124,6 +140,14 @@ export default function EnhancedWellnessResultsScreen() {
   );
   const strengths = ranked.slice(0, 3);
   const focusAreas = [...ranked].reverse().slice(0, 3);
+
+  const showClinicianNudge =
+    purpose === 'clinician' ||
+    purpose === 'all' ||
+    focusGoals.includes('clinician') ||
+    focusGoals.includes('condition') ||
+    primaryGoal === 'clinician' ||
+    primaryGoal === 'condition';
 
   const continueFlow = async () => {
     if (saving) return;
@@ -170,10 +194,16 @@ export default function EnhancedWellnessResultsScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <Text style={styles.heroEyebrow}>Assessment complete</Text>
-          <Text style={styles.heroTitle}>Your Wellness Results</Text>
-          <Text style={styles.heroSub}>
-            Review how you scored in each category below.
+          <Text style={styles.heroTitle}>Your Wellness Score</Text>
+          <Text style={styles.explainerText}>
+            Everything in Wellness Shift feeds this score — workouts, nutrition, sleep,
+            mood check-ins, and your clinician's input all update it over time.
           </Text>
+          {showClinicianNudge ? (
+            <Text style={styles.clinicianHint}>
+              Based on what you told us, we'd suggest connecting with a clinician — you can do that any time from the Care tab.
+            </Text>
+          ) : null}
         </View>
 
         <AppCard>
@@ -312,13 +342,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: -0.5,
   },
-  heroSub: {
+  explainerText: {
     width: '100%',
     fontSize: Typography.size.sm,
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginTop: Spacing.xs,
+  },
+  clinicianHint: {
+    width: '100%',
+    fontSize: Typography.size.sm,
+    color: Colors.brandDark,
+    textAlign: 'center',
+    lineHeight: 21,
+    marginTop: Spacing.sm,
+    fontWeight: '600',
   },
   sectionTitle: { fontSize: Typography.size.lg, fontWeight: '700', color: Colors.text },
   sectionSub: { fontSize: Typography.size.sm, color: Colors.textSecondary, marginBottom: Spacing.sm },

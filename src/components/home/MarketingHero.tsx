@@ -21,9 +21,9 @@ export default function MarketingHero({ onStartQuiz }: Props) {
           <Ionicons name="sparkles" size={28} color={Colors.white} />
         </View>
         <Text style={styles.title}>Your Wellness Journey</Text>
-        <Text style={styles.titleAccent}>Starts Here</Text>
+        <Text style={styles.titleAccent}>Starts with your score</Text>
         <Text style={styles.body}>
-          AI-powered insights, personalised plans, and expert guidance for fitness, nutrition, and mental wellness
+          Everything you do here — workouts, nutrition, sleep, mood, and clinician care — feeds one wellness score you can watch improve.
         </Text>
         <View style={styles.ctaRow}>
           <Text style={styles.cta}>Take assessment</Text>

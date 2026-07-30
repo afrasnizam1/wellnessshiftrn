@@ -2,14 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius } from '../../theme';
-import { AppCard, AnimatedPressable, BrandButton } from '../../components/ui';
+import { AppCard, AnimatedPressable, BrandButton, BackButton } from '../../components/ui';
 import AppScreen from '../../components/common/AppScreen';
 import { useAppStore } from '../../store';
 import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
 import { onboardingStorage } from '../../services/onboardingStorage';
 import { userService } from '../../services/firebase';
 import type { ReminderAnchor } from '../../types/onboardingPrefs';
-import { goToOnboardingBaseline, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
+import { goBackOrTo, goToOnboardingBaseline, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
+import { Screen } from '../../navigation/screenNames';
 
 const ANCHORS: { id: ReminderAnchor; label: string; detail: string }[] = [
   { id: 'morning', label: 'Morning', detail: 'After waking up' },
@@ -68,6 +69,9 @@ export default function OnboardingHabitsScreen() {
 
   return (
     <AppScreen style={styles.safe}>
+      <View style={styles.topBar}>
+        <BackButton onPress={() => goBackOrTo(navigation, Screen.experienceLevel)} />
+      </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Build your routine</Text>
         <Text style={styles.subtitle}>When should we nudge you, and how often do you want to practice?</Text>
@@ -129,7 +133,8 @@ export default function OnboardingHabitsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.base, paddingTop: Spacing.xl, gap: Spacing.md, paddingBottom: Spacing.md },
+  topBar: { paddingHorizontal: Spacing.sm, paddingTop: Spacing.xs },
+  content: { padding: Spacing.base, paddingTop: Spacing.md, gap: Spacing.md, paddingBottom: Spacing.md },
   title: { fontSize: Typography.size['2xl'], fontWeight: '800', color: Colors.text, textAlign: 'center' },
   subtitle: { fontSize: Typography.size.sm, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
   sectionLabel: { fontSize: Typography.size.sm, fontWeight: '700', color: Colors.text, marginTop: Spacing.sm },

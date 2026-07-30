@@ -373,7 +373,7 @@ export async function startUserTrialNative(uid: string): Promise<void> {
   const db = firestore();
   const start = new Date();
   const end = new Date(start);
-  end.setDate(end.getDate() + 7);
+  end.setDate(end.getDate() + 14);
 
   await db.collection(FS.userTrials).doc(uid).set(
     {

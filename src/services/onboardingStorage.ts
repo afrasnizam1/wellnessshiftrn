@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEYS = {
   hasSeenAppIntro: 'hasSeenAppIntro',
+  hasSeenWelcomeVideo: 'hasSeenWelcomeVideo',
   hasCompletedPostQuizOnboarding: 'hasCompletedPostQuizOnboarding',
   hasCompletedPostQuizActionPlan: 'hasCompletedPostQuizActionPlan',
   hasCompletedWellnessResults: 'hasCompletedWellnessResults',
@@ -20,6 +21,8 @@ const KEYS = {
   userPersona: 'userPersona',
   userGoals: 'userGoals',
   selectedPrimaryGoal: 'selectedPrimaryGoal',
+  appPurpose: 'appPurpose',
+  appPurposes: 'appPurposes',
   trialStartDate: 'free_trial_start_date',
   trialUsed: 'free_trial_has_been_used',
 } as const;
@@ -36,6 +39,12 @@ export const onboardingStorage = {
 
   markAppIntroSeen: async () =>
     AsyncStorage.setItem(KEYS.hasSeenAppIntro, 'true'),
+
+  hasSeenWelcomeVideo: async (uid: string) =>
+    (await AsyncStorage.getItem(userKey(KEYS.hasSeenWelcomeVideo, uid))) === 'true',
+
+  markWelcomeVideoSeen: async (uid: string) =>
+    AsyncStorage.setItem(userKey(KEYS.hasSeenWelcomeVideo, uid), 'true'),
 
   markQuizComplete: async (uid: string) =>
     AsyncStorage.setItem(userKey('hasCompletedQuiz', uid), 'true'),
@@ -196,6 +205,24 @@ export const onboardingStorage = {
     if (!uid) return AsyncStorage.setItem(KEYS.selectedPrimaryGoal, goal);
     return AsyncStorage.setItem(userKey(KEYS.selectedPrimaryGoal, uid), goal);
   },
+
+  getAppPurpose: async (uid: string): Promise<string | null> =>
+    AsyncStorage.getItem(userKey(KEYS.appPurpose, uid)),
+
+  setAppPurpose: async (uid: string, purpose: string) =>
+    AsyncStorage.setItem(userKey(KEYS.appPurpose, uid), purpose),
+
+  getAppPurposes: async (uid: string): Promise<string[]> => {
+    const raw = await AsyncStorage.getItem(userKey(KEYS.appPurposes, uid));
+    if (!raw) {
+      const single = await AsyncStorage.getItem(userKey(KEYS.appPurpose, uid));
+      return single ? [single] : [];
+    }
+    try { return JSON.parse(raw); } catch { return []; }
+  },
+
+  setAppPurposes: async (uid: string, purposes: string[]) =>
+    AsyncStorage.setItem(userKey(KEYS.appPurposes, uid), JSON.stringify(purposes)),
 
   getTrialStartDate: async (uid: string): Promise<string | null> =>
     AsyncStorage.getItem(userKey(KEYS.trialStartDate, uid)),

@@ -158,7 +158,7 @@ export default function BreathWelcomeScreen() {
           </View>
 
           <Text style={styles.sub}>
-            A quiet moment before we personalise your journey.
+            Next: tell us why you’re here — then we’ll build around your wellness score.
           </Text>
         </View>
 

@@ -17,6 +17,7 @@ const GOAL_MODULE_IDS: Record<string, string[]> = {
   mental: ['mindfulness-toolkit', 'meditation', 'memory-match'],
   habits: ['meditation', 'mindfulness-tracker', 'breathing'],
   condition: ['breathing', 'stretching', 'mindfulness-toolkit'],
+  clinician: ['breathing', 'mindfulness-toolkit', 'meditation'],
   general: ['meditation', 'walking-running', 'sleep-tools'],
 };
 

@@ -5,14 +5,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing } from '../../theme';
 import type { IoniconName } from '../../theme/icons';
-import { AppCard, AnimatedPressable, BrandButton, IconBadge } from '../../components/ui';
+import { AppCard, AnimatedPressable, BrandButton, IconBadge, BackButton } from '../../components/ui';
 import AppScreen from '../../components/common/AppScreen';
 import { useAppStore } from '../../store';
 import { userService } from '../../services/firebase';
 import { onboardingStorage } from '../../services/onboardingStorage';
 import { notificationService } from '../../services/notifications';
 import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
-import { goToExperienceLevel, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
+import { goBackOrTo, goToExperienceLevel, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
 import { Screen } from '../../navigation/screenNames';
 
 export type PrimaryGoal =
@@ -23,6 +23,7 @@ export type PrimaryGoal =
   | 'mental'
   | 'habits'
   | 'condition'
+  | 'clinician'
   | 'general';
 
 const GOALS: {
@@ -39,6 +40,13 @@ const GOALS: {
   { id: 'mental', icon: 'happy-outline', color: Colors.mental, title: 'Improve mental health', subtitle: 'Mood, anxiety, and focus' },
   { id: 'habits', icon: 'checkbox-outline', color: Colors.mindfulness, title: 'Build healthy habits', subtitle: 'Small daily wins that stick' },
   { id: 'condition', icon: 'medical-outline', color: Colors.physical, title: 'Manage a condition', subtitle: 'Track and support a health goal' },
+  {
+    id: 'clinician',
+    icon: 'people-outline',
+    color: Colors.brand,
+    title: 'Talk to a clinician',
+    subtitle: 'Connect with a professional about something specific',
+  },
   { id: 'general', icon: 'sparkles-outline', color: Colors.purple, title: 'Overall wellness', subtitle: 'A balanced approach to health' },
 ];
 
@@ -52,8 +60,14 @@ export default function GoalSelectionScreen() {
 
   useEffect(() => {
     pendingOnboardingStorage.get().then((pending) => {
-      if (pending.goals.length === 0) return;
-      setSelected(new Set(pending.goals as PrimaryGoal[]));
+      if (pending.goals.length > 0) {
+        setSelected(new Set(pending.goals as PrimaryGoal[]));
+        return;
+      }
+      // Clinician purpose → pre-select the clinician goal.
+      if (pending.appPurpose === 'clinician' || pending.appPurposes?.includes('clinician') || pending.appPurposes?.includes('all')) {
+        setSelected(new Set<PrimaryGoal>(['clinician']));
+      }
     });
   }, []);
 
@@ -70,18 +84,35 @@ export default function GoalSelectionScreen() {
     if (selected.size === 0 || saving) return;
 
     const goals = GOALS.filter((g) => selected.has(g.id)).map((g) => g.id);
-    const primaryGoal = goals[0];
+    // Prefer clinician as primary when selected so Home/results route toward care.
+    const primaryGoal = goals.includes('clinician') ? 'clinician' : goals[0];
+    const wantsClinician = goals.includes('clinician');
 
     setSaving(true);
     try {
       if (user) {
-        await userService.updateProfile(user.uid, { primaryGoal, healthGoals: goals });
+        await userService.updateProfile(user.uid, {
+          primaryGoal,
+          healthGoals: goals,
+          ...(wantsClinician ? { appPurpose: 'clinician' as const } : {}),
+        });
         await onboardingStorage.setUserGoals(user.uid, goals);
         await onboardingStorage.setSelectedPrimaryGoal(user.uid, primaryGoal);
-        setUser({ ...user, primaryGoal, healthGoals: goals });
+        if (wantsClinician) {
+          await onboardingStorage.setAppPurpose(user.uid, 'clinician');
+        }
+        setUser({
+          ...user,
+          primaryGoal,
+          healthGoals: goals,
+          ...(wantsClinician ? { appPurpose: 'clinician' as const } : {}),
+        });
         await notificationService.scheduleGoalReminder(primaryGoal).catch(() => {});
       } else {
         await pendingOnboardingStorage.saveGoals(goals, primaryGoal);
+        if (wantsClinician) {
+          await pendingOnboardingStorage.savePurpose('clinician');
+        }
       }
       await refreshPreAuthRouteFromPending(hasSeenIntro);
       goToExperienceLevel(navigation);
@@ -97,11 +128,15 @@ export default function GoalSelectionScreen() {
 
   return (
     <AppScreen style={styles.safe}>
+      <View style={styles.topBar}>
+        <BackButton onPress={() => goBackOrTo(navigation, Screen.purposeSelection)} />
+      </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.eyebrow}>Let’s personalise</Text>
-        <Text style={styles.title}>What brings you here?</Text>
+        <Text style={styles.eyebrow}>Focus areas</Text>
+        <Text style={styles.title}>What should we prioritise?</Text>
         <Text style={styles.subtitle}>
-          Pick all that apply. We'll tailor your plan and recommendations around your focus areas.
+          Pick all that apply. These feed your wellness score — and help us tailor plans,
+          modules, and (if you want) clinician support.
         </Text>
 
         <View style={styles.grid}>
@@ -170,9 +205,13 @@ export default function GoalSelectionScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
+  topBar: {
+    paddingHorizontal: Spacing.sm,
+    paddingTop: Spacing.xs,
+  },
   content: {
     padding: Spacing.base,
-    paddingTop: Spacing.xl,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     gap: Spacing.md,
   },

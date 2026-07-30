@@ -18,6 +18,7 @@ import { computeWellnessScoreFromAnswers } from '../../utils/wellnessAssessmentS
 import { getMiniAssessmentQuestions } from '../../utils/miniAssessmentQuestions';
 import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
 import {
+  goToCreateAccount,
   goToWellnessResults,
   refreshPreAuthRouteFromPending,
   resumePreAuthOnboardingFromPending,
@@ -100,13 +101,13 @@ export default function QuizScreen() {
         await userService.updateProfile(user.uid, { quizComplete: true });
         await onboardingStorage.markQuizComplete(user.uid);
         setUser({ ...user, quizComplete: true });
+        // Signed-in funnel still shows Results next.
+        goToWellnessResults(navigation);
       } else {
-        // Keep frozen preAuthRoute in sync so remounts open Results, not Quiz.
+        // Guest funnel: quiz → account creation; Results run post-auth.
         await refreshPreAuthRouteFromPending(hasSeenIntro);
+        goToCreateAccount(navigation);
       }
-
-      // Always show Results after a newly completed quiz — never skip ahead.
-      goToWellnessResults(navigation);
 
       savingRef.current = false;
       setSaving(false);
@@ -125,8 +126,11 @@ export default function QuizScreen() {
                 wellnessService.saveScore(user.uid, score).catch(() => {});
                 userService.updateProfile(user.uid, { quizComplete: true }).catch(() => {});
                 onboardingStorage.markQuizComplete(user.uid).catch(() => {});
+                goToWellnessResults(navigation);
+              } else {
+                refreshPreAuthRouteFromPending(hasSeenIntro).catch(() => {});
+                goToCreateAccount(navigation);
               }
-              goToWellnessResults(navigation);
             },
           },
         ],

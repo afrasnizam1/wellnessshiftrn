@@ -141,6 +141,7 @@ export function getRecommendedProgramId(primaryGoal?: string | null): string {
     mental: 'anxiety_toolkit',
     habits: 'mindfulness_21',
     condition: 'heart_health',
+    clinician: 'heart_health',
     general: 'stress_reset_30',
   };
   return map[primaryGoal ?? 'general'] ?? 'stress_reset_30';

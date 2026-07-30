@@ -36,20 +36,40 @@ export function resetOnboardingStack(
   );
 }
 
+/** Prefer stack history so Back works; fall back to an explicit screen. */
+export function goBackOrTo(
+  navigation: RootNavigation,
+  fallback: keyof RootStackParamList,
+) {
+  if (navigation.canGoBack()) {
+    navigation.goBack();
+    return;
+  }
+  resetOnboardingStack(navigation, fallback);
+}
+
+export function goToGoalSelection(navigation: RootNavigation) {
+  navigation.navigate(Screen.goalSelection);
+}
+
+export function goToPurposeSelection(navigation: RootNavigation) {
+  navigation.navigate(Screen.purposeSelection);
+}
+
 export function goToAssessmentPath(navigation: RootNavigation) {
-  resetOnboardingStack(navigation, Screen.assessmentPath);
+  navigation.navigate(Screen.assessmentPath);
 }
 
 export function goToExperienceLevel(navigation: RootNavigation) {
-  resetOnboardingStack(navigation, Screen.experienceLevel);
+  navigation.navigate(Screen.experienceLevel);
 }
 
 export function goToOnboardingHabits(navigation: RootNavigation) {
-  resetOnboardingStack(navigation, Screen.onboardingHabits);
+  navigation.navigate(Screen.onboardingHabits);
 }
 
 export function goToOnboardingBaseline(navigation: RootNavigation) {
-  resetOnboardingStack(navigation, Screen.onboardingBaseline);
+  navigation.navigate(Screen.onboardingBaseline);
 }
 
 export function goToFirstWinActivity(navigation: RootNavigation) {
@@ -75,7 +95,7 @@ export function goToCreateAccount(navigation: RootNavigation) {
 
 /**
  * Skip screens already completed — mirrors resolvePreAuthRoute so remounts
- * land on the correct pre-auth step (quiz → results → mood → first win → account).
+ * land on the correct pre-auth step (purpose → quiz → account).
  */
 export async function resumePreAuthOnboardingFromPending(
   navigation: RootNavigation,
@@ -104,11 +124,13 @@ export async function resumePreAuthOnboardingFromPending(
     return 'handled';
   }
 
-  // Breath welcome is only for cold start — don't bounce quiz remounts back there.
-  if (route === Screen.breathWelcome) {
+  // Already on the quiz — resetting to the same screen remounts forever and
+  // leaves questionsReady false (blank spinner / empty screen).
+  if (route === Screen.wellnessQuiz) {
     return 'continue';
   }
 
+  // Purpose / welcome video / etc. — leave the quiz and go there.
   resetOnboardingStack(navigation, route);
   return 'handled';
 }
