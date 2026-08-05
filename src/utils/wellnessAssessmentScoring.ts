@@ -8,7 +8,7 @@ export function quizAnswerToWellnessScore(answer: number): number {
   return answer * 2;
 }
 
-/** Average scores per category (2 questions each). */
+/** Average scores per category from answered questions (1+ per category is enough). */
 export function computeWellnessScoreFromAnswers(answers: AssessmentAnswerMap): WellnessScore {
   const categoryTotals: Partial<Record<WellnessCategoryKey, number>> = {};
   const categoryCounts: Partial<Record<WellnessCategoryKey, number>> = {};

@@ -778,8 +778,8 @@ export default function HomeScreen() {
                 <IconBadge name="arrow-redo-outline" color={Colors.primary} size="sm" />
               </View>
               <View style={styles.retakeInfo}>
-                <Text style={styles.retakeTitle}>Retake Assessment</Text>
-                <Text style={styles.retakeSub}>Update your wellness profile</Text>
+                <Text style={styles.retakeTitle}>Deeper check-in</Text>
+                <Text style={styles.retakeSub}>10 more questions to refine your score</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.textTertiary} />
             </TouchableOpacity>

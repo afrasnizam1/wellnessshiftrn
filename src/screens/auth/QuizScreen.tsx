@@ -12,8 +12,10 @@ import { ensureAuthReadyForUid } from '../../services/firebaseReady';
 import { onboardingStorage } from '../../services/onboardingStorage';
 import AppScreen from '../../components/common/AppScreen';
 import { AnimatedPressable } from '../../components/ui';
-import { WELLNESS_ASSESSMENT_QUESTIONS } from '../../data/wellnessAssessmentQuestions';
-import type { AssessmentQuestion } from '../../data/wellnessAssessmentQuestions';
+import {
+  getAssessmentQuestions,
+  type AssessmentQuestion,
+} from '../../data/wellnessAssessmentQuestions';
 import { computeWellnessScoreFromAnswers } from '../../utils/wellnessAssessmentScoring';
 import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
 import {
@@ -27,7 +29,7 @@ const ADVANCE_DELAY_MS = 280;
 export default function QuizScreen() {
   const navigation = useNavigation<any>();
   const { user, setWellnessScore, setLastQuizAnswers, setUser, hasSeenIntro } = useAppStore();
-  const [questions, setQuestions] = useState<AssessmentQuestion[]>(WELLNESS_ASSESSMENT_QUESTIONS);
+  const [questions, setQuestions] = useState<AssessmentQuestion[]>(getAssessmentQuestions('onboarding'));
   const [questionsReady, setQuestionsReady] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -43,15 +45,15 @@ export default function QuizScreen() {
         if (cancelled || resumed === 'handled') return;
       }
 
-      // Main onboarding always uses the full 20-question assessment.
-      // Legacy mini completions are upgraded so they cannot skip the full quiz.
+      // Onboarding = 10 questions (1 per category). Retake from Home = deeper 10.
+      const questionSet = user?.onboardingComplete ? 'deeper' : 'onboarding';
       const pending = await pendingOnboardingStorage.get();
       if (cancelled) return;
       if (pending.assessmentPath !== 'full') {
         await pendingOnboardingStorage.saveAssessmentPath('full');
         if (cancelled) return;
       }
-      setQuestions(WELLNESS_ASSESSMENT_QUESTIONS);
+      setQuestions(getAssessmentQuestions(questionSet));
       setQuestionsReady(true);
     })();
     return () => { cancelled = true; };

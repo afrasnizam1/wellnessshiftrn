@@ -8,17 +8,19 @@ export function getCategoryQuizBreakdown(
   answers: AssessmentAnswerMap | null,
 ) {
   const questions = WELLNESS_ASSESSMENT_QUESTIONS.filter((q) => q.category === category);
-  return questions.map((question) => {
-    const score = answers?.[question.id];
-    const option = question.options.find((o) => o.score === score);
-    return {
-      questionId: question.id,
-      question: question.question,
-      score: score ?? null,
-      answerText: option?.text ?? 'Not answered',
-      description: option?.description,
-    };
-  });
+  return questions
+    .filter((question) => answers?.[question.id] != null)
+    .map((question) => {
+      const score = answers?.[question.id];
+      const option = question.options.find((o) => o.score === score);
+      return {
+        questionId: question.id,
+        question: question.question,
+        score: score ?? null,
+        answerText: option?.text ?? 'Not answered',
+        description: option?.description,
+      };
+    });
 }
 
 export function getCategoryScoreSummary(scores: Record<string, number> | undefined) {

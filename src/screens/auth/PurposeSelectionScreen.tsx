@@ -91,7 +91,7 @@ export default function PurposeSelectionScreen() {
           return;
         }
         if (route === Screen.wellnessQuiz) {
-          // Full 20-question quiz — clear any legacy mini / stale quiz flags.
+          // 10-question onboarding quiz — clear any legacy mini / stale quiz flags.
           await pendingOnboardingStorage.saveAssessmentPath('full');
         }
         if (route !== Screen.purposeSelection) {
@@ -100,7 +100,7 @@ export default function PurposeSelectionScreen() {
         }
       } else {
         await pendingOnboardingStorage.savePurpose(primary, purposes);
-        // Full quiz by default — skip the old goals → habits → assessment-path chain.
+        // 10-question quiz by default — skip the old goals → habits → assessment-path chain.
         await pendingOnboardingStorage.saveAssessmentPath('full');
         await refreshPreAuthRouteFromPending(hasSeenIntro);
         resetOnboardingStack(navigation, Screen.wellnessQuiz);

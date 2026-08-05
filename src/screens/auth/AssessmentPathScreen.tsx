@@ -16,8 +16,8 @@ import AppScreen from '../../components/common/AppScreen';
 
 /**
  * Legacy mid-funnel screen (goals → habits → baseline → here).
- * Main onboarding now goes Purpose → full 20-question quiz directly.
- * Kept so Back stacks / deep links still resolve; always starts the full quiz.
+ * Main onboarding now goes Purpose → 10-question quiz (1 per category) directly.
+ * Kept so Back stacks / deep links still resolve; always starts the onboarding quiz.
  */
 export default function AssessmentPathScreen() {
   const navigation = useNavigation<any>();

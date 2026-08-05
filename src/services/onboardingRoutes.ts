@@ -37,7 +37,7 @@ export type PostAuthOnboardingRoute =
   | typeof Screen.healthPermissions
   | typeof Screen.subscriptionPaywall;
 
-/** Mini path is legacy — main onboarding always requires the full 20-question quiz. */
+/** Mini path is legacy — main onboarding uses the 10-question (1 per category) quiz. */
 function pendingFullQuizFinished(
   pending: Awaited<ReturnType<typeof pendingOnboardingStorage.get>>,
 ): boolean {
@@ -54,7 +54,7 @@ function pendingFullQuizFinished(
  *
  *   1. Welcome video (breath + scenes)
  *   2. Why are you here
- *   3. Full wellness quiz (20 questions)
+ *   3. Wellness quiz (10 questions — 1 per category)
  *   4. Building plan interstitial (3s)
  *   5. Results / score
  *   6. Create account / sign in → main app

@@ -22,8 +22,7 @@ const GOAL_TO_CATEGORIES: Record<string, WellnessCategoryKey[]> = {
 
 /**
  * Optional legacy helper — builds a short goal-tailored question subset.
- * Main onboarding always uses the full 20-question `WELLNESS_ASSESSMENT_QUESTIONS`
- * catalog; this remains for experiments / future quick check-ins only.
+ * Main onboarding uses `ONBOARDING_ASSESSMENT_QUESTIONS` (10 = 1 per category).
  */
 export function getMiniAssessmentQuestions(
   goals: string[],

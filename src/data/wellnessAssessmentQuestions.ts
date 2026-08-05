@@ -14,7 +14,7 @@ export type AssessmentQuestion = {
   options: AssessmentOption[];
 };
 
-/** 20 wellness assessment questions — each option scored 1–5 (converted to /10 for wellness results). */
+/** 20 wellness assessment questions (2 per category). Onboarding uses the first of each pair. */
 export const WELLNESS_ASSESSMENT_QUESTIONS: AssessmentQuestion[] = [
   {
     id: 'physical_1',
@@ -257,3 +257,37 @@ export const WELLNESS_ASSESSMENT_QUESTIONS: AssessmentQuestion[] = [
     ],
   },
 ];
+
+const CATEGORY_ORDER: WellnessCategoryKey[] = [
+  'physical',
+  'mental',
+  'nutrition',
+  'fitness',
+  'sleep',
+  'stress',
+  'mindfulness',
+  'social',
+  'workLife',
+  'environment',
+];
+
+function questionsForIndex(index: 0 | 1): AssessmentQuestion[] {
+  return CATEGORY_ORDER.map((category) => {
+    const pair = WELLNESS_ASSESSMENT_QUESTIONS.filter((q) => q.category === category);
+    return pair[index] ?? pair[0];
+  }).filter(Boolean) as AssessmentQuestion[];
+}
+
+/** First-session quiz: 1 question per category (10 total). */
+export const ONBOARDING_ASSESSMENT_QUESTIONS = questionsForIndex(0);
+
+/** Retake / deeper check-in: the second question per category (10 total). */
+export const DEEPER_CHECKIN_QUESTIONS = questionsForIndex(1);
+
+export type AssessmentQuestionSet = 'onboarding' | 'deeper' | 'full';
+
+export function getAssessmentQuestions(set: AssessmentQuestionSet): AssessmentQuestion[] {
+  if (set === 'onboarding') return ONBOARDING_ASSESSMENT_QUESTIONS;
+  if (set === 'deeper') return DEEPER_CHECKIN_QUESTIONS;
+  return WELLNESS_ASSESSMENT_QUESTIONS;
+}
