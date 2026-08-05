@@ -17,7 +17,7 @@ export function getContextualGuideDestination(primaryGoal?: string | null): InAp
     case 'build_muscle':
       return 'fitness';
     case 'clinician':
-      return 'more';
+      return 'clinician';
     default:
       return 'dailyCheckIn';
   }
@@ -29,7 +29,7 @@ export function getContextualGuideCopy(primaryGoal?: string | null): {
   cta: string;
 } {
   const destination = getContextualGuideDestination(primaryGoal);
-  if (destination === 'more') {
+  if (destination === 'clinician') {
     return {
       title: 'Connect with your GP-referred clinician',
       body: 'Clinician linking is only for patients with a health issue whose GP referred them. Open My Care and enter the invite code they gave you.',

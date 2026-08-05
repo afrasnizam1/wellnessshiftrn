@@ -10,6 +10,7 @@ import { Colors, Typography, Spacing, Radius, Shadow, Gradients } from '../../th
 import { BrandButton } from '../ui';
 import type { IoniconName } from '../../theme/icons';
 import { getContextualGuideDestination } from '../../utils/onboardingGuide';
+import { CLINICIAN_CONNECT_SHORT } from '../../types/onboardingPrefs';
 
 export type InAppGuideDestination =
   | 'home'
@@ -17,6 +18,9 @@ export type InAppGuideDestination =
   | 'dailyPlan'
   | 'aiInsights'
   | 'fitness'
+  | 'anatomy'
+  | 'foods'
+  | 'clinician'
   | 'analytics'
   | 'more';
 
@@ -83,6 +87,30 @@ function buildTourSteps(primaryGoal?: string | null): TourStep[] {
       actionTitle: 'Open Fitness',
     },
     {
+      id: 'body',
+      title: 'Learn the human body',
+      description:
+        'Explore interactive 3D anatomy — heart, brain, lungs, muscles, and more — so you understand how your body works as you build healthier habits.',
+      icon: 'body',
+      color: Colors.mental,
+      well: ['#946BFA', '#7A57F5'],
+      tabHint: 'More · Anatomy Explorer',
+      destination: 'anatomy',
+      actionTitle: 'Explore anatomy',
+    },
+    {
+      id: 'foods',
+      title: 'Foods & nutrition',
+      description:
+        'Learn nutrition basics, browse high-protein meals, and see which foods support organ health — practical guides you can use every day.',
+      icon: 'nutrition',
+      color: Colors.nutrition,
+      well: ['#2EDBBD', '#34C759'],
+      tabHint: 'Fitness · Nutrition',
+      destination: 'foods',
+      actionTitle: 'Explore foods',
+    },
+    {
       id: 'insights',
       title: 'AI Insights',
       description:
@@ -105,6 +133,18 @@ function buildTourSteps(primaryGoal?: string | null): TourStep[] {
       tabHint: 'Bottom tab · Analytics',
       destination: 'analytics',
       actionTitle: 'Open Analytics',
+    },
+    {
+      id: 'clinician',
+      title: 'Connect with a clinician',
+      description:
+        `Get personalised care plans and recommendations from a doctor or GP-referred clinician on Wellness Shift. ${CLINICIAN_CONNECT_SHORT}.`,
+      icon: 'medkit',
+      color: Colors.brand,
+      well: ['#F24D80', '#FF8561'],
+      tabHint: 'My Care · Connect',
+      destination: 'clinician',
+      actionTitle: 'Connect clinician',
     },
     {
       id: 'more',

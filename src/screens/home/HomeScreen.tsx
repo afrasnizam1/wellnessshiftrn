@@ -377,6 +377,15 @@ export default function HomeScreen() {
       case 'fitness':
         navigation.navigate(Screen.tabFitness);
         break;
+      case 'anatomy':
+        navigation.navigate(Screen.tabMore, { screen: Screen.anatomyExplorer });
+        break;
+      case 'foods':
+        navigation.navigate(Screen.tabFitness, { screen: Screen.nutritionBasics });
+        break;
+      case 'clinician':
+        navigation.navigate(Screen.tabMyCare, { screen: Screen.connectClinician });
+        break;
       case 'analytics':
         navigation.navigate(Screen.tabAnalytics);
         break;
