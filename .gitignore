@@ -96,3 +96,7 @@ expo-env.d.ts
 *.log
 .log
 assets/contentsquare-fonts/AppleColorEmojiUI.ttf
+tmp/
+.tmp-ios-check.png
+tmp/
+.tmp-ios-check.png
