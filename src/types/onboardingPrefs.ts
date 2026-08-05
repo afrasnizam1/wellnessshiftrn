@@ -9,6 +9,16 @@ export type AppPurpose =
   | 'clinician'
   | 'all';
 
+/**
+ * Clear eligibility for clinician linking — patients with a health concern
+ * who have been referred by their GP (invite code required).
+ */
+export const CLINICIAN_CONNECT_ELIGIBILITY =
+  'Clinician connection is only for patients who have a health issue and whose GP has referred them to a clinician on Wellness Shift. You will need the invite code they give you.';
+
+export const CLINICIAN_CONNECT_SHORT =
+  'Only if your GP referred you for a health issue — invite code required';
+
 export const APP_PURPOSE_OPTIONS: {
   id: AppPurpose;
   title: string;
@@ -35,14 +45,14 @@ export const APP_PURPOSE_OPTIONS: {
   },
   {
     id: 'clinician',
-    title: 'Connect with a clinician about something specific',
-    subtitle: 'Link your doctor or care team for plans, messaging, and check-ins',
+    title: 'Connect with a clinician (GP referral)',
+    subtitle: CLINICIAN_CONNECT_SHORT,
     icon: 'medkit-outline',
   },
   {
     id: 'all',
     title: 'All of the above',
-    subtitle: 'Score, learning, fitness, and clinician support — the full picture',
+    subtitle: 'Score, learning, fitness — plus clinician link only if your GP referred you',
     icon: 'apps-outline',
   },
 ];

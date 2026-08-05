@@ -8,7 +8,8 @@ import AppScreen from '../../components/common/AppScreen';
 const FAQS = [
   { q: 'What is my wellness score?', a: 'Your wellness score (0–10) is calculated from your assessment answers, daily task completion, Apple Health data, and AI Insights activity across 10 health categories.' },
   { q: 'How do I improve my score?', a: 'Complete daily plan tasks, engage with AI Insights, use Fitness Hub modules, and connect Apple Health for automatic activity tracking.' },
-  { q: 'How do I connect my clinician?', a: 'Ask your doctor or healthcare provider for their invite code. Go to More → My Care Plan → Enter the code to link your accounts.' },
+  { q: 'How do I connect my clinician?', a: 'Clinician connection is only for patients who have a health issue and whose GP has referred them to a clinician on Wellness Shift. Ask that clinician for their invite code, then go to My Care → Connect and enter it. If you have not been GP-referred, you can use the rest of the app without linking a clinician.' },
+  { q: 'Who can use clinician features?', a: 'Only patients with a specific health concern who have been referred by their GP. This is not a drop-in booking service for general wellness questions.' },
   { q: 'Is my data shared with anyone?', a: 'Your data is only shared with clinicians you explicitly connect with. We never sell or share your health data. See our Privacy Policy for full details.' },
   { q: 'How do I cancel my subscription?', a: 'Cancel anytime via iPhone Settings → Apple ID → Subscriptions → Wellness Shift. You keep access until the period ends.' },
   { q: 'Can I use the app without Apple Health?', a: 'Yes — Apple Health is optional. Connecting it enhances your wellness score with real activity data, but the app works fully without it.' },

@@ -2,7 +2,10 @@ import React from 'react';
 import { View, Image, StyleSheet, ViewStyle, StyleProp, PixelRatio } from 'react-native';
 import { Shadow } from '../../theme';
 
-/** Pre-cropped square asset — artwork already centered (no optical offset math). */
+/**
+ * Square logo asset — artwork sits slightly low in the PNG, so we apply a
+ * small upward optical offset when placing it in the circle.
+ */
 const LOGO = require('../../assets/images/wellness-shift-logo-badge.png');
 
 type Props = {
@@ -19,7 +22,7 @@ function roundPx(value: number): number {
 
 /**
  * Wellness Shift logo in a white circular badge.
- * Uses a centered square crop of the wordmark so it sits mid-circle.
+ * Centers the wordmark optically inside the circle.
  */
 export default function WellnessShiftLogoBadge({
   diameter = 140,
@@ -28,6 +31,8 @@ export default function WellnessShiftLogoBadge({
 }: Props) {
   const size = roundPx(diameter);
   const logoSize = roundPx(size * fill);
+  // Asset content is biased toward the bottom — lift so it reads mid-circle.
+  const opticalLift = -roundPx(size * 0.07);
 
   return (
     <View
@@ -46,7 +51,11 @@ export default function WellnessShiftLogoBadge({
     >
       <Image
         source={LOGO}
-        style={{ width: logoSize, height: logoSize }}
+        style={{
+          width: logoSize,
+          height: logoSize,
+          transform: [{ translateY: opticalLift }],
+        }}
         resizeMode="contain"
         accessibilityLabel="Wellness Shift logo"
       />

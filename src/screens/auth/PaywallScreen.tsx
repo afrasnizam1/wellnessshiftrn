@@ -12,11 +12,13 @@ import { useAppStore } from '../../store';
 import { subscriptionService } from '../../services/subscriptionService';
 import { getEffectiveTier } from '../../services/iap';
 import { onboardingStorage } from '../../services/onboardingStorage';
+import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
 import { userService } from '../../services/firebase';
 import type { SubscriptionTier } from '../../types';
 import AppScreen from '../../components/common/AppScreen';
 import { BrandButton, IconBadge } from '../../components/ui';
 import { appConfig } from '../../config/appConfig';
+import { goToCreateAccount, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
 
 function tierRank(tier: SubscriptionTier) {
   if (tier === 'pro') return 2;
@@ -68,7 +70,7 @@ const PLAN_FEATURES: FeatureHighlight[] = [
 export default function PaywallScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { user, subscriptionTier, setSubscriptionTier, setUser } = useAppStore();
+  const { user, subscriptionTier, setSubscriptionTier, setUser, hasSeenIntro } = useAppStore();
   const feature = route.params?.feature ?? 'default';
   const fromOnboarding = route.params?.fromOnboarding === true;
   const context = FEATURE_CONTEXT[feature] ?? FEATURE_CONTEXT.default;
@@ -106,8 +108,19 @@ export default function PaywallScreen() {
       }
       return;
     }
+    if (fromOnboarding && !user) {
+      try {
+        await pendingOnboardingStorage.save({ paywallSeen: true });
+        await refreshPreAuthRouteFromPending(hasSeenIntro);
+        goToCreateAccount(navigation);
+      } catch (error) {
+        console.warn('[Paywall] guest continue failed:', error);
+        Alert.alert('Something went wrong', 'Please try again.');
+      }
+      return;
+    }
     navigation.goBack();
-  }, [fromOnboarding, user, setUser, navigation]);
+  }, [fromOnboarding, user, setUser, navigation, hasSeenIntro]);
 
   useEffect(() => {
     const prev = getEffectiveTier(previousTier.current);

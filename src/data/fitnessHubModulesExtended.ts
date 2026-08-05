@@ -387,6 +387,18 @@ export const EXTENDED_FITNESS_MODULES: FitnessModule[] = [
     domain: 'Nutrition & Meal Planning',
   },
   {
+    id: 'high-protein-meals',
+    title: 'High Protein Meals',
+    subtitle: 'Healthy high-protein plates with photos',
+    category: 'education',
+    icon: '🥩',
+    color: Colors.nutrition,
+    isPremium: false,
+    wellnessCategory: 'nutrition',
+    exploreTags: ['Nutrition'],
+    domain: 'Nutrition & Meal Planning',
+  },
+  {
     id: 'food-scan',
     title: 'Food Scan',
     subtitle: 'Photo meals for AI calories & macros',

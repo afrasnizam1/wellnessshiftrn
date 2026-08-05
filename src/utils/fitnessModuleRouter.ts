@@ -18,6 +18,7 @@ export type FitnessScreenName =
   | typeof Screen.nutritionBasics
   | typeof Screen.guidedProgram
   | typeof Screen.mealPlanner
+  | typeof Screen.highProteinMeals
   | typeof Screen.foodScan
   | typeof Screen.bodyMetrics
   | typeof Screen.healthRecords
@@ -50,6 +51,9 @@ export function getRouteForModule(module: FitnessModule): FitnessRoute {
       }
       if (module.id === 'meal-planner') {
         return { screen: Screen.mealPlanner };
+      }
+      if (module.id === 'high-protein-meals') {
+        return { screen: Screen.highProteinMeals };
       }
       if (module.id === 'food-scan') {
         return { screen: Screen.foodScan };

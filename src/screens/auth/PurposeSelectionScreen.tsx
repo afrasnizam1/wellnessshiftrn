@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -18,6 +18,7 @@ import { resolvePostAuthOnboardingRoute } from '../../services/onboardingRoutes'
 import { Screen } from '../../navigation/screenNames';
 import {
   APP_PURPOSE_OPTIONS,
+  CLINICIAN_CONNECT_ELIGIBILITY,
   resolveLeadPurpose,
   type AppPurpose,
 } from '../../types/onboardingPrefs';
@@ -33,23 +34,9 @@ const PURPOSE_COLORS: Record<AppPurpose, string> = {
 export default function PurposeSelectionScreen() {
   const navigation = useNavigation<any>();
   const { user, setUser, hasSeenIntro } = useAppStore();
+  // Always start blank — do not restore prior guest/pending picks for new users.
   const [selected, setSelected] = useState<Set<AppPurpose>>(new Set());
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    pendingOnboardingStorage.get().then((pending) => {
-      if (pending.appPurposes?.length) {
-        setSelected(new Set(pending.appPurposes));
-        return;
-      }
-      if (pending.appPurpose) setSelected(new Set([pending.appPurpose]));
-    });
-    if (user?.appPurposes?.length) {
-      setSelected(new Set(user.appPurposes as AppPurpose[]));
-    } else if (user?.appPurpose) {
-      setSelected(new Set([user.appPurpose as AppPurpose]));
-    }
-  }, [user?.appPurpose, user?.appPurposes]);
 
   const togglePurpose = (id: AppPurpose) => {
     setSelected((prev) => {
@@ -103,6 +90,10 @@ export default function PurposeSelectionScreen() {
           setUser({ ...updated, onboardingComplete: true });
           return;
         }
+        if (route === Screen.wellnessQuiz) {
+          // Full 20-question quiz — clear any legacy mini / stale quiz flags.
+          await pendingOnboardingStorage.saveAssessmentPath('full');
+        }
         if (route !== Screen.purposeSelection) {
           navigation.replace(route);
           return;
@@ -131,7 +122,8 @@ export default function PurposeSelectionScreen() {
         <Text style={styles.title}>Why are you here?</Text>
         <Text style={styles.subtitle}>
           Everything in Wellness Shift feeds one wellness score — workouts, nutrition,
-          sleep, mood, and your clinician’s input. Pick all that apply.
+          sleep, and mood. Clinician linking is only if your GP referred you for a health
+          issue. Pick all that apply.
         </Text>
 
         <View style={styles.list}>
@@ -177,6 +169,13 @@ export default function PurposeSelectionScreen() {
             );
           })}
         </View>
+
+        {(selected.has('clinician') || selected.has('all')) && (
+          <View style={styles.clinicianNotice} accessibilityRole="text">
+            <Text style={styles.clinicianNoticeTitle}>Clinician linking — important</Text>
+            <Text style={styles.clinicianNoticeBody}>{CLINICIAN_CONNECT_ELIGIBILITY}</Text>
+          </View>
+        )}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -237,6 +236,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
   list: { gap: Spacing.sm, marginTop: Spacing.lg },
+  clinicianNotice: {
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.brandSubtle,
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.brandMuted,
+    padding: Spacing.base,
+    gap: Spacing.xs,
+  },
+  clinicianNoticeTitle: {
+    fontSize: Typography.size.sm,
+    fontWeight: '800',
+    color: Colors.brandDark,
+  },
+  clinicianNoticeBody: {
+    fontSize: Typography.size.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',

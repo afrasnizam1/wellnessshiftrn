@@ -17,8 +17,12 @@ export type PreAuthRoute =
   | typeof Screen.onboardingBaseline
   | typeof Screen.assessmentPath
   | typeof Screen.wellnessQuiz
+  | typeof Screen.buildingWellnessPlan
   | typeof Screen.wellnessResults
   | typeof Screen.onboardingMood
+  | typeof Screen.notificationPermissions
+  | typeof Screen.healthPermissions
+  | typeof Screen.subscriptionPaywall
   | typeof Screen.firstWinActivity
   | typeof Screen.authentication;
 
@@ -26,23 +30,34 @@ export type PostAuthOnboardingRoute =
   | typeof Screen.introVideo
   | typeof Screen.purposeSelection
   | typeof Screen.wellnessQuiz
+  | typeof Screen.buildingWellnessPlan
   | typeof Screen.wellnessResults
   | typeof Screen.onboardingMood
   | typeof Screen.notificationPermissions
   | typeof Screen.healthPermissions
   | typeof Screen.subscriptionPaywall;
 
+/** Mini path is legacy — main onboarding always requires the full 20-question quiz. */
+function pendingFullQuizFinished(
+  pending: Awaited<ReturnType<typeof pendingOnboardingStorage.get>>,
+): boolean {
+  if (pending.assessmentPath === 'mini') return false;
+  return (
+    pending.quizComplete === true ||
+    pendingJustFinishedQuiz(pending) ||
+    pendingCanShowResults(pending)
+  );
+}
+
 /**
- * Pre-auth launch route — short funnel, account after quiz.
+ * Pre-auth launch route — account right after results.
  *
- * Cold start with no Firebase session (including simulators):
- *   1. Welcome video (always shown once — never skipped on simulator)
- *   2. Why are you here (purpose)
- *   3. Wellness quiz
- *   4. Account creation / sign in
- *
- * Results, mood, permissions, paywall, etc. run post-auth (“the rest”).
- * Signed-in restore is handled by RootNavigator (not this function).
+ *   1. Welcome video (breath + scenes)
+ *   2. Why are you here
+ *   3. Full wellness quiz (20 questions)
+ *   4. Building plan interstitial (3s)
+ *   5. Results / score
+ *   6. Create account / sign in → main app
  */
 export async function resolvePreAuthRoute(_introSeen: boolean | null): Promise<PreAuthRoute> {
   const pending = await pendingOnboardingStorage.get();
@@ -55,18 +70,26 @@ export async function resolvePreAuthRoute(_introSeen: boolean | null): Promise<P
     return Screen.purposeSelection;
   }
 
-  // Quiz not finished — stay on assessment (ignore legacy mid-funnel steps).
-  if (!pending.quizComplete && !pendingJustFinishedQuiz(pending) && !pendingCanShowResults(pending)) {
+  if (!pendingFullQuizFinished(pending)) {
     return Screen.wellnessQuiz;
   }
 
-  // After quiz → create account. Results / mood / first-win move post-auth.
+  if (!pending.resultsPreviewComplete) {
+    if (!pending.planBuildingComplete) {
+      return Screen.buildingWellnessPlan;
+    }
+    return Screen.wellnessResults;
+  }
+
   return Screen.authentication;
 }
 
 /**
- * Post-auth funnel (signed-in patient, !onboardingComplete):
- * Breathe / welcome video (again after account creation) → Why are you here → Quiz → …
+ * Post-auth funnel for signed-in patients who still need onboarding
+ * (e.g. signed up before finishing the guest funnel).
+ *
+ * Guests who already finished Results then create an account are marked
+ * onboardingComplete in applyPendingOnboarding — they skip this path.
  */
 export async function resolvePostAuthOnboardingRoute(
   user: UserProfile,
@@ -74,7 +97,6 @@ export async function resolvePostAuthOnboardingRoute(
 ): Promise<PostAuthOnboardingRoute | 'complete'> {
   if (user.role !== 'patient') return 'complete';
 
-  // Per-user flag only — guest `welcomeVideoComplete` must not skip post-signup breath.
   if (!(await onboardingStorage.hasSeenWelcomeVideo(user.uid))) {
     return Screen.introVideo;
   }
@@ -85,15 +107,19 @@ export async function resolvePostAuthOnboardingRoute(
     return Screen.purposeSelection;
   }
 
+  const pending = await pendingOnboardingStorage.get();
+
+  if (!opts.resultsSeen && opts.awaitingResults) {
+    if (!pending.planBuildingComplete) {
+      return Screen.buildingWellnessPlan;
+    }
+    return Screen.wellnessResults;
+  }
+
   if (!user.quizComplete || !opts.hasScore) {
     return Screen.wellnessQuiz;
   }
-  // Show Results only when this session just finished the quiz.
-  if (!opts.resultsSeen && opts.awaitingResults) {
-    return Screen.wellnessResults;
-  }
-  // Score exists but Results was never gated — skip Results (don't fake a preview)
-  // and continue funnel. Mark results seen so we don't loop.
+
   if (!opts.resultsSeen && opts.hasScore && !opts.awaitingResults) {
     await onboardingStorage.markWellnessResultsComplete(user.uid);
   }

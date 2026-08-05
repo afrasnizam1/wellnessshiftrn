@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { UserGender } from '../types';
 
 const KEYS = {
   hasSeenAppIntro: 'hasSeenAppIntro',
@@ -30,8 +31,6 @@ const KEYS = {
 function userKey(base: string, uid: string) {
   return `${base}_${uid}`;
 }
-
-export type UserGender = 'female' | 'male' | 'other' | 'prefer_not_to_say';
 
 export const onboardingStorage = {
   hasSeenAppIntro: async () =>

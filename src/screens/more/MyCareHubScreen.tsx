@@ -14,6 +14,7 @@ import { clinicianService } from '../../services/clinicianService';
 import { carePlanService } from '../../services/firebase';
 import type { ConnectionRequest } from '../../types';
 import AppScreen from '../../components/common/AppScreen';
+import { CLINICIAN_CONNECT_ELIGIBILITY, CLINICIAN_CONNECT_SHORT } from '../../types/onboardingPrefs';
 
 export default function MyCareHubScreen() {
   const navigation = useNavigation<any>();
@@ -151,7 +152,7 @@ export default function MyCareHubScreen() {
             <Text style={styles.emptySub}>
               {pendingRequests.length > 0
                 ? `${pendingCount} clinician${pendingCount === 1 ? '' : 's'} would like to connect with you.`
-                : 'Link with your healthcare provider to share wellness data and receive tailored support.'}
+                : CLINICIAN_CONNECT_ELIGIBILITY}
             </Text>
           </View>
         </View>
@@ -181,10 +182,11 @@ export default function MyCareHubScreen() {
         )}
 
         <BrandButton
-          label={pendingRequests.length > 0 ? 'Connect with invite code' : 'Connect a clinician'}
+          label={pendingRequests.length > 0 ? 'Enter invite code' : 'Connect with invite code'}
           onPress={() => navigation.navigate(Screen.connectClinician)}
           style={styles.connectBtn}
         />
+        <Text style={styles.eligibilityHint}>{CLINICIAN_CONNECT_SHORT}</Text>
       </AppCard>
     );
   };
@@ -193,7 +195,11 @@ export default function MyCareHubScreen() {
     <AppScreen style={styles.safe}>
       <ScreenHeader
         title="My Care"
-        subtitle={connected ? 'Care plans, messaging & guidance' : 'Connect with your care team'}
+        subtitle={
+          connected
+            ? 'Care plans, messaging & guidance'
+            : 'GP-referred clinician link only'
+        }
         onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
         large={false}
       />
@@ -419,6 +425,14 @@ const styles = StyleSheet.create({
   },
   reviewBtn: { minWidth: 88, alignSelf: 'flex-start' },
   connectBtn: { marginTop: Spacing.xs },
+  eligibilityHint: {
+    marginTop: Spacing.sm,
+    fontSize: Typography.size.xs,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 16,
+    fontWeight: '600',
+  },
   scoreCard: { paddingVertical: Spacing.md },
   scoreRow: {
     flexDirection: 'row',

@@ -1,48 +1,217 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Platform, Alert,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  Platform,
+  Alert,
+  useWindowDimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
-import type { IoniconName } from '../../theme/icons';
 import { getHealthPlatformName, healthKitService } from '../../services/healthkit';
 import { analyticsHelper } from '../../services/analyticsHelper';
 import { Screen } from '../../navigation/screenNames';
 import { onboardingStorage } from '../../services/onboardingStorage';
-import { userService } from '../../services/firebase';
+import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
+import { refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
 import { useAppStore } from '../../store';
 import AppScreen from '../../components/common/AppScreen';
-import { IconBadge } from '../../components/ui';
+import { BrandButton, BackButton } from '../../components/ui';
 
-const DATA_TYPES: { icon: IoniconName; label: string }[] = [
-  { icon: 'footsteps-outline', label: 'Steps & Distance' },
-  { icon: 'flame-outline', label: 'Active Calories' },
-  { icon: 'heart-outline', label: 'Heart Rate' },
-  { icon: 'bed-outline', label: 'Sleep Analysis' },
-  { icon: 'water-outline', label: 'Blood Pressure & Glucose' },
-  { icon: 'fitness-outline', label: 'Oxygen Saturation' },
-  { icon: 'scale-outline', label: 'Weight & Height' },
-];
+const LOGO = require('../../assets/images/wellness-shift-logo-badge.png');
+
+/** Metrics the app actually reads from HealthKit / Health Connect. */
+const SYNC_TAGS = ['Steps', 'Heart Rate', 'Sleep', 'Workouts'] as const;
 
 const isAndroid = Platform.OS === 'android';
 const platformName = getHealthPlatformName();
 
+type TagPosition = {
+  label: (typeof SYNC_TAGS)[number];
+  top: number;
+  left?: number;
+  right?: number;
+};
+
+function HealthSyncIllustration({ size }: { size: number }) {
+  const iconSize = Math.round(size * 0.26);
+  const logoSize = Math.round(iconSize * 0.72);
+  const checkSize = Math.round(size * 0.11);
+
+  const tags: TagPosition[] = [
+    { label: 'Steps', top: size * 0.14, left: size * 0.02 },
+    { label: 'Heart Rate', top: size * 0.42, left: -size * 0.04 },
+    { label: 'Workouts', top: size * 0.28, right: -size * 0.02 },
+    { label: 'Sleep', top: size * 0.72, right: size * 0.04 },
+  ];
+
+  // Curved sync path from Wellness Shift (bottom-left) to Health (top-right)
+  const pathD = `
+    M ${size * 0.32} ${size * 0.62}
+    C ${size * 0.42} ${size * 0.42}, ${size * 0.55} ${size * 0.58}, ${size * 0.68} ${size * 0.38}
+  `;
+
+  return (
+    <View style={[styles.illustrationWrap, { width: size, height: size }]}>
+      <View style={[styles.heroCircle, { width: size, height: size, borderRadius: size / 2 }]} />
+
+      {tags.map((tag) => (
+        <View
+          key={tag.label}
+          style={[
+            styles.pillTag,
+            {
+              top: tag.top,
+              ...(tag.left !== undefined ? { left: tag.left } : { right: tag.right }),
+            },
+          ]}
+        >
+          <Text style={styles.pillTagText}>{tag.label}</Text>
+        </View>
+      ))}
+
+      <Svg
+        width={size}
+        height={size}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      >
+        <Path
+          d={pathD}
+          stroke={Colors.text}
+          strokeWidth={2.25}
+          fill="none"
+          strokeLinecap="round"
+        />
+        {/* Bidirectional sync arrows along the curve */}
+        <Path
+          d={`M ${size * 0.38} ${size * 0.54} L ${size * 0.42} ${size * 0.485} L ${size * 0.445} ${size * 0.545}`}
+          stroke={Colors.text}
+          strokeWidth={2.25}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <Path
+          d={`M ${size * 0.555} ${size * 0.455} L ${size * 0.58} ${size * 0.395} L ${size * 0.62} ${size * 0.45}`}
+          stroke={Colors.text}
+          strokeWidth={2.25}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+
+      {/* Wellness Shift app icon — bottom left */}
+      <View
+        style={[
+          styles.appIcon,
+          {
+            width: iconSize,
+            height: iconSize,
+            borderRadius: iconSize * 0.22,
+            bottom: size * 0.18,
+            left: size * 0.16,
+          },
+          Shadow.md,
+        ]}
+      >
+        <Image
+          source={LOGO}
+          style={{ width: logoSize, height: logoSize }}
+          resizeMode="contain"
+          accessibilityLabel="Wellness Shift"
+        />
+      </View>
+
+      {/* Platform health icon — top right */}
+      <View
+        style={[
+          styles.platformIconShell,
+          {
+            width: iconSize,
+            height: iconSize,
+            borderRadius: iconSize * 0.22,
+            top: size * 0.16,
+            right: size * 0.16,
+          },
+          Shadow.md,
+        ]}
+      >
+        {isAndroid ? (
+          <LinearGradient
+            colors={['#4285F4', '#34A853']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.platformIconFill, { borderRadius: iconSize * 0.22 }]}
+          >
+            <Ionicons name="fitness" size={iconSize * 0.42} color={Colors.white} />
+          </LinearGradient>
+        ) : (
+          <LinearGradient
+            colors={['#FF2D55', '#FF6482', '#FF8A9B']}
+            start={{ x: 0.2, y: 0 }}
+            end={{ x: 0.8, y: 1 }}
+            style={[styles.platformIconFill, { borderRadius: iconSize * 0.22 }]}
+          >
+            <Svg width={iconSize * 0.5} height={iconSize * 0.5} viewBox="0 0 24 24">
+              <Defs>
+                <SvgLinearGradient id="heartGrad" x1="0" y1="0" x2="1" y2="1">
+                  <Stop offset="0" stopColor="#FFFFFF" stopOpacity="1" />
+                  <Stop offset="1" stopColor="#FFE8EE" stopOpacity="1" />
+                </SvgLinearGradient>
+              </Defs>
+              <Path
+                d="M12 21s-6.5-4.35-9.2-8.1C.8 9.9 1.6 6.4 4.5 5.1 6.4 4.2 8.6 4.7 10 6.2c.4.4.7.8 1 1.2.3-.4.6-.8 1-1.2 1.4-1.5 3.6-2 5.5-1.1 2.9 1.3 3.7 4.8 1.7 7.8C18.5 16.65 12 21 12 21z"
+                fill="url(#heartGrad)"
+              />
+            </Svg>
+          </LinearGradient>
+        )}
+      </View>
+
+      {/* Sync checkmark at curve midpoint */}
+      <View
+        style={[
+          styles.checkBadge,
+          {
+            width: checkSize,
+            height: checkSize,
+            borderRadius: checkSize / 2,
+            top: size * 0.46 - checkSize / 2,
+            left: size * 0.5 - checkSize / 2,
+          },
+        ]}
+      >
+        <Ionicons name="checkmark" size={checkSize * 0.55} color={Colors.white} />
+      </View>
+    </View>
+  );
+}
+
 export default function HealthKitPermissionScreen() {
   const navigation = useNavigation<any>();
-  const { user } = useAppStore();
+  const { user, hasSeenIntro } = useAppStore();
+  const { width } = useWindowDimensions();
   const [loading, setLoading] = useState(false);
   const isReconnect = user?.onboardingComplete === true;
+  const canGoBack = navigation.canGoBack?.() ?? false;
 
-  const finishOnboarding = async () => {
-    if (user) {
-      await onboardingStorage.markHealthKitPromptSeen(user.uid);
-    }
-  };
+  const illustrationSize = Math.min(Math.round(width * 0.78), 320);
 
   const leaveScreen = async () => {
     if (user) {
       await onboardingStorage.markHealthKitPromptSeen(user.uid);
+    } else {
+      await pendingOnboardingStorage.save({ healthPromptSeen: true });
+      await refreshPreAuthRouteFromPending(hasSeenIntro);
     }
     if (isReconnect) {
       navigation.goBack();
@@ -88,97 +257,191 @@ export default function HealthKitPermissionScreen() {
   };
 
   return (
-    <AppScreen style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <IconBadge
-            name={isAndroid ? 'phone-portrait-outline' : 'heart-outline'}
-            color={Colors.brand}
-            size="lg"
-          />
-          <Text style={styles.heroTitle}>Connect {platformName}</Text>
-          <Text style={styles.heroSub}>
-            Wellness Shift reads your health data to personalise your wellness score and daily plan.
+    <AppScreen style={styles.safe} backgroundColor={Colors.white} mesh={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {(isReconnect || canGoBack) && (
+          <View style={styles.topBar}>
+            <BackButton
+              onPress={() => (isReconnect ? navigation.goBack() : navigation.goBack())}
+              color={Colors.text}
+              style={styles.backBtn}
+            />
+          </View>
+        )}
+
+        <View style={styles.heroSection}>
+          <HealthSyncIllustration size={illustrationSize} />
+        </View>
+
+        <View style={styles.copyBlock}>
+          <Text style={styles.title}>Connect to {platformName}</Text>
+          <Text style={styles.body}>
+            Sync your daily activity between Wellness Shift and {platformName} for a more thorough
+            wellness score and daily plan.
             {isAndroid
               ? ' Data from your phone, watch, and fitness apps syncs through Health Connect.'
               : ' We never write to Apple Health.'}
           </Text>
-        </View>
-
-        {isAndroid && (
-          <View style={styles.noteCard}>
-            <Text style={styles.noteText}>
-              Requires the Health Connect app (built into Android 14+, or install from Play Store on Android 13).
-              Wear OS, Samsung Galaxy Watch, and Google Pixel Watch data appears here once synced to Health Connect.
+          {isAndroid && (
+            <Text style={styles.androidNote}>
+              Requires Health Connect (built into Android 14+, or install from Play Store on Android 13).
             </Text>
-          </View>
-        )}
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Data we&apos;ll read</Text>
-          {DATA_TYPES.map((d) => (
-            <View key={d.label} style={styles.dataRow}>
-              <IconBadge name={d.icon} color={Colors.primary} size="sm" />
-              <Text style={styles.dataLabel}>{d.label}</Text>
-              <Text style={styles.dataReadOnly}>Read only</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.noteCard}>
-          <View style={styles.noteRow}>
-            <Ionicons name="lock-closed-outline" size={18} color={Colors.textSecondary} />
-            <Text style={styles.noteText}>
-              Your data stays on your device and in your private Firebase account. We never sell or share your health data.
+          )}
+          <View style={styles.privacyRow}>
+            <Ionicons name="lock-closed-outline" size={14} color={Colors.textTertiary} />
+            <Text style={styles.privacyText}>
+              Read-only access. Your data stays private — we never sell or share it.
             </Text>
           </View>
         </View>
 
-        <TouchableOpacity
-          style={[styles.connectBtn, loading && styles.btnDisabled]}
-          onPress={handleConnect}
-          disabled={loading}
-        >
-          {loading
-            ? <ActivityIndicator color={Colors.white} />
-            : <Text style={styles.connectBtnText}>Connect {platformName}</Text>
-          }
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.skipBtn} onPress={leaveScreen}>
-          <Text style={styles.skipBtnText}>
-            {isReconnect ? 'Not now' : "Skip — I'll connect later"}
-          </Text>
-        </TouchableOpacity>
-        <View style={{ height: Spacing.xl }} />
+        <View style={styles.footer}>
+          <BrandButton
+            label="Continue"
+            onPress={handleConnect}
+            loading={loading}
+            disabled={loading}
+          />
+          <TouchableOpacity
+            style={styles.skipBtn}
+            onPress={leaveScreen}
+            accessibilityRole="button"
+            accessibilityLabel={isReconnect ? 'Not now' : 'Skip'}
+          >
+            <Text style={styles.skipBtnText}>{isReconnect ? 'Not now' : 'Skip'}</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
-  content: { padding: Spacing.base, gap: Spacing.md },
-  hero: { alignItems: 'center', paddingVertical: Spacing.xl, gap: Spacing.md },
-  heroTitle: { fontSize: Typography.size['2xl'], fontWeight: '700', color: Colors.text },
-  heroSub: { fontSize: Typography.size.base, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
-  card: { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: Spacing.base, ...Shadow.sm, gap: Spacing.sm },
-  cardTitle: { fontSize: Typography.size.base, fontWeight: '700', color: Colors.text, marginBottom: Spacing.xs },
-  dataRow: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.borderLight,
+  safe: { flex: 1, backgroundColor: Colors.white },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing['2xl'],
   },
-  dataLabel: { flex: 1, fontSize: Typography.size.sm, color: Colors.text },
-  dataReadOnly: { fontSize: Typography.size.xs, color: Colors.success, fontWeight: '600' },
-  noteCard: { backgroundColor: Colors.primaryBg, borderRadius: Radius.lg, padding: Spacing.base },
-  noteRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
-  noteText: { flex: 1, fontSize: Typography.size.sm, color: Colors.textSecondary, lineHeight: 20 },
-  connectBtn: {
-    backgroundColor: Colors.primary, borderRadius: Radius.xl,
-    paddingVertical: Spacing.base, alignItems: 'center', ...Shadow.md,
+  topBar: {
+    paddingTop: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
-  btnDisabled: { opacity: 0.6 },
-  connectBtnText: { color: Colors.white, fontSize: Typography.size.base, fontWeight: '700' },
-  skipBtn: { alignItems: 'center', paddingVertical: Spacing.sm },
-  skipBtnText: { color: Colors.textSecondary, fontSize: Typography.size.sm },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
+    minHeight: 280,
+  },
+  illustrationWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroCircle: {
+    backgroundColor: '#F2F2F7',
+    position: 'absolute',
+  },
+  pillTag: {
+    position: 'absolute',
+    zIndex: 3,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: Radius.md,
+    ...Shadow.sm,
+  },
+  pillTagText: {
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    color: Colors.text,
+    letterSpacing: -0.2,
+  },
+  appIcon: {
+    position: 'absolute',
+    zIndex: 2,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  platformIconShell: {
+    position: 'absolute',
+    zIndex: 2,
+    overflow: 'hidden',
+  },
+  platformIconFill: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkBadge: {
+    position: 'absolute',
+    zIndex: 4,
+    backgroundColor: Colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.sm,
+  },
+  copyBlock: {
+    gap: Spacing.sm,
+    paddingBottom: Spacing.xl,
+  },
+  title: {
+    fontSize: Typography.size['2xl'],
+    fontWeight: '800',
+    color: Colors.text,
+    letterSpacing: -0.6,
+    lineHeight: 34,
+  },
+  body: {
+    fontSize: Typography.size.base,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    letterSpacing: -0.1,
+  },
+  androidNote: {
+    fontSize: Typography.size.sm,
+    color: Colors.textTertiary,
+    lineHeight: 18,
+    marginTop: Spacing.xxs,
+  },
+  privacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  privacyText: {
+    flex: 1,
+    fontSize: Typography.size.xs,
+    color: Colors.textTertiary,
+    lineHeight: 16,
+  },
+  footer: {
+    marginTop: 'auto',
+    gap: Spacing.sm,
+    paddingTop: Spacing.lg,
+  },
+  skipBtn: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  skipBtnText: {
+    color: Colors.textSecondary,
+    fontSize: Typography.size.base,
+    fontWeight: '500',
+  },
 });

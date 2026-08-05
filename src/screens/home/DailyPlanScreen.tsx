@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Screen } from '../../navigation/screenNames';
+import { navigationRef } from '../../navigation/navigationRef';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
@@ -79,7 +80,9 @@ export default function DailyPlanScreen() {
           </Text>
           <TouchableOpacity
             style={styles.quizBtn}
-            onPress={() => navigation.getParent()?.navigate(Screen.wellnessQuiz)}
+            onPress={() => {
+              if (navigationRef.isReady()) navigationRef.navigate(Screen.wellnessQuiz);
+            }}
           >
             <Text style={styles.quizBtnText}>Take Assessment</Text>
           </TouchableOpacity>

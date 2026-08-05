@@ -4,6 +4,8 @@
 
 export type UserRole = 'patient' | 'clinician';
 
+export type UserGender = 'female' | 'male' | 'other' | 'prefer_not_to_say';
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -30,6 +32,7 @@ export interface UserProfile {
   dateOfBirth?: string;
   heightCm?: number;
   weightKg?: number;
+  gender?: UserGender;
   consentAccepted?: boolean;
   medicalDisclaimerAcknowledged?: boolean;
   ageConfirmed?: boolean;
@@ -476,6 +479,7 @@ export type RootStackParamList = {
   [Screen.firstWinActivity]: undefined;
   [Screen.assessmentPath]: undefined;
   [Screen.wellnessQuiz]: undefined;
+  [Screen.buildingWellnessPlan]: undefined;
   [Screen.wellnessResults]: undefined;
   [Screen.quizCategoryDetail]: { category: WellnessCategoryKey };
   [Screen.postQuizActionPlan]: undefined;
@@ -533,6 +537,7 @@ export type FitnessStackParamList = {
   [Screen.learningGuide]: { topicId: string };
   [Screen.guidedProgram]: { module: FitnessModule };
   [Screen.mealPlanner]: undefined;
+  [Screen.highProteinMeals]: undefined;
   [Screen.foodScan]: undefined;
   [Screen.bodyMetrics]: undefined;
   [Screen.healthRecords]: undefined;

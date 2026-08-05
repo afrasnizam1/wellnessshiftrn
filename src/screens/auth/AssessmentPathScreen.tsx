@@ -4,46 +4,25 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Screen } from '../../navigation/screenNames';
 import { Colors, Typography, Spacing, Radius } from '../../theme';
-import { AppCard, AnimatedPressable, BrandButton, BackButton } from '../../components/ui';
+import { AppCard, BrandButton, BackButton } from '../../components/ui';
 import {
   pendingCanShowResults,
   pendingJustFinishedQuiz,
   pendingOnboardingStorage,
-  type AssessmentPath,
 } from '../../services/pendingOnboardingStorage';
 import { goBackOrTo, refreshPreAuthRouteFromPending, resetOnboardingStack } from '../../services/onboardingNavigation';
 import { useAppStore } from '../../store';
 import AppScreen from '../../components/common/AppScreen';
 
-const OPTIONS: {
-  id: AssessmentPath;
-  title: string;
-  subtitle: string;
-  detail: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}[] = [
-  {
-    id: 'mini',
-    title: 'Quick check-in',
-    subtitle: '~2 minutes',
-    detail: 'A few questions tailored to your goals — great if you want to start fast.',
-    icon: 'flash-outline',
-  },
-  {
-    id: 'full',
-    title: 'Full wellness assessment',
-    subtitle: '~5 minutes',
-    detail: 'All 20 questions across 10 categories for the most detailed results.',
-    icon: 'analytics-outline',
-  },
-];
-
+/**
+ * Legacy mid-funnel screen (goals → habits → baseline → here).
+ * Main onboarding now goes Purpose → full 20-question quiz directly.
+ * Kept so Back stacks / deep links still resolve; always starts the full quiz.
+ */
 export default function AssessmentPathScreen() {
   const navigation = useNavigation<any>();
   const { hasSeenIntro, setWellnessScore, setLastQuizAnswers } = useAppStore();
 
-  // Remounts can land here after a finished quiz (frozen preAuthRoute).
-  // Never wipe awaitingResultsPreview — send them to Results instead of retaking.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -57,7 +36,6 @@ export default function AssessmentPathScreen() {
         return;
       }
 
-      // Stale score without a results gate — wipe so we don't skip the quiz.
       if (
         (pending.wellnessScore || pending.quizComplete) &&
         !pending.awaitingResultsPreview &&
@@ -67,22 +45,19 @@ export default function AssessmentPathScreen() {
         if (cancelled) return;
         setWellnessScore(null);
         setLastQuizAnswers(null);
-        if (pending.assessmentPath) {
-          await pendingOnboardingStorage.save({ assessmentPath: pending.assessmentPath });
-        }
       }
 
-      const fresh = await pendingOnboardingStorage.get();
+      await pendingOnboardingStorage.saveAssessmentPath('full');
       if (cancelled) return;
-      if (fresh.assessmentPath && !fresh.awaitingResultsPreview && !fresh.resultsPreviewComplete) {
-        resetOnboardingStack(navigation, Screen.wellnessQuiz);
-      }
+      await refreshPreAuthRouteFromPending(hasSeenIntro);
+      if (cancelled) return;
+      resetOnboardingStack(navigation, Screen.wellnessQuiz);
     })();
     return () => { cancelled = true; };
-  }, [navigation, setWellnessScore, setLastQuizAnswers]);
+  }, [navigation, setWellnessScore, setLastQuizAnswers, hasSeenIntro]);
 
-  const choose = async (path: AssessmentPath) => {
-    await pendingOnboardingStorage.saveAssessmentPath(path);
+  const startFullQuiz = async () => {
+    await pendingOnboardingStorage.saveAssessmentPath('full');
     setWellnessScore(null);
     setLastQuizAnswers(null);
     await refreshPreAuthRouteFromPending(hasSeenIntro);
@@ -95,31 +70,29 @@ export default function AssessmentPathScreen() {
         <BackButton onPress={() => goBackOrTo(navigation, Screen.onboardingBaseline)} />
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>How deep should we go?</Text>
+        <Text style={styles.title}>Wellness assessment</Text>
         <Text style={styles.subtitle}>
-          Both paths give you a personalised score and recommendations. Choose what fits your time right now.
+          20 questions across 10 categories — about 5 minutes. Your answers power your
+          wellness score and personalised plan.
         </Text>
 
-        {OPTIONS.map((option) => (
-          <AnimatedPressable key={option.id} onPress={() => choose(option.id)}>
-            <AppCard style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.iconWrap}>
-                  <Ionicons name={option.icon} size={22} color={Colors.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{option.title}</Text>
-                  <Text style={styles.cardMeta}>{option.subtitle}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
-              </View>
-              <Text style={styles.cardDetail}>{option.detail}</Text>
-            </AppCard>
-          </AnimatedPressable>
-        ))}
+        <AppCard style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.iconWrap}>
+              <Ionicons name="analytics-outline" size={22} color={Colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Full wellness assessment</Text>
+              <Text style={styles.cardMeta}>20 questions · ~5 minutes</Text>
+            </View>
+          </View>
+          <Text style={styles.cardDetail}>
+            Covers physical health, mental wellbeing, nutrition, fitness, sleep, stress,
+            mindfulness, social connection, work-life balance, and environment.
+          </Text>
+        </AppCard>
 
-        <BrandButton label="Quick check-in" onPress={() => choose('mini')} />
-        <BrandButton label="Full assessment" variant="outline" onPress={() => choose('full')} />
+        <BrandButton label="Start assessment" onPress={startFullQuiz} />
       </ScrollView>
     </AppScreen>
   );

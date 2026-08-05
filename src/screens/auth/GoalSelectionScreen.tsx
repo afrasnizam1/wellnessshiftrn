@@ -4,7 +4,6 @@ import { View, Text, StyleSheet, ScrollView, useWindowDimensions, Alert } from '
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing } from '../../theme';
-import type { IoniconName } from '../../theme/icons';
 import { AppCard, AnimatedPressable, BrandButton, IconBadge, BackButton } from '../../components/ui';
 import AppScreen from '../../components/common/AppScreen';
 import { useAppStore } from '../../store';
@@ -14,41 +13,9 @@ import { notificationService } from '../../services/notifications';
 import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
 import { goBackOrTo, goToExperienceLevel, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
 import { Screen } from '../../navigation/screenNames';
+import { ONBOARDING_GOALS, type PrimaryGoal } from '../../data/onboardingGoals';
 
-export type PrimaryGoal =
-  | 'sleep'
-  | 'stress'
-  | 'fitness'
-  | 'nutrition'
-  | 'mental'
-  | 'habits'
-  | 'condition'
-  | 'clinician'
-  | 'general';
-
-const GOALS: {
-  id: PrimaryGoal;
-  icon: IoniconName;
-  color: string;
-  title: string;
-  subtitle: string;
-}[] = [
-  { id: 'sleep', icon: 'bed-outline', color: Colors.sleep, title: 'Sleep better', subtitle: 'Improve sleep quality and recovery' },
-  { id: 'stress', icon: 'flower-outline', color: Colors.stress, title: 'Reduce stress', subtitle: 'Build calm and resilience' },
-  { id: 'fitness', icon: 'barbell-outline', color: Colors.fitness, title: 'Get fitter', subtitle: 'Move more and build strength' },
-  { id: 'nutrition', icon: 'nutrition-outline', color: Colors.nutrition, title: 'Eat healthier', subtitle: 'Improve nutrition and energy' },
-  { id: 'mental', icon: 'happy-outline', color: Colors.mental, title: 'Improve mental health', subtitle: 'Mood, anxiety, and focus' },
-  { id: 'habits', icon: 'checkbox-outline', color: Colors.mindfulness, title: 'Build healthy habits', subtitle: 'Small daily wins that stick' },
-  { id: 'condition', icon: 'medical-outline', color: Colors.physical, title: 'Manage a condition', subtitle: 'Track and support a health goal' },
-  {
-    id: 'clinician',
-    icon: 'people-outline',
-    color: Colors.brand,
-    title: 'Talk to a clinician',
-    subtitle: 'Connect with a professional about something specific',
-  },
-  { id: 'general', icon: 'sparkles-outline', color: Colors.purple, title: 'Overall wellness', subtitle: 'A balanced approach to health' },
-];
+export type { PrimaryGoal };
 
 export default function GoalSelectionScreen() {
   const navigation = useNavigation<any>();
@@ -83,7 +50,7 @@ export default function GoalSelectionScreen() {
   const handleContinue = async () => {
     if (selected.size === 0 || saving) return;
 
-    const goals = GOALS.filter((g) => selected.has(g.id)).map((g) => g.id);
+    const goals = ONBOARDING_GOALS.filter((g) => selected.has(g.id)).map((g) => g.id);
     // Prefer clinician as primary when selected so Home/results route toward care.
     const primaryGoal = goals.includes('clinician') ? 'clinician' : goals[0];
     const wantsClinician = goals.includes('clinician');
@@ -140,7 +107,7 @@ export default function GoalSelectionScreen() {
         </Text>
 
         <View style={styles.grid}>
-          {GOALS.map((goal) => {
+          {ONBOARDING_GOALS.map((goal) => {
             const isSelected = selected.has(goal.id);
             return (
               <AnimatedPressable

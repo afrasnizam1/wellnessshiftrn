@@ -15,11 +15,9 @@ import { AnimatedPressable } from '../../components/ui';
 import { WELLNESS_ASSESSMENT_QUESTIONS } from '../../data/wellnessAssessmentQuestions';
 import type { AssessmentQuestion } from '../../data/wellnessAssessmentQuestions';
 import { computeWellnessScoreFromAnswers } from '../../utils/wellnessAssessmentScoring';
-import { getMiniAssessmentQuestions } from '../../utils/miniAssessmentQuestions';
 import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
 import {
-  goToCreateAccount,
-  goToWellnessResults,
+  goToBuildingWellnessPlan,
   refreshPreAuthRouteFromPending,
   resumePreAuthOnboardingFromPending,
 } from '../../services/onboardingNavigation';
@@ -45,17 +43,19 @@ export default function QuizScreen() {
         if (cancelled || resumed === 'handled') return;
       }
 
+      // Main onboarding always uses the full 20-question assessment.
+      // Legacy mini completions are upgraded so they cannot skip the full quiz.
       const pending = await pendingOnboardingStorage.get();
       if (cancelled) return;
-      if (pending.assessmentPath === 'mini') {
-        setQuestions(getMiniAssessmentQuestions(pending.goals, pending.primaryGoal));
-      } else {
-        setQuestions(WELLNESS_ASSESSMENT_QUESTIONS);
+      if (pending.assessmentPath !== 'full') {
+        await pendingOnboardingStorage.saveAssessmentPath('full');
+        if (cancelled) return;
       }
+      setQuestions(WELLNESS_ASSESSMENT_QUESTIONS);
       setQuestionsReady(true);
     })();
     return () => { cancelled = true; };
-  }, [navigation, user]);
+  }, [navigation, user, hasSeenIntro]);
 
   const TOTAL = questions.length;
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -101,13 +101,11 @@ export default function QuizScreen() {
         await userService.updateProfile(user.uid, { quizComplete: true });
         await onboardingStorage.markQuizComplete(user.uid);
         setUser({ ...user, quizComplete: true });
-        // Signed-in funnel still shows Results next.
-        goToWellnessResults(navigation);
-      } else {
-        // Guest funnel: quiz → account creation; Results run post-auth.
-        await refreshPreAuthRouteFromPending(hasSeenIntro);
-        goToCreateAccount(navigation);
       }
+
+      // Guest and signed-in: 3s building interstitial, then Results.
+      await refreshPreAuthRouteFromPending(hasSeenIntro);
+      goToBuildingWellnessPlan(navigation);
 
       savingRef.current = false;
       setSaving(false);
@@ -126,11 +124,9 @@ export default function QuizScreen() {
                 wellnessService.saveScore(user.uid, score).catch(() => {});
                 userService.updateProfile(user.uid, { quizComplete: true }).catch(() => {});
                 onboardingStorage.markQuizComplete(user.uid).catch(() => {});
-                goToWellnessResults(navigation);
-              } else {
-                refreshPreAuthRouteFromPending(hasSeenIntro).catch(() => {});
-                goToCreateAccount(navigation);
               }
+              refreshPreAuthRouteFromPending(hasSeenIntro).catch(() => {});
+              goToBuildingWellnessPlan(navigation);
             },
           },
         ],

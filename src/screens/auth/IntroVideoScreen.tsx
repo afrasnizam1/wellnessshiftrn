@@ -162,7 +162,7 @@ export default function IntroVideoScreen() {
           useNativeDriver: true,
         }),
         Animated.timing(ringScale, {
-          toValue: 1.32,
+          toValue: 1.22,
           duration: BREATH_HALF_MS,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
@@ -412,7 +412,9 @@ export default function IntroVideoScreen() {
                 <Animated.View
                   style={[styles.ringMid, { transform: [{ scale: ringScale }] }]}
                 />
-                <Animated.View style={{ transform: [{ scale: orb }] }}>
+                <Animated.View
+                  style={[styles.breathOrbHost, { transform: [{ scale: orb }] }]}
+                >
                   <LinearGradient
                     colors={['#FF8FB3', '#F24D80', '#D93A6A']}
                     start={{ x: 0.2, y: 0 }}
@@ -567,17 +569,23 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: Spacing.md,
     textAlign: 'center',
+    paddingHorizontal: Spacing.md,
+    zIndex: 2,
   },
   orbStage: {
-    width: 240,
-    height: 240,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -Spacing.lg,
+    // Square stage so absolute rings + orb share one geometric center.
+    // Clearance from the hint comes from margin (not paddingTop), which
+    // would otherwise push the in-flow orb down while rings stayed centered.
+    width: 260,
+    height: 260,
+    position: 'relative',
+    marginTop: Spacing.md,
     marginBottom: Spacing.sm,
   },
   ringOuter: {
     position: 'absolute',
+    top: 20,
+    left: 20,
     width: 220,
     height: 220,
     borderRadius: 110,
@@ -587,11 +595,23 @@ const styles = StyleSheet.create({
   },
   ringMid: {
     position: 'absolute',
+    top: 40,
+    left: 40,
     width: 180,
     height: 180,
     borderRadius: 90,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
+  },
+  // Absolute like the rings so scale animations share the same center.
+  breathOrbHost: {
+    position: 'absolute',
+    top: 66,
+    left: 66,
+    width: 128,
+    height: 128,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   breathOrb: {
     width: 128,
@@ -620,7 +640,8 @@ const styles = StyleSheet.create({
   logoStage: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -Spacing['2xl'],
+    // Modest lift vs prior -2xl so the badge sits closer to the welcome chrome.
+    marginTop: -Spacing['3xl'],
     marginBottom: Spacing.md,
     ...Shadow.lg,
     shadowColor: Colors.brand,

@@ -6,32 +6,43 @@ import { Colors, Typography, Spacing, Radius } from '../../theme';
 import { IconBadge, BrandButton } from '../../components/ui';
 import { useAppStore } from '../../store';
 import { onboardingStorage } from '../../services/onboardingStorage';
+import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
 import { notificationService } from '../../services/notifications';
 import { REMINDER_ANCHOR_HOURS, type ReminderAnchor } from '../../types/onboardingPrefs';
+import { refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
 import AppScreen from '../../components/common/AppScreen';
 
 export default function NotificationPermissionScreen() {
   const navigation = useNavigation<any>();
-  const { user } = useAppStore();
+  const { user, hasSeenIntro } = useAppStore();
   const [loading, setLoading] = useState(false);
 
   const advance = async (request: boolean) => {
-    if (!user || loading) return;
+    if (loading) return;
     setLoading(true);
     try {
       if (request) {
         await notificationService.requestPermission();
-        await notificationService.registerDevice(user.uid, user.role);
-        const habits = await onboardingStorage.getOnboardingHabits(user.uid);
-        const anchor = (habits?.reminderAnchor ?? user.reminderAnchor) as ReminderAnchor | undefined;
-        const goal = user.primaryGoal ?? 'general';
-        if (anchor && REMINDER_ANCHOR_HOURS[anchor]) {
-          const { hour, minute } = REMINDER_ANCHOR_HOURS[anchor];
-          await notificationService.scheduleGoalReminder(goal, hour, minute);
+        if (user) {
+          await notificationService.registerDevice(user.uid, user.role);
+          const habits = await onboardingStorage.getOnboardingHabits(user.uid);
+          const anchor = (habits?.reminderAnchor ?? user.reminderAnchor) as ReminderAnchor | undefined;
+          const goal = user.primaryGoal ?? 'general';
+          if (anchor && REMINDER_ANCHOR_HOURS[anchor]) {
+            const { hour, minute } = REMINDER_ANCHOR_HOURS[anchor];
+            await notificationService.scheduleGoalReminder(goal, hour, minute);
+          }
         }
       }
-      await onboardingStorage.markNotificationPromptSeen(user.uid);
-      navigation.replace(Screen.healthPermissions);
+
+      if (user) {
+        await onboardingStorage.markNotificationPromptSeen(user.uid);
+        navigation.replace(Screen.healthPermissions);
+      } else {
+        await pendingOnboardingStorage.save({ notificationPromptSeen: true });
+        await refreshPreAuthRouteFromPending(hasSeenIntro);
+        navigation.replace(Screen.healthPermissions);
+      }
     } finally {
       setLoading(false);
     }

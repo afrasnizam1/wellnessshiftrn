@@ -9,14 +9,15 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
-import { AppTextField } from '../../components/ui';
+import { AppTextField, SegmentedControl } from '../../components/ui';
 import AuthLandingScreen from '../../components/auth/AuthLandingScreen';
 import { firebaseAuth, userService } from '../../services/firebase';
 import { ensurePendingOnboardingApplied } from '../../services/applyPendingOnboarding';
 import { signInWithApple, signInWithGoogle, resolveCurrentUserProfile } from '../../services/socialAuth';
 import { contentsquareService } from '../../services/contentsquareService';
 import { useAppStore } from '../../store';
-import type { UserRole } from '../../types';
+import type { UserGender, UserRole } from '../../types';
+import { onboardingStorage } from '../../services/onboardingStorage';
 import { SensitiveCSQMask } from '../../components/common/SensitiveCSQMask';
 import { AppConsentModal, MedicalDisclaimerModal, LegalCheckboxRow } from '../../components/legal';
 import { enterDemoSession, enterDemoQuestionnaireSession, enterDemoClinicianSession, canSkipToApp } from '../../services/demoSession';
@@ -32,6 +33,16 @@ import {
   toDateOfBirthInputValue,
   toStoredDateOfBirth,
 } from '../../utils/dateOfBirth';
+import {
+  type HeightUnit,
+  type WeightUnit,
+  formatHeightFromCm,
+  formatWeightFromKg,
+  parseHeightToCm,
+  parseWeightToKg,
+  validateHeightCm,
+  validateWeightKg,
+} from '../../utils/bodyMetricsUnits';
 
 export default function SignUpScreen() {
   const navigation = useNavigation<any>();
@@ -47,8 +58,13 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
-  const [heightCm, setHeightCm] = useState('');
-  const [weightKg, setWeightKg] = useState('');
+  const [heightUnit, setHeightUnit] = useState<HeightUnit>('cm');
+  const [heightCmDisplay, setHeightCmDisplay] = useState('');
+  const [heightFtDisplay, setHeightFtDisplay] = useState('');
+  const [heightInDisplay, setHeightInDisplay] = useState('');
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg');
+  const [weightDisplay, setWeightDisplay] = useState('');
+  const [gender, setGender] = useState<UserGender | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [medicalAcknowledged, setMedicalAcknowledged] = useState(false);
@@ -62,10 +78,44 @@ export default function SignUpScreen() {
   useEffect(() => {
     pendingOnboardingStorage.get().then((pending) => {
       if (pending.dateOfBirth) setDateOfBirth(toDateOfBirthInputValue(pending.dateOfBirth));
-      if (pending.heightCm) setHeightCm(String(pending.heightCm));
-      if (pending.weightKg) setWeightKg(String(pending.weightKg));
+      if (pending.heightCm) {
+        const formatted = formatHeightFromCm(pending.heightCm, heightUnit);
+        setHeightCmDisplay(formatted.cm);
+        setHeightFtDisplay(formatted.feet);
+        setHeightInDisplay(formatted.inches);
+      }
+      if (pending.weightKg) setWeightDisplay(formatWeightFromKg(pending.weightKg, weightUnit));
     });
   }, []);
+
+  const getCanonicalHeightCm = () =>
+    parseHeightToCm({
+      unit: heightUnit,
+      cm: heightCmDisplay,
+      feet: heightFtDisplay,
+      inches: heightInDisplay,
+    });
+
+  const getCanonicalWeightKg = () => parseWeightToKg(weightDisplay, weightUnit);
+
+  const switchHeightUnit = (nextUnit: HeightUnit) => {
+    if (nextUnit === heightUnit) return;
+    const cm = getCanonicalHeightCm();
+    const formatted = formatHeightFromCm(cm, nextUnit);
+    setHeightCmDisplay(formatted.cm);
+    setHeightFtDisplay(formatted.feet);
+    setHeightInDisplay(formatted.inches);
+    setHeightUnit(nextUnit);
+    setErrors((e) => ({ ...e, heightCm: undefined }));
+  };
+
+  const switchWeightUnit = (nextUnit: WeightUnit) => {
+    if (nextUnit === weightUnit) return;
+    const kg = getCanonicalWeightKg();
+    setWeightDisplay(formatWeightFromKg(kg, nextUnit));
+    setWeightUnit(nextUnit);
+    setErrors((e) => ({ ...e, weightKg: undefined }));
+  };
 
   const legalComplete = agreedToTerms && ageConfirmed && medicalAcknowledged;
 
@@ -132,17 +182,15 @@ export default function SignUpScreen() {
       else if (!dob) e.dateOfBirth = `Use ${DOB_PLACEHOLDER}`;
       else if (ageFromDateOfBirth(dob) < 16) e.dateOfBirth = 'You must be at least 16 years old';
 
-      const height = Number(heightCm);
-      if (!heightCm.trim()) e.heightCm = 'Height is required';
-      else if (!Number.isFinite(height) || height <= 0 || height > 300) {
-        e.heightCm = 'Enter height in centimetres (e.g. 170)';
-      }
+      const height = getCanonicalHeightCm();
+      const heightError = validateHeightCm(height, { unit: heightUnit });
+      if (heightError) e.heightCm = heightError;
 
-      const weight = Number(weightKg);
-      if (!weightKg.trim()) e.weightKg = 'Weight is required';
-      else if (!Number.isFinite(weight) || weight <= 0 || weight > 500) {
-        e.weightKg = 'Enter weight in kilograms (e.g. 70)';
-      }
+      const weight = getCanonicalWeightKg();
+      const weightError = validateWeightKg(weight, { unit: weightUnit });
+      if (weightError) e.weightKg = weightError;
+
+      if (!gender) e.gender = 'Please select male or female';
     }
 
     if (!agreedToTerms) e.terms = 'Please accept the Terms of Service and Privacy Policy';
@@ -162,8 +210,8 @@ export default function SignUpScreen() {
     try {
       const cred = await firebaseAuth.signUpWithEmail(email.trim(), password);
       await cred.user.getIdToken();
-      const height = Number(heightCm);
-      const weight = Number(weightKg);
+      const height = getCanonicalHeightCm()!;
+      const weight = getCanonicalWeightKg()!;
       await userService.createProfile(cred.user.uid, {
         displayName: name.trim(),
         email: email.trim(),
@@ -176,9 +224,13 @@ export default function SignUpScreen() {
               dateOfBirth: toStoredDateOfBirth(parseDateOfBirth(dateOfBirth)!),
               heightCm: height,
               weightKg: weight,
+              gender: gender!,
             }
           : {}),
       });
+      if (role === 'patient' && gender) {
+        await onboardingStorage.setUserGender(cred.user.uid, gender);
+      }
       try {
         await firebaseAuth.sendEmailVerification();
         logger.log('Email verification sent after sign-up');
@@ -207,12 +259,16 @@ export default function SignUpScreen() {
       setSocialLoading('apple');
       try {
         await signInWithApple();
-        const profile = await resolveCurrentUserProfile({
+        let profile = await resolveCurrentUserProfile({
           consentAccepted: true,
           medicalDisclaimerAcknowledged: true,
           ageConfirmed: true,
         });
-        if (profile) await contentsquareService.onAuthSuccess(profile);
+        if (profile) {
+          profile = (await ensurePendingOnboardingApplied(profile.uid)) ?? profile;
+          setUser(profile);
+          await contentsquareService.onAuthSuccess(profile);
+        }
       } catch (err: any) {
         if (err.code !== '1001') Alert.alert('Apple Sign Up Failed', 'Please try again.');
       } finally {
@@ -226,12 +282,16 @@ export default function SignUpScreen() {
       setSocialLoading('google');
       try {
         await signInWithGoogle();
-        const profile = await resolveCurrentUserProfile({
+        let profile = await resolveCurrentUserProfile({
           consentAccepted: true,
           medicalDisclaimerAcknowledged: true,
           ageConfirmed: true,
         });
-        if (profile) await contentsquareService.onAuthSuccess(profile);
+        if (profile) {
+          profile = (await ensurePendingOnboardingApplied(profile.uid)) ?? profile;
+          setUser(profile);
+          await contentsquareService.onAuthSuccess(profile);
+        }
       } catch (err: any) {
         if (err.code !== 'SIGN_IN_CANCELLED') Alert.alert('Google Sign Up Failed', 'Please try again.');
       } finally {
@@ -389,30 +449,108 @@ export default function SignUpScreen() {
                     }}
                     error={errors.dateOfBirth}
                   />
+                  <View>
+                    <Text style={styles.fieldLabel}>Gender</Text>
+                    <View style={styles.genderRow}>
+                      {([
+                        { id: 'male' as UserGender, label: 'Male', icon: 'male-outline' },
+                        { id: 'female' as UserGender, label: 'Female', icon: 'female-outline' },
+                      ]).map((option) => {
+                        const selected = gender === option.id;
+                        return (
+                          <TouchableOpacity
+                            key={option.id}
+                            onPress={() => {
+                              setGender(option.id);
+                              setErrors((e) => ({ ...e, gender: undefined }));
+                            }}
+                            style={[styles.genderChip, selected && styles.genderChipSelected]}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected }}
+                            accessibilityLabel={option.label}
+                          >
+                            <Ionicons
+                              name={option.icon}
+                              size={20}
+                              color={selected ? Colors.primary : Colors.textTertiary}
+                            />
+                            <Text style={[styles.genderChipText, selected && styles.genderChipTextSelected]}>
+                              {option.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    {errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
+                  </View>
                   <View style={styles.metricsRow}>
                     <View style={styles.metricField}>
-                      <AppTextField
-                        label="Height (cm)"
-                        leftIcon="resize-outline"
-                        placeholder="e.g. 170"
-                        keyboardType="decimal-pad"
-                        value={heightCm}
-                        onChangeText={(v) => {
-                          setHeightCm(v);
-                          setErrors((e) => ({ ...e, heightCm: undefined }));
-                        }}
-                        error={errors.heightCm}
+                      <Text style={styles.metricLabel}>Height</Text>
+                      <SegmentedControl
+                        options={['cm', 'ft']}
+                        value={heightUnit}
+                        onChange={switchHeightUnit}
+                        compact
                       />
+                      {heightUnit === 'cm' ? (
+                        <AppTextField
+                          leftIcon="resize-outline"
+                          placeholder="e.g. 170"
+                          keyboardType="decimal-pad"
+                          value={heightCmDisplay}
+                          onChangeText={(v) => {
+                            setHeightCmDisplay(v);
+                            setErrors((e) => ({ ...e, heightCm: undefined }));
+                          }}
+                          error={errors.heightCm}
+                        />
+                      ) : (
+                        <View style={styles.ftInRow}>
+                          <View style={styles.ftInField}>
+                            <AppTextField
+                              placeholder="5"
+                              keyboardType="number-pad"
+                              value={heightFtDisplay}
+                              onChangeText={(v) => {
+                                setHeightFtDisplay(v);
+                                setErrors((e) => ({ ...e, heightCm: undefined }));
+                              }}
+                            />
+                            <Text style={styles.ftInUnit}>ft</Text>
+                          </View>
+                          <View style={styles.ftInField}>
+                            <AppTextField
+                              placeholder="10"
+                              keyboardType="decimal-pad"
+                              value={heightInDisplay}
+                              onChangeText={(v) => {
+                                setHeightInDisplay(v);
+                                setErrors((e) => ({ ...e, heightCm: undefined }));
+                              }}
+                            />
+                            <Text style={styles.ftInUnit}>in</Text>
+                          </View>
+                        </View>
+                      )}
+                      {heightUnit === 'ft' && errors.heightCm ? (
+                        <Text style={styles.errorText}>{errors.heightCm}</Text>
+                      ) : null}
                     </View>
                     <View style={styles.metricField}>
+                      <Text style={styles.metricLabel}>Weight</Text>
+                      <SegmentedControl
+                        options={['kg', 'lb', 'st']}
+                        value={weightUnit === 'stone' ? 'st' : weightUnit}
+                        onChange={(v) => switchWeightUnit(v === 'st' ? 'stone' : (v as WeightUnit))}
+                        compact
+                      />
                       <AppTextField
-                        label="Weight (kg)"
                         leftIcon="scale-outline"
-                        placeholder="e.g. 70"
+                        placeholder={weightUnit === 'kg' ? 'e.g. 70' : weightUnit === 'lb' ? 'e.g. 154' : 'e.g. 11.3'}
                         keyboardType="decimal-pad"
-                        value={weightKg}
+                        value={weightDisplay}
                         onChangeText={(v) => {
-                          setWeightKg(v);
+                          setWeightDisplay(v);
                           setErrors((e) => ({ ...e, weightKg: undefined }));
                         }}
                         error={errors.weightKg}
@@ -591,8 +729,44 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.md },
   cardHeaderText: { fontSize: Typography.size.base, fontWeight: '700', color: Colors.text },
   fieldGap: { gap: Spacing.md },
+  fieldLabel: {
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    color: Colors.text,
+    letterSpacing: -0.1,
+    marginBottom: Spacing.xs,
+  },
+  genderRow: { flexDirection: 'row', gap: Spacing.md },
+  genderChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    paddingVertical: Platform.OS === 'ios' ? 13 : 12,
+    paddingHorizontal: Spacing.base,
+    ...Shadow.sm,
+  },
+  genderChipSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryBg,
+  },
+  genderChipText: {
+    fontSize: Typography.size.base,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  genderChipTextSelected: { color: Colors.primary },
   metricsRow: { flexDirection: 'row', gap: Spacing.md },
-  metricField: { flex: 1 },
+  metricField: { flex: 1, gap: Spacing.xs },
+  metricLabel: { fontSize: Typography.size.sm, fontWeight: '600', color: Colors.text },
+  ftInRow: { flexDirection: 'row', gap: Spacing.xs, alignItems: 'flex-end' },
+  ftInField: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  ftInUnit: { fontSize: Typography.size.sm, color: Colors.textSecondary, fontWeight: '600', marginBottom: Spacing.md },
   termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, marginTop: Spacing.sm },
   checkbox: {
     width: 22, height: 22, borderRadius: 6,

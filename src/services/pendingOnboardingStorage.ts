@@ -33,8 +33,13 @@ export interface PendingOnboardingData {
    */
   awaitingResultsPreview: boolean;
   resultsPreviewComplete: boolean;
+  /** Guest saw the 3s “building your plan” interstitial after the quiz. */
+  planBuildingComplete: boolean;
   moodLevel: string | null;
   moodStepComplete: boolean;
+  notificationPromptSeen: boolean;
+  healthPromptSeen: boolean;
+  paywallSeen: boolean;
   firstWinComplete: boolean;
   triedFirstActivity: boolean;
 }
@@ -60,8 +65,12 @@ const EMPTY: PendingOnboardingData = {
   quizComplete: false,
   awaitingResultsPreview: false,
   resultsPreviewComplete: false,
+  planBuildingComplete: false,
   moodLevel: null,
   moodStepComplete: false,
+  notificationPromptSeen: false,
+  healthPromptSeen: false,
+  paywallSeen: false,
   firstWinComplete: false,
   triedFirstActivity: false,
 };
@@ -72,6 +81,7 @@ const QUIZ_RESET = {
   quizComplete: false,
   awaitingResultsPreview: false,
   resultsPreviewComplete: false,
+  planBuildingComplete: false,
 } as const;
 
 export function pendingCanShowResults(pending: PendingOnboardingData): boolean {
@@ -141,7 +151,11 @@ export const pendingOnboardingStorage = {
       quizComplete: true,
       awaitingResultsPreview: true,
       resultsPreviewComplete: false,
+      planBuildingComplete: false,
     }),
+
+  markPlanBuildingComplete: async () =>
+    pendingOnboardingStorage.save({ planBuildingComplete: true }),
 
   markResultsPreviewComplete: async () =>
     pendingOnboardingStorage.save({

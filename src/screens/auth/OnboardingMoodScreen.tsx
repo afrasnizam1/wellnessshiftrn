@@ -11,7 +11,7 @@ import { BrandButton } from '../../components/ui';
 import type { MoodLevel } from '../../types';
 import AppScreen from '../../components/common/AppScreen';
 import MoodOptionGrid, { ONBOARDING_MOOD_OPTIONS } from '../../components/common/MoodOptionGrid';
-import { goToFirstWinActivity, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
+import { goToNotificationPermissions, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
 
 export default function OnboardingMoodScreen() {
   const navigation = useNavigation<any>();
@@ -29,7 +29,7 @@ export default function OnboardingMoodScreen() {
           moodStepComplete: true,
         });
         await refreshPreAuthRouteFromPending(hasSeenIntro);
-        goToFirstWinActivity(navigation);
+        goToNotificationPermissions(navigation);
         return;
       }
 

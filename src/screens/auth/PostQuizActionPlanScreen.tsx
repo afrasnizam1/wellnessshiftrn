@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Screen } from '../../navigation/screenNames';
+// Legacy screen — not registered in RootNavigator.
+// Current funnel continues Results → Mood → permissions → paywall (onboardingRoutes).
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
 } from 'react-native';
@@ -10,6 +12,7 @@ import { useAppStore } from '../../store';
 import { onboardingStorage } from '../../services/onboardingStorage';
 import type { WellnessCategoryKey } from '../../types';
 import { CategoryIcon } from '../../components/ui';
+import { goalToWellnessCategory } from '../../data/onboardingGoals';
 
 const CATEGORY_ACTIONS: Partial<Record<WellnessCategoryKey, { goal: string; step: string }>> = {
   fitness: { goal: 'Build Strength & Fitness', step: 'Explore Fitness Hub' },
@@ -33,18 +36,7 @@ export default function PostQuizActionPlanScreen() {
       ? Object.entries(wellnessScore.categories).sort(([, a], [, b]) => a - b).slice(0, 3)
       : [];
 
-    const goalCategory = user?.primaryGoal
-      ? ({
-          sleep: 'sleep',
-          stress: 'stress',
-          fitness: 'fitness',
-          nutrition: 'nutrition',
-          mental: 'mental',
-          habits: 'mindfulness',
-          condition: 'physical',
-          general: 'physical',
-        }[user.primaryGoal] as WellnessCategoryKey | undefined)
-      : undefined;
+    const goalCategory = goalToWellnessCategory(user?.primaryGoal);
 
     const focus = cats.filter(([, s]) => s < 5).map(([k]) => k as WellnessCategoryKey);
     const focusWithGoal = goalCategory && !focus.includes(goalCategory)

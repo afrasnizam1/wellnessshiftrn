@@ -92,6 +92,10 @@ export function goToFirstWinActivity(navigation: RootNavigation) {
   resetOnboardingStack(navigation, Screen.firstWinActivity);
 }
 
+export function goToBuildingWellnessPlan(navigation: RootNavigation) {
+  resetOnboardingStack(navigation, Screen.buildingWellnessPlan);
+}
+
 export function goToWellnessResults(navigation: RootNavigation) {
   resetOnboardingStack(navigation, Screen.wellnessResults);
 }
@@ -103,6 +107,10 @@ export function goToOnboardingMood(navigation: RootNavigation) {
 /** @deprecated Use goToOnboardingMood — same destination */
 export const goToOnboardingMoodPreAuth = goToOnboardingMood;
 
+export function goToNotificationPermissions(navigation: RootNavigation) {
+  resetOnboardingStack(navigation, Screen.notificationPermissions);
+}
+
 export function goToCreateAccount(navigation: RootNavigation) {
   resetOnboardingStack(navigation, Screen.authentication, {
     routes: [{ name: Screen.createAccount, params: { savePlan: true } }],
@@ -111,7 +119,7 @@ export function goToCreateAccount(navigation: RootNavigation) {
 
 /**
  * Skip screens already completed — mirrors resolvePreAuthRoute so remounts
- * land on the correct pre-auth step (purpose → quiz → account).
+ * land on the correct pre-auth step.
  */
 export async function resumePreAuthOnboardingFromPending(
   navigation: RootNavigation,
@@ -146,7 +154,16 @@ export async function resumePreAuthOnboardingFromPending(
     return 'continue';
   }
 
-  // Purpose / welcome video / etc. — leave the quiz and go there.
+  if (route === Screen.subscriptionPaywall) {
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: Screen.subscriptionPaywall, params: { fromOnboarding: true } }],
+      }),
+    );
+    return 'handled';
+  }
+
   resetOnboardingStack(navigation, route);
   return 'handled';
 }

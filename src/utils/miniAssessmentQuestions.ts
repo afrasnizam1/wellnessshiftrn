@@ -8,13 +8,23 @@ const GOAL_TO_CATEGORIES: Record<string, WellnessCategoryKey[]> = {
   sleep: ['sleep'],
   stress: ['stress', 'mindfulness'],
   fitness: ['fitness', 'physical'],
+  lose_weight: ['nutrition', 'fitness', 'physical'],
+  gain_weight: ['nutrition', 'fitness', 'physical'],
+  maintain_weight: ['nutrition', 'fitness'],
+  build_muscle: ['fitness', 'physical', 'nutrition'],
   nutrition: ['nutrition'],
   mental: ['mental'],
   habits: ['mindfulness', 'stress'],
   condition: ['physical'],
+  clinician: ['physical'],
   general: ['physical', 'mental', 'sleep', 'nutrition', 'fitness'],
 };
 
+/**
+ * Optional legacy helper — builds a short goal-tailored question subset.
+ * Main onboarding always uses the full 20-question `WELLNESS_ASSESSMENT_QUESTIONS`
+ * catalog; this remains for experiments / future quick check-ins only.
+ */
 export function getMiniAssessmentQuestions(
   goals: string[],
   primaryGoal?: string | null,

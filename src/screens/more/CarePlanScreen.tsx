@@ -92,7 +92,8 @@ export default function CarePlanScreen() {
             <Text style={styles.emptyEmoji}>🩺</Text>
             <Text style={styles.emptyTitle}>No clinician connected</Text>
             <Text style={styles.emptySub}>
-              Approve a connection request below, or enter an invite code from your clinician.
+              Clinician connection is only for patients with a health issue whose GP has referred
+              them. Approve a request below, or enter the invite code your referred clinician gave you.
             </Text>
           </View>
 

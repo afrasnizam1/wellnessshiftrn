@@ -11,6 +11,7 @@ import { userService } from '../../services/firebase';
 import type { ReminderAnchor } from '../../types/onboardingPrefs';
 import { goBackOrTo, goToOnboardingBaseline, refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
 import { Screen } from '../../navigation/screenNames';
+import { isFitnessRelatedGoal } from '../../data/onboardingGoals';
 
 const ANCHORS: { id: ReminderAnchor; label: string; detail: string }[] = [
   { id: 'morning', label: 'Morning', detail: 'After waking up' },
@@ -33,11 +34,11 @@ export default function OnboardingHabitsScreen() {
     const load = async () => {
       if (user) {
         const goals = user.healthGoals ?? [];
-        setShowEquipment(goals.includes('fitness'));
+        setShowEquipment(goals.some(isFitnessRelatedGoal));
         return;
       }
       const pending = await pendingOnboardingStorage.get();
-      setShowEquipment(pending.goals.includes('fitness'));
+      setShowEquipment(pending.goals.some(isFitnessRelatedGoal));
     };
     load();
   }, [user]);

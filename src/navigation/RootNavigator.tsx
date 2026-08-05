@@ -25,6 +25,7 @@ import {
 } from '../services/onboardingRoutes';
 import {
   pendingCanShowResults,
+  pendingJustFinishedQuiz,
   pendingOnboardingStorage,
 } from '../services/pendingOnboardingStorage';
 
@@ -37,6 +38,7 @@ import FirstWinActivityScreen from '../screens/auth/FirstWinActivityScreen';
 import EmailVerificationScreen from '../screens/auth/EmailVerificationScreen';
 import IntroVideoScreen from '../screens/auth/IntroVideoScreen';
 import QuizScreen from '../screens/auth/QuizScreen';
+import BuildingWellnessPlanScreen from '../screens/auth/BuildingWellnessPlanScreen';
 import GoalSelectionScreen from '../screens/auth/GoalSelectionScreen';
 import PurposeSelectionScreen from '../screens/auth/PurposeSelectionScreen';
 import AssessmentPathScreen from '../screens/auth/AssessmentPathScreen';
@@ -142,13 +144,22 @@ async function resolvePatientOnboardingRouteFromProfile(
   if (!current.quizComplete || !current.onboardingComplete) {
     await applyPendingOnboardingToAccount(current.uid);
     const refreshed = await userService.getProfile(current.uid);
-    if (refreshed) current = refreshed;
+    if (refreshed) {
+      current = refreshed;
+      setUser(current);
+    }
   }
 
-  const score = await wellnessService.getLatestScore(current.uid);
-  const resultsSeen = await onboardingStorage.hasCompletedWellnessResults(current.uid);
   const pending = await pendingOnboardingStorage.get();
-  const awaitingResults = pendingCanShowResults(pending);
+  let score = await wellnessService.getLatestScore(current.uid);
+  // Guest quiz → account: score may still only live in pending until apply runs.
+  if (!score && pending.wellnessScore && pending.quizComplete) {
+    await wellnessService.saveScore(current.uid, pending.wellnessScore);
+    score = pending.wellnessScore;
+  }
+  const resultsSeen = await onboardingStorage.hasCompletedWellnessResults(current.uid);
+  const awaitingResults =
+    pendingCanShowResults(pending) || pendingJustFinishedQuiz(pending);
 
   // Real quiz = profile flag + saved score. Never invent completion from legacy flags.
   if (score && !current.quizComplete && pending.quizComplete) {
@@ -555,10 +566,18 @@ export default function RootNavigator() {
             <Stack.Screen name={Screen.onboardingBaseline} component={OnboardingBaselineScreen} />
             <Stack.Screen name={Screen.assessmentPath} component={AssessmentPathScreen} />
             <Stack.Screen name={Screen.wellnessQuiz} component={QuizScreen} />
+            <Stack.Screen name={Screen.buildingWellnessPlan} component={BuildingWellnessPlanScreen} />
             <Stack.Screen name={Screen.wellnessResults} component={EnhancedWellnessResultsScreen} />
             <Stack.Screen name={Screen.onboardingMood} component={OnboardingMoodScreen} />
             <Stack.Screen name={Screen.firstWinActivity} component={FirstWinActivityScreen} />
             <Stack.Screen name={Screen.quizCategoryDetail} component={QuizResultsDetailScreen} />
+            <Stack.Screen name={Screen.notificationPermissions} component={NotificationPermissionScreen} />
+            <Stack.Screen name={Screen.healthPermissions} component={HealthKitPermissionScreen} />
+            <Stack.Screen
+              name={Screen.subscriptionPaywall}
+              component={PaywallScreen}
+              initialParams={{ fromOnboarding: true }}
+            />
           </Stack.Group>
         ) : showEmailVerification ? (
           <Stack.Screen name={Screen.emailVerification} component={EmailVerificationScreen} />
@@ -569,6 +588,7 @@ export default function RootNavigator() {
             <Stack.Screen name={Screen.introVideo} component={IntroVideoScreen} />
             <Stack.Screen name={Screen.purposeSelection} component={PurposeSelectionScreen} />
             <Stack.Screen name={Screen.wellnessQuiz} component={QuizScreen} />
+            <Stack.Screen name={Screen.buildingWellnessPlan} component={BuildingWellnessPlanScreen} />
             <Stack.Screen name={Screen.wellnessResults} component={EnhancedWellnessResultsScreen} />
             <Stack.Screen name={Screen.quizCategoryDetail} component={QuizResultsDetailScreen} />
             <Stack.Screen name={Screen.onboardingMood} component={OnboardingMoodScreen} />
@@ -586,7 +606,14 @@ export default function RootNavigator() {
         ) : showClinician ? (
           <Stack.Screen name={Screen.clinicianPortal} component={ClinicianStackNavigator} />
         ) : showPatientMain ? (
-          <Stack.Screen name={Screen.patientApp} component={PatientAppScreen} />
+          <>
+            <Stack.Screen name={Screen.patientApp} component={PatientAppScreen} />
+            {/* Retake assessment from Home / Daily Plan */}
+            <Stack.Screen name={Screen.wellnessQuiz} component={QuizScreen} />
+            <Stack.Screen name={Screen.buildingWellnessPlan} component={BuildingWellnessPlanScreen} />
+            <Stack.Screen name={Screen.wellnessResults} component={EnhancedWellnessResultsScreen} />
+            <Stack.Screen name={Screen.quizCategoryDetail} component={QuizResultsDetailScreen} />
+          </>
         ) : null}
 
         {user && showPatientMain ? (

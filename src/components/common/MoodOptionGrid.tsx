@@ -51,7 +51,7 @@ export default function MoodOptionGrid({ options, onSelect, disabled, selected }
               end={{ x: 0.85, y: 1 }}
               style={[styles.iconWell, isSelected && styles.iconWellSelected]}
             >
-              <MoodFaceIcon mood={m.value} size={44} />
+              <MoodFaceIcon mood={m.value} size={72} />
             </LinearGradient>
             <Text style={[styles.label, isSelected && { color: m.accent }]}>{m.label}</Text>
           </TouchableOpacity>
@@ -80,9 +80,9 @@ const styles = StyleSheet.create({
     ...Shadow.sm,
   },
   iconWell: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,

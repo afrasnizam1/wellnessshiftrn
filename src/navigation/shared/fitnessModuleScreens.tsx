@@ -7,6 +7,7 @@ import HealthTopicScreen from '../../screens/fitness/HealthTopicScreen';
 import HealthTrackerScreen from '../../screens/fitness/HealthTrackerScreen';
 import LearningGuideDetailScreen from '../../screens/fitness/LearningGuideDetailScreen';
 import MealPlannerScreen from '../../screens/fitness/MealPlannerScreen';
+import HighProteinMealsScreen from '../../screens/fitness/HighProteinMealsScreen';
 import MeditationTimerScreen from '../../screens/fitness/MeditationTimerScreen';
 import ModuleDetailScreen from '../../screens/fitness/ModuleDetailScreen';
 import NutritionBasicsLearningScreen from '../../screens/fitness/NutritionBasicsLearningScreen';
@@ -26,6 +27,7 @@ export const FITNESS_MODULE_SCREEN_CONFIG = [
   { name: Screen.meditationTimer, component: MeditationTimerScreen },
   { name: Screen.guidedProgram, component: GuidedProgramScreen },
   { name: Screen.mealPlanner, component: MealPlannerScreen },
+  { name: Screen.highProteinMeals, component: HighProteinMealsScreen },
   { name: Screen.vitaminsLearning, component: VitaminsLearningScreen },
   { name: Screen.nutritionBasics, component: NutritionBasicsLearningScreen },
   { name: Screen.learningGuide, component: LearningGuideDetailScreen },

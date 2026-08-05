@@ -11,6 +11,7 @@ import { carePlanService } from '../../services/firebase';
 import { gamificationService } from '../../services/gamificationService';
 import type { ConnectionRequest } from '../../types';
 import AppScreen from '../../components/common/AppScreen';
+import { CLINICIAN_CONNECT_ELIGIBILITY } from '../../types/onboardingPrefs';
 
 /** Focused connect flow — opened from My Care hub */
 export default function ConnectClinicianScreen() {
@@ -76,6 +77,15 @@ export default function ConnectClinicianScreen() {
     <AppScreen style={styles.safe}>
       <ScreenHeader title="Connect Clinician" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.eligibilityCard} accessibilityRole="text">
+          <Text style={styles.eligibilityTitle}>Who this is for</Text>
+          <Text style={styles.eligibilityBody}>{CLINICIAN_CONNECT_ELIGIBILITY}</Text>
+          <Text style={styles.eligibilityNote}>
+            If you have not been referred by your GP, you can still use Wellness Shift for your
+            wellness score, learning, and fitness — without linking a clinician.
+          </Text>
+        </View>
+
         {pendingRequests.map((req) => (
           <View key={req.id} style={styles.requestCard}>
             <Text style={styles.requestTitle}>Connection request</Text>
@@ -93,7 +103,10 @@ export default function ConnectClinicianScreen() {
 
         <View style={styles.connectCard}>
           <Text style={styles.connectTitle}>Enter invite code</Text>
-          <Text style={styles.connectSub}>Your clinician can generate this from their dashboard.</Text>
+          <Text style={styles.connectSub}>
+            Your GP-referred clinician generates this from their dashboard. Enter it only if they
+            gave it to you for your care.
+          </Text>
           <TextInput
             style={styles.codeInput}
             placeholder="e.g. ABC123"
@@ -119,6 +132,32 @@ export default function ConnectClinicianScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.base, gap: Spacing.md },
+  eligibilityCard: {
+    backgroundColor: 'rgba(242, 77, 128, 0.08)',
+    borderRadius: Radius.xl,
+    padding: Spacing.base,
+    gap: Spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(242, 77, 128, 0.25)',
+  },
+  eligibilityTitle: {
+    fontSize: Typography.size.sm,
+    fontWeight: '800',
+    color: Colors.brandDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  eligibilityBody: {
+    fontSize: Typography.size.sm,
+    color: Colors.text,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+  eligibilityNote: {
+    fontSize: Typography.size.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
   requestCard: {
     backgroundColor: Colors.white, borderRadius: Radius.xl, padding: Spacing.base,
     gap: Spacing.sm, ...Shadow.md, borderLeftWidth: 4, borderLeftColor: Colors.primary,

@@ -20,7 +20,7 @@ const COPY: Record<
   clinician: {
     icon: 'medkit-outline',
     title: 'Connect with your clinician',
-    body: 'Share progress and receive care plans.',
+    body: 'GP referral only — use the invite code for your health issue.',
     cta: 'Connect',
     colors: ['#F24D80', '#D93A6A'],
   },
@@ -48,7 +48,7 @@ const COPY: Record<
   all: {
     icon: 'apps-outline',
     title: 'Your full wellness toolkit',
-    body: 'Score, learning, fitness, and clinician care.',
+    body: 'Score, learning, and fitness. Clinician care only if GP-referred.',
     cta: 'View score',
     colors: ['#007AFF', '#8C59BF'],
   },

@@ -7,6 +7,7 @@ import type {
 } from '../types';
 import { planService } from './firebase';
 import { isFirebaseReady } from './firebaseReady';
+import { goalToWellnessCategory } from '../data/onboardingGoals';
 import { format, startOfDay } from 'date-fns';
 
 interface PlanQuickAction {
@@ -153,18 +154,7 @@ function clinicianTasksFromCarePlan(carePlan: CarePlan, today: string): DailyTas
 }
 
 function primaryGoalToCategory(goal?: string): WellnessCategoryKey | null {
-  const map: Record<string, WellnessCategoryKey> = {
-    sleep: 'sleep',
-    stress: 'stress',
-    fitness: 'fitness',
-    nutrition: 'nutrition',
-    mental: 'mental',
-    habits: 'mindfulness',
-    condition: 'physical',
-    clinician: 'physical',
-    general: 'physical',
-  };
-  return goal ? map[goal] ?? null : null;
+  return goalToWellnessCategory(goal);
 }
 
 export function generateDailyPlan(

@@ -92,7 +92,8 @@ export default function MoreMenuScreen() {
   useEffect(() => {
     if (!user) return;
     onboardingStorage.hasCompletedDayOneChecklist(user.uid).then(setDayOneDone);
-    onboardingStorage.getUserGender(user.uid).then((g) => {
+    onboardingStorage.getUserGender(user.uid).then((stored) => {
+      const g = user.gender ?? stored;
       setShowFemaleHealth(!g || g === 'female');
     });
   }, [user?.uid]);

@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { Screen } from '../../navigation/screenNames';
+import { navigationRef } from '../../navigation/navigationRef';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, Platform, useWindowDimensions,
@@ -450,8 +451,10 @@ export default function HomeScreen() {
   }, [navigation]);
 
   const openWellnessQuiz = useCallback(() => {
-    navigation.getParent()?.navigate(Screen.wellnessQuiz);
-  }, [navigation]);
+    if (navigationRef.isReady()) {
+      navigationRef.navigate(Screen.wellnessQuiz);
+    }
+  }, []);
 
   const openPurposeLead = useCallback(() => {
     if (appPurpose === 'clinician') {
@@ -591,7 +594,7 @@ export default function HomeScreen() {
           {!wellnessScore && (
             <AnimatedPressable
               style={styles.quizCTA}
-              onPress={() => navigation.getParent()?.navigate(Screen.wellnessQuiz)}
+              onPress={openWellnessQuiz}
             >
               <Ionicons name="clipboard-outline" size={18} color={Colors.primary} />
               <Text style={styles.quizCTAText}>Take wellness assessment to get your score</Text>
@@ -769,7 +772,7 @@ export default function HomeScreen() {
           <AppCard style={styles.retakeCard}>
             <TouchableOpacity
               style={styles.retakeRow}
-              onPress={() => navigation.getParent()?.navigate(Screen.wellnessQuiz)}
+              onPress={openWellnessQuiz}
             >
               <View style={styles.retakeIconWrap}>
                 <IconBadge name="arrow-redo-outline" color={Colors.primary} size="sm" />

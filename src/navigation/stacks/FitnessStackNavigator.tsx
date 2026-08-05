@@ -16,6 +16,7 @@ import NutritionBasicsLearningScreen from '../../screens/fitness/NutritionBasics
 import LearningGuideDetailScreen from '../../screens/fitness/LearningGuideDetailScreen';
 import GuidedProgramScreen from '../../screens/fitness/GuidedProgramScreen';
 import MealPlannerScreen from '../../screens/fitness/MealPlannerScreen';
+import HighProteinMealsScreen from '../../screens/fitness/HighProteinMealsScreen';
 import ActivityDashboardScreen from '../../screens/home/ActivityDashboardScreen';
 import StepsDetailScreen from '../../screens/home/StepsDetailScreen';
 import PremiumShopScreen from '../../screens/fitness/PremiumShopScreen';
@@ -44,6 +45,7 @@ export default function FitnessStackNavigator() {
       <Stack.Screen name={Screen.learningGuide} component={LearningGuideDetailScreen} />
       <Stack.Screen name={Screen.guidedProgram} component={GuidedProgramScreen} />
       <Stack.Screen name={Screen.mealPlanner} component={MealPlannerScreen} />
+      <Stack.Screen name={Screen.highProteinMeals} component={HighProteinMealsScreen} />
       <Stack.Screen name={Screen.foodScan} component={FoodScanScreen} />
       <Stack.Screen name={Screen.bodyMetrics} component={BodyMetricsScreen} />
       <Stack.Screen name={Screen.healthRecords} component={HealthRecordsScreen} />

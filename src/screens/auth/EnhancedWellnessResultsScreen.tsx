@@ -18,7 +18,7 @@ import {
 import { wellnessService } from '../../services/firebase';
 import {
   goToOnboardingMood,
-  goToOnboardingMoodPreAuth,
+  goToCreateAccount,
   refreshPreAuthRouteFromPending,
   resetOnboardingStack,
 } from '../../services/onboardingNavigation';
@@ -156,6 +156,13 @@ export default function EnhancedWellnessResultsScreen() {
       await pendingOnboardingStorage.markResultsPreviewComplete();
       if (user) {
         await onboardingStorage.markWellnessResultsComplete(user.uid);
+
+        // Retake from Home / main app — return to the dashboard.
+        if (user.onboardingComplete) {
+          resetOnboardingStack(navigation, Screen.patientApp);
+          return;
+        }
+
         const moodDone = await onboardingStorage.hasCompletedOnboardingMood(user.uid);
         if (!moodDone) {
           goToOnboardingMood(navigation);
@@ -164,8 +171,9 @@ export default function EnhancedWellnessResultsScreen() {
         }
         return;
       }
+      // Guest: Results → Create account / Sign in (pending details link on signup).
       await refreshPreAuthRouteFromPending(hasSeenIntro);
-      goToOnboardingMoodPreAuth(navigation);
+      goToCreateAccount(navigation);
     } catch (error) {
       console.warn('[WellnessResults] continue failed:', error);
       Alert.alert('Could not continue', 'Please try again.');

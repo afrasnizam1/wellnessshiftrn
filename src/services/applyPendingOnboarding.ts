@@ -1,9 +1,10 @@
-import type { UserProfile } from '../types';
+import type { UserProfile, WellnessScore } from '../types';
+import type { AssessmentAnswerMap } from '../utils/wellnessAssessmentScoring';
+import type { MoodLevel } from '../types';
 import { pendingOnboardingStorage } from './pendingOnboardingStorage';
 import { onboardingStorage } from './onboardingStorage';
 import { userService, wellnessService } from './firebase';
 import { checkInService } from './checkInService';
-import type { MoodLevel } from '../types';
 
 /** Apply pre-auth quiz/goals to the account and return the latest profile. */
 export async function ensurePendingOnboardingApplied(uid: string): Promise<UserProfile | null> {
@@ -11,22 +12,36 @@ export async function ensurePendingOnboardingApplied(uid: string): Promise<UserP
   return userService.getProfile(uid);
 }
 
+/**
+ * Transfer guest onboarding into the signed-in profile.
+ *
+ * Guest funnel: welcome → purpose → quiz → building → results → create account.
+ * When Results were already completed as a guest, mark the account fully onboarded
+ * so Create Account drops them straight into the main app.
+ */
 export async function applyPendingOnboardingToAccount(uid: string): Promise<boolean> {
   const pending = await pendingOnboardingStorage.get();
 
-  // Do not mark the per-user welcome video as seen here — after signup we replay
-  // the breathe / welcome screen once for the new account (IntroVideoScreen).
+  const hasQuiz = pending.quizComplete && !!pending.wellnessScore;
+  const hasPurpose = !!(pending.appPurpose || pending.appPurposes?.length);
+  const hasGoals = pending.goals.length > 0;
+  const guestFinishedResults = pending.resultsPreviewComplete && hasQuiz;
 
-  if (!pending.resultsPreviewComplete || !pending.wellnessScore) return false;
+  if (!hasQuiz && !hasPurpose && !hasGoals) return false;
 
   const goals = pending.goals;
   const primaryGoal = pending.primaryGoal ?? goals[0] ?? 'general';
 
   await userService.updateProfile(uid, {
-    primaryGoal,
-    healthGoals: goals,
-    quizComplete: true,
-    onboardingComplete: false,
+    ...(hasGoals || hasQuiz
+      ? {
+          primaryGoal,
+          healthGoals: goals,
+        }
+      : {}),
+    ...(hasQuiz ? { quizComplete: true } : {}),
+    // Guest who already saw Results → enter the app after signup.
+    onboardingComplete: guestFinishedResults,
     appPurpose: pending.appPurpose ?? pending.appPurposes?.[0] ?? undefined,
     appPurposes: pending.appPurposes?.length
       ? pending.appPurposes
@@ -42,10 +57,15 @@ export async function applyPendingOnboardingToAccount(uid: string): Promise<bool
     weightKg: pending.weightKg ?? undefined,
   });
 
-  await wellnessService.saveScore(uid, pending.wellnessScore);
+  if (hasQuiz && pending.wellnessScore) {
+    await wellnessService.saveScore(uid, pending.wellnessScore);
+    await onboardingStorage.markQuizComplete(uid);
+  }
 
-  await onboardingStorage.setUserGoals(uid, goals);
-  await onboardingStorage.setSelectedPrimaryGoal(uid, primaryGoal);
+  if (hasGoals || hasQuiz) {
+    await onboardingStorage.setUserGoals(uid, goals);
+    await onboardingStorage.setSelectedPrimaryGoal(uid, primaryGoal);
+  }
   if (pending.appPurpose || pending.appPurposes?.length) {
     const purposes = pending.appPurposes?.length
       ? pending.appPurposes
@@ -77,13 +97,18 @@ export async function applyPendingOnboardingToAccount(uid: string): Promise<bool
     });
   }
 
-  await onboardingStorage.markQuizComplete(uid);
-  await onboardingStorage.markWellnessResultsComplete(uid);
-  await onboardingStorage.markMainOnboardingSupplementsComplete(uid);
-
-  if (pending.moodStepComplete) {
+  if (guestFinishedResults) {
+    // Skip post-auth welcome replay and remaining permission screens — go to app.
+    await onboardingStorage.markWelcomeVideoSeen(uid);
+    await onboardingStorage.markWellnessResultsComplete(uid);
+    await onboardingStorage.markMainOnboardingSupplementsComplete(uid);
+    await onboardingStorage.setPendingInAppGuide(uid, true);
     await onboardingStorage.markOnboardingMoodComplete(uid);
-    if (pending.moodLevel) {
+    await onboardingStorage.markNotificationPromptSeen(uid);
+    await onboardingStorage.markHealthKitPromptSeen(uid);
+    await onboardingStorage.markOnboardingPaywallSeen(uid);
+
+    if (pending.moodStepComplete && pending.moodLevel) {
       await checkInService.saveCheckIn(uid, {
         mood: pending.moodLevel as MoodLevel,
         energy: 3,
@@ -91,17 +116,29 @@ export async function applyPendingOnboardingToAccount(uid: string): Promise<bool
         notes: '',
       });
     }
-  }
-  if (pending.firstWinComplete) {
-    await onboardingStorage.markFirstWinComplete(uid);
+    if (pending.firstWinComplete) {
+      await onboardingStorage.markFirstWinComplete(uid);
+    }
+
+    await pendingOnboardingStorage.clear();
+  } else if (pending.resultsPreviewComplete) {
+    await onboardingStorage.markWellnessResultsComplete(uid);
+    await onboardingStorage.markMainOnboardingSupplementsComplete(uid);
+    if (pending.moodStepComplete) {
+      await onboardingStorage.markOnboardingMoodComplete(uid);
+      if (pending.moodLevel) {
+        await checkInService.saveCheckIn(uid, {
+          mood: pending.moodLevel as MoodLevel,
+          energy: 3,
+          stress: 5,
+          notes: '',
+        });
+      }
+    }
   }
 
-  await pendingOnboardingStorage.clear();
   return true;
 }
-
-import type { AssessmentAnswerMap } from '../utils/wellnessAssessmentScoring';
-import type { WellnessScore } from '../types';
 
 export async function hydrateStoreFromPending(
   setWellnessScore: (score: WellnessScore | null) => void,

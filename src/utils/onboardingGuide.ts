@@ -11,6 +11,10 @@ export function getContextualGuideDestination(primaryGoal?: string | null): InAp
     case 'fitness':
     case 'nutrition':
     case 'condition':
+    case 'lose_weight':
+    case 'gain_weight':
+    case 'maintain_weight':
+    case 'build_muscle':
       return 'fitness';
     case 'clinician':
       return 'more';
@@ -27,8 +31,8 @@ export function getContextualGuideCopy(primaryGoal?: string | null): {
   const destination = getContextualGuideDestination(primaryGoal);
   if (destination === 'more') {
     return {
-      title: 'Connect with a clinician',
-      body: 'You chose clinician support — open My Care to link with an invite code.',
+      title: 'Connect with your GP-referred clinician',
+      body: 'Clinician linking is only for patients with a health issue whose GP referred them. Open My Care and enter the invite code they gave you.',
       cta: 'Open My Care',
     };
   }
