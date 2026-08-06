@@ -51,6 +51,7 @@ import PaywallScreen from '../screens/auth/PaywallScreen';
 import ClinicianOnboardingScreen from '../screens/clinician/ClinicianOnboardingScreen';
 import { notificationService, setupNotificationNavigation } from '../services/notifications';
 import { subscriptionService } from '../services/subscriptionService';
+import { freeTrialService } from '../services/freeTrialService';
 import { crashlyticsService } from '../services/crashlyticsService';
 import { navigationRef, navigateFromNotification } from './navigationRef';
 import { screenviewFromNavigationState } from './screenTracking';
@@ -90,6 +91,28 @@ function needsEmailVerification(): boolean {
   return !!fbUser && isEmailPasswordUser() && !fbUser.emailVerified;
 }
 
+const PROFILE_CREATE_RETRY_MS = 250;
+const PROFILE_CREATE_RETRY_ATTEMPTS = 8;
+const CLINICIAN_GATE_TIMEOUT_MS = 10_000;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((resolve) => {
+        timer = setTimeout(() => resolve(fallback), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function ensureProfile(firebaseUser: { uid: string; email: string | null; displayName: string | null }): Promise<UserProfile | null> {
   try {
     await ensureAuthReadyForUid(firebaseUser.uid);
@@ -98,7 +121,16 @@ async function ensureProfile(firebaseUser: { uid: string; email: string | null; 
     return null;
   }
 
+  // Sign-up creates the profile (with the correct role) right after auth.
+  // Wait briefly so we don't race ahead and stamp a default patient doc.
   let profile = await userService.getProfile(firebaseUser.uid);
+  if (!profile) {
+    for (let attempt = 0; attempt < PROFILE_CREATE_RETRY_ATTEMPTS && !profile; attempt += 1) {
+      await delay(PROFILE_CREATE_RETRY_MS);
+      profile = await userService.getProfile(firebaseUser.uid);
+    }
+  }
+
   if (!profile) {
     try {
       await userService.createProfile(firebaseUser.uid, {
@@ -131,6 +163,46 @@ async function ensureProfile(firebaseUser: { uid: string; email: string | null; 
   });
 
   return profile;
+}
+
+/** Resolve clinician onboarding flag and always clear the loading gate. */
+async function resolveClinicianSessionGate(
+  uid: string,
+  setClinicianProfileReady: (ready: boolean) => void,
+): Promise<boolean> {
+  try {
+    // Await schema backfill so we don't race a false onboardingCompleted write.
+    await clinicianService.ensureClinicianDoc(uid).catch((error) => {
+      console.warn('[resolveClinicianSessionGate] ensureClinicianDoc failed:', error);
+    });
+
+    const result = await Promise.race([
+      clinicianService.isClinicianOnboardingComplete(uid).then((onboarded) => ({
+        onboarded,
+        timedOut: false as const,
+      })),
+      new Promise<{ onboarded: boolean; timedOut: true }>((resolve) => {
+        setTimeout(() => resolve({ onboarded: false, timedOut: true }), CLINICIAN_GATE_TIMEOUT_MS);
+      }),
+    ]);
+
+    if (result.timedOut) {
+      // Direct retry without race — don't assume incomplete after a slow network.
+      const retry = await clinicianService.isClinicianOnboardingComplete(uid).catch(() => false);
+      setClinicianProfileReady(retry);
+      notificationService.registerDevice(uid, 'clinician').catch(() => {});
+      return retry;
+    }
+
+    setClinicianProfileReady(result.onboarded);
+    notificationService.registerDevice(uid, 'clinician').catch(() => {});
+    return result.onboarded;
+  } catch (error) {
+    console.warn('[resolveClinicianSessionGate] failed:', error);
+    // Fail open into clinician onboarding rather than an infinite spinner.
+    setClinicianProfileReady(false);
+    return false;
+  }
 }
 
 async function resolvePatientOnboardingRouteFromProfile(
@@ -187,7 +259,8 @@ async function resolvePatientOnboardingRouteFromProfile(
 export default function RootNavigator() {
   const {
     user, isAuthLoading, setUser, setAuthLoading, setHasSeenIntro, setWellnessScore, setLastQuizAnswers,
-    clinicianProfileReady, setClinicianProfileReady, setSubscriptionTier, sessionEpoch, resetSession,
+    clinicianProfileReady, setClinicianProfileReady, setSubscriptionTier, subscriptionTier,
+    setTrialActive, sessionEpoch, resetSession,
   } = useAppStore();
   const [introSeen, setIntroSeen] = useState(true);
   const [preAuthRoute, setPreAuthRoute] = useState<PreAuthRoute | null>(null);
@@ -279,6 +352,20 @@ export default function RootNavigator() {
   }, [user?.uid, user?.role, setSubscriptionTier]);
 
   useEffect(() => {
+    if (!user?.uid || user.role !== 'patient') {
+      setTrialActive(false);
+      return;
+    }
+    let cancelled = false;
+    freeTrialService.getStatus(user.uid, subscriptionTier).then((status) => {
+      if (!cancelled) setTrialActive(status.isActive);
+    }).catch(() => {
+      if (!cancelled) setTrialActive(false);
+    });
+    return () => { cancelled = true; };
+  }, [user?.uid, user?.role, subscriptionTier, setTrialActive]);
+
+  useEffect(() => {
     if (shouldSkipToApp()) {
       enterDemoSession({
         setUser,
@@ -336,15 +423,15 @@ export default function RootNavigator() {
               simulatorSessionAcceptedRef.current = true;
               clearDeferredSimulatorSession();
               setUser(profile);
-              const score = await wellnessService.getLatestScore(firebaseUser.uid);
-              if (score) setWellnessScore(score);
 
               if (profile.role === 'clinician') {
-                clinicianService.ensureClinicianDoc(firebaseUser.uid).catch(() => {});
-                const onboarded = await clinicianService.isClinicianOnboardingComplete(firebaseUser.uid);
-                setClinicianProfileReady(onboarded);
-                setClinicianGateReady(true);
-                notificationService.registerDevice(firebaseUser.uid, 'clinician').catch(() => {});
+                // Clear the loading gate before optional score fetch so SignUp /
+                // SignIn setUser(clinician) cannot leave users on an infinite spinner.
+                try {
+                  await resolveClinicianSessionGate(firebaseUser.uid, setClinicianProfileReady);
+                } finally {
+                  if (!cancelled) setClinicianGateReady(true);
+                }
               } else if (profile.role === 'patient') {
                 setClinicianGateReady(true);
                 if (!profile.onboardingComplete) {
@@ -352,6 +439,19 @@ export default function RootNavigator() {
                   setOnboardingRoute(route);
                   setOnboardingRouteReady(true);
                 }
+              } else {
+                setClinicianGateReady(true);
+              }
+
+              try {
+                const score = await withTimeout(
+                  wellnessService.getLatestScore(firebaseUser.uid),
+                  CLINICIAN_GATE_TIMEOUT_MS,
+                  null,
+                );
+                if (score && !cancelled) setWellnessScore(score);
+              } catch (error) {
+                console.warn('[acceptSession] getLatestScore failed:', error);
               }
             };
 
@@ -465,6 +565,40 @@ export default function RootNavigator() {
     };
   }, [user?.uid, user?.quizComplete, user?.onboardingComplete, user?.role, setUser]);
 
+  // SignUp / SignIn call setUser(clinician) outside acceptSession. If the auth
+  // listener already returned early (profile race) or is still mid-flight, the
+  // clinician loading gate would never clear without this fallback.
+  useEffect(() => {
+    if (!user || user.role !== 'clinician' || clinicianGateReady) return;
+
+    let cancelled = false;
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (cancelled || settled) return;
+      console.warn('[RootNavigator] clinician gate timeout — clearing spinner (keeping resolved flag)');
+      // Do NOT force clinicianProfileReady=false — that incorrectly re-onboards
+      // clinicians whose profile check is merely slow.
+      setClinicianGateReady(true);
+    }, CLINICIAN_GATE_TIMEOUT_MS);
+
+    (async () => {
+      try {
+        await resolveClinicianSessionGate(user.uid, setClinicianProfileReady);
+      } finally {
+        settled = true;
+        if (!cancelled) {
+          clearTimeout(timeoutId);
+          setClinicianGateReady(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [user?.uid, user?.role, clinicianGateReady, setClinicianProfileReady]);
+
   useEffect(() => {
     if (!user || !appConfig.isFirebaseConfigured) return;
     return notificationService.onTokenRefresh(user.uid, () => {});
@@ -505,7 +639,8 @@ export default function RootNavigator() {
     (!user && preAuthRoute === null) ||
     (user?.role === 'patient' && launchWelcomeGate === 'loading') ||
     (showPatientOnboarding && !onboardingRouteReady) ||
-    (!!user && user.role === 'clinician' && !clinicianGateReady)
+    // Email verification must not be blocked by the clinician gate.
+    (!!user && user.role === 'clinician' && !clinicianGateReady && !showEmailVerification)
   ) {
     return <AppLoadingScreen />;
   }
@@ -539,7 +674,7 @@ export default function RootNavigator() {
     <NavigationContainer
       ref={navigationRef}
       theme={navigationTheme}
-      key={`${user?.uid ?? 'guest'}-${sessionEpoch}-${user?.role ?? 'none'}-${user?.onboardingComplete ? 'main' : 'onboard'}-${launchWelcomeGate}`}
+      key={`${user?.uid ?? 'guest'}-${sessionEpoch}-${user?.role ?? 'none'}-${user?.onboardingComplete ? 'main' : 'onboard'}-${launchWelcomeGate}-${user?.role === 'clinician' ? (clinicianProfileReady ? 'portal' : 'clinician-onboard') : 'n'}`}
       onReady={() => {
         lastCsqScreenviewRef.current = null;
         reportNavigationScreenview();

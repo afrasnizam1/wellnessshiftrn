@@ -2,9 +2,8 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import LinearGradient from 'react-native-linear-gradient';
 import type { ClinicianTabParamList } from '../types';
-import { Typography, Shadow, type IoniconName } from '../theme';
+import { Typography, Colors, type IoniconName } from '../theme';
 import { ClinicianTheme } from '../theme/clinicianTheme';
 
 import ClinicianDashboardScreen from '../screens/clinician/ClinicianDashboardScreen';
@@ -25,15 +24,13 @@ const TABS: { name: keyof ClinicianTabParamList; label: string; icon: IoniconNam
 function TabIcon({ focused, icon, activeIcon, label }: { focused: boolean; icon: IoniconName; activeIcon: IoniconName; label: string }) {
   return (
     <View style={styles.tabIcon}>
-      {focused ? (
-        <LinearGradient colors={[...ClinicianTheme.gradient]} style={styles.iconWrapActive}>
-          <Ionicons name={activeIcon} size={20} color="#FFF" />
-        </LinearGradient>
-      ) : (
-        <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={20} color={ClinicianTheme.tabInactive} />
-        </View>
-      )}
+      <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+        <Ionicons
+          name={focused ? activeIcon : icon}
+          size={20}
+          color={focused ? ClinicianTheme.accent : ClinicianTheme.tabInactive}
+        />
+      </View>
       <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>{label}</Text>
     </View>
   );
@@ -72,35 +69,34 @@ export function ClinicianTabNavigator() {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: Platform.OS === 'ios' ? 28 : 14,
-    height: Platform.OS === 'ios' ? 76 : 68,
-    paddingBottom: Platform.OS === 'ios' ? 10 : 8,
-    paddingTop: 10,
-    backgroundColor: 'rgba(255,255,255,0.96)',
+    left: 16,
+    right: 16,
+    bottom: Platform.OS === 'ios' ? 24 : 12,
+    height: Platform.OS === 'ios' ? 72 : 64,
+    paddingBottom: Platform.OS === 'ios' ? 8 : 6,
+    paddingTop: 8,
+    backgroundColor: Colors.surface,
     borderTopWidth: 0,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: ClinicianTheme.border,
-    ...Shadow.lg,
-    elevation: 16,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
+    shadowColor: '#1C1C1E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  tabIcon: { alignItems: 'center', gap: 3 },
+  tabIcon: { alignItems: 'center', gap: 2 },
   iconWrap: {
-    width: 44,
-    height: 36,
+    width: 40,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 18,
+    borderRadius: 10,
   },
   iconWrapActive: {
-    width: 44,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 18,
+    backgroundColor: ClinicianTheme.accentMuted,
   },
   tabLabel: { fontSize: Typography.size.xs, color: ClinicianTheme.tabInactive, fontWeight: '600' },
-  tabLabelActive: { color: ClinicianTheme.accent, fontWeight: '800' },
+  tabLabelActive: { color: ClinicianTheme.accent, fontWeight: '700' },
 });

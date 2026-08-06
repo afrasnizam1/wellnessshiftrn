@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors, Spacing, Radius } from '../../theme';
-import { ClinicianTheme } from '../../theme/clinicianTheme';
+import { Colors, Spacing, Radius, Typography } from '../../theme';
+import { ClinicianType } from '../../theme/clinicianTheme';
+import { AnimatedPressable } from '../ui';
 
 export type QuickActionItem = {
   icon: string;
@@ -22,55 +23,74 @@ export function ClinicianQuickActions({ actions, title = 'Quick actions' }: Prop
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>{title}</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
-      >
+      <View style={styles.grid}>
         {actions.map((a) => (
-          <TouchableOpacity key={a.title} style={styles.card} onPress={a.onPress} activeOpacity={0.88}>
+          <AnimatedPressable
+            key={a.title}
+            style={styles.card}
+            onPress={a.onPress}
+            accessibilityRole="button"
+            accessibilityLabel={`${a.title}. ${a.subtitle ?? ''}`}
+          >
             <View style={[styles.iconWrap, { backgroundColor: a.bg }]}>
-              <Ionicons name={a.icon as any} size={22} color={a.color} />
+              <Ionicons name={a.icon as any} size={20} color={a.color} />
             </View>
-            <Text style={styles.cardTitle}>{a.title}</Text>
-            {a.subtitle ? <Text style={styles.cardSub}>{a.subtitle}</Text> : null}
-          </TouchableOpacity>
+            <View style={styles.copy}>
+              <Text style={styles.cardTitle} numberOfLines={1}>{a.title}</Text>
+              {a.subtitle ? (
+                <Text style={styles.cardSub} numberOfLines={1}>{a.subtitle}</Text>
+              ) : null}
+            </View>
+          </AnimatedPressable>
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: Spacing.sm },
-  title: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: Colors.text,
-    letterSpacing: -0.3,
+  wrap: {
+    gap: Spacing.sm,
     paddingHorizontal: Spacing.base,
   },
-  row: {
-    paddingHorizontal: Spacing.base,
+  title: {
+    ...ClinicianType.sectionTitle,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.sm,
-    paddingBottom: 4,
   },
   card: {
-    width: 132,
+    width: '48%',
+    flexGrow: 1,
+    minWidth: '46%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     padding: Spacing.md,
-    gap: Spacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderLight,
   },
   iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: Colors.text },
-  cardSub: { fontSize: 11, color: Colors.textTertiary, fontWeight: '500' },
+  copy: { flex: 1, minWidth: 0, gap: 2 },
+  cardTitle: {
+    fontSize: Typography.size.sm,
+    fontWeight: '700',
+    color: Colors.text,
+    letterSpacing: -0.2,
+  },
+  cardSub: {
+    fontSize: Typography.size.xs,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
 });

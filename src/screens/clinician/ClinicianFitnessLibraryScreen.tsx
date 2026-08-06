@@ -1,15 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TextInput,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { Colors, Typography, Spacing, Radius, Gradients } from '../../theme';
-import { AppCard, ListRow, ScreenHeader, SectionHeader } from '../../components/ui';
+import { Colors, Typography, Spacing, Radius, fitnessModuleIonIcon } from '../../theme';
+import { ClinicianTheme, ClinicianType } from '../../theme/clinicianTheme';
+import { AppCard, AnimatedPressable, ListRow, ScreenHeader, SectionHeader } from '../../components/ui';
 import ExploreCategoriesGrid from '../../components/fitness/ExploreCategoriesGrid';
 import {
   FITNESS_MODULES,
+  FITNESS_DOMAIN_GROUPS,
   getModulesForExploreCategory,
 } from '../../data/fitnessData';
 import { getCategoryByName } from '../../data/fitnessExploreCategories';
@@ -19,22 +20,14 @@ import AppScreen from '../../components/common/AppScreen';
 
 function moduleTypeLabel(mod: FitnessModule): string | undefined {
   switch (mod.category) {
-    case 'anatomy':
-      return '3D';
-    case 'calculators':
-      return 'Tool';
-    case 'trackers':
-      return 'Tracker';
-    case 'brainGames':
-      return 'Game';
-    case 'mindBody':
-      return 'Mind-body';
-    case 'workouts':
-      return 'Program';
-    case 'education':
-      return 'Guide';
-    default:
-      return undefined;
+    case 'anatomy': return '3D';
+    case 'calculators': return 'Tool';
+    case 'trackers': return 'Tracker';
+    case 'brainGames': return 'Game';
+    case 'mindBody': return 'Mind-body';
+    case 'workouts': return 'Program';
+    case 'education': return 'Guide';
+    default: return undefined;
   }
 }
 
@@ -54,6 +47,7 @@ export default function ClinicianFitnessLibraryScreen() {
         (m) =>
           m.title.toLowerCase().includes(q) ||
           m.subtitle.toLowerCase().includes(q) ||
+          m.id.toLowerCase().includes(q) ||
           (m.exploreTags ?? []).some((t) => t.toLowerCase().includes(q))
       );
     }
@@ -61,32 +55,37 @@ export default function ClinicianFitnessLibraryScreen() {
   }, [selectedCategory, searchQuery]);
 
   const categoryMeta = selectedCategory ? getCategoryByName(selectedCategory) : null;
-  const showingList = Boolean(selectedCategory || searchQuery.trim());
+  const showingFiltered = Boolean(selectedCategory || searchQuery.trim());
+
+  const domainGroups = useMemo(() => {
+    if (showingFiltered) return [];
+    return FITNESS_DOMAIN_GROUPS;
+  }, [showingFiltered]);
 
   const openModule = (mod: FitnessModule) => {
     navigateClinicianFitnessModule(navigation, mod);
   };
 
   return (
-    <AppScreen style={styles.safe}>
+    <AppScreen mesh={false} backgroundColor={ClinicianTheme.canvas} style={styles.safe}>
       <ScreenHeader title="Module Library" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={[...Gradients.primary]} style={styles.hero}>
+        <AppCard style={styles.hero}>
           <View style={styles.heroTop}>
             <View style={styles.heroIconWrap}>
-              <Ionicons name="library-outline" size={26} color={Colors.white} />
+              <Ionicons name="library-outline" size={22} color={ClinicianTheme.accent} />
             </View>
-            <View style={styles.heroStat}>
+            <View>
               <Text style={styles.heroStatValue}>{FITNESS_MODULES.length}</Text>
-              <Text style={styles.heroStatLabel}>modules</Text>
+              <Text style={styles.heroStatLabel}>Fitness Hub modules</Text>
             </View>
           </View>
-          <Text style={styles.heroTitle}>Clinical content library</Text>
+          <Text style={styles.heroTitle}>Same catalog as patients</Text>
           <Text style={styles.heroSub}>
-            Preview modules before recommending them to patients — anatomy holograms, calculators, trackers, and guides.
+            Preview every Fitness Hub module before recommending — including High Protein Meals, anatomy, trackers, and guides.
           </Text>
-        </LinearGradient>
+        </AppCard>
 
         <View style={styles.searchWrap}>
           <Ionicons name="search" size={18} color={Colors.textTertiary} />
@@ -97,15 +96,17 @@ export default function ClinicianFitnessLibraryScreen() {
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          {searchQuery.length > 0 ? (
+            <AnimatedPressable onPress={() => setSearchQuery('')} hitSlop={8}>
               <Text style={styles.clearBtn}>Clear</Text>
-            </TouchableOpacity>
-          )}
+            </AnimatedPressable>
+          ) : null}
         </View>
 
-        {!searchQuery && (
+        {!searchQuery ? (
           <ExploreCategoriesGrid
             modules={FITNESS_MODULES}
             selectedCategory={selectedCategory}
@@ -113,7 +114,7 @@ export default function ClinicianFitnessLibraryScreen() {
               setSelectedCategory((prev) => (prev === name ? null : name));
             }}
           />
-        )}
+        ) : null}
 
         {selectedCategory && !searchQuery ? (
           <SectionHeader
@@ -123,28 +124,25 @@ export default function ClinicianFitnessLibraryScreen() {
           />
         ) : searchQuery.trim() ? (
           <SectionHeader title={`${modules.length} result${modules.length === 1 ? '' : 's'}`} />
-        ) : null}
+        ) : (
+          <Text style={styles.browseLabel}>Browse by domain</Text>
+        )}
 
-        {showingList && modules.length > 0 && categoryMeta && !searchQuery ? (
-          <View style={[styles.categoryBanner, { backgroundColor: categoryMeta.color + '14' }]}>
-            <View style={[styles.categoryDot, { backgroundColor: categoryMeta.color }]} />
-            <Text style={styles.categoryBannerText}>
-              {modules.length} module{modules.length === 1 ? '' : 's'} in {categoryMeta.name}
-            </Text>
-          </View>
-        ) : null}
-
-        {showingList && modules.length === 0 ? (
+        {showingFiltered && modules.length === 0 ? (
           <View style={styles.empty}>
-            <View style={styles.emptyIconWrap}>
-              <Ionicons name="search-outline" size={32} color={Colors.textTertiary} />
-            </View>
             <Text style={styles.emptyTitle}>No modules found</Text>
             <Text style={styles.emptyText}>Try another category or search term</Text>
           </View>
-        ) : showingList ? (
+        ) : showingFiltered ? (
           <ModuleGroup modules={modules} onPress={openModule} />
-        ) : null}
+        ) : (
+          domainGroups.map((group) => (
+            <View key={String(group.title)} style={styles.group}>
+              <SectionHeader title={String(group.title)} />
+              <ModuleGroup modules={group.data} onPress={openModule} />
+            </View>
+          ))
+        )}
 
         <View style={{ height: Spacing['2xl'] }} />
       </ScrollView>
@@ -168,12 +166,13 @@ function ModuleGroup({
             key={mod.id}
             title={mod.title}
             subtitle={mod.subtitle}
-            icon={<Text style={styles.moduleEmoji}>{mod.icon}</Text>}
-            iconBg={mod.color + '22'}
+            iconName={fitnessModuleIonIcon(mod)}
+            iconColor={mod.color}
             badge={mod.isPremium ? 'PRO' : undefined}
             badgeColor={Colors.brand}
             onPress={() => onPress(mod)}
             showDivider={index < modules.length - 1}
+            animated={false}
             trailing={
               typeLabel ? (
                 <View style={styles.typePill}>
@@ -190,59 +189,49 @@ function ModuleGroup({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
-  content: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.base },
-
-  hero: {
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    overflow: 'hidden',
-  },
+  safe: { flex: 1 },
+  content: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.base, gap: Spacing.md },
+  hero: { gap: Spacing.sm },
   heroTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+    gap: Spacing.md,
+    marginBottom: Spacing.xs,
   },
   heroIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    backgroundColor: ClinicianTheme.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroStat: { alignItems: 'flex-end' },
   heroStatValue: {
-    fontSize: Typography.size['2xl'],
+    fontSize: Typography.size.xl,
     fontWeight: '800',
-    color: Colors.white,
-    letterSpacing: -0.5,
+    color: Colors.text,
+    letterSpacing: -0.4,
   },
   heroStatLabel: {
     fontSize: Typography.size.xs,
-    color: 'rgba(255,255,255,0.85)',
+    color: Colors.textSecondary,
     fontWeight: '600',
   },
   heroTitle: {
-    fontSize: Typography.size.lg,
+    fontSize: Typography.size.md,
     fontWeight: '700',
-    color: Colors.white,
-    marginBottom: 6,
+    color: Colors.text,
   },
   heroSub: {
     fontSize: Typography.size.sm,
-    color: 'rgba(255,255,255,0.9)',
+    color: Colors.textSecondary,
     lineHeight: 20,
   },
-
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
-    marginBottom: Spacing.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: 12,
     gap: Spacing.sm,
@@ -250,51 +239,27 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderLight,
   },
   searchInput: { flex: 1, fontSize: Typography.size.base, color: Colors.text, padding: 0 },
-  clearBtn: { fontSize: Typography.size.sm, color: Colors.primary, fontWeight: '600' },
-
-  categoryBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.md,
-    marginBottom: Spacing.sm,
+  clearBtn: { fontSize: Typography.size.sm, color: ClinicianTheme.accent, fontWeight: '600' },
+  browseLabel: {
+    ...ClinicianType.sectionLabel,
+    marginTop: Spacing.xs,
   },
-  categoryDot: { width: 8, height: 8, borderRadius: 4 },
-  categoryBannerText: {
-    fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-  },
-
-  moduleEmoji: { fontSize: 22 },
+  group: { gap: Spacing.xs },
   typePill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: Colors.surfaceSecondary,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: Radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: Radius.sm,
   },
   typePillText: {
     fontSize: 10,
     fontWeight: '700',
     color: Colors.textSecondary,
-    letterSpacing: 0.3,
   },
-
   empty: { alignItems: 'center', paddingTop: Spacing['2xl'], gap: Spacing.sm },
-  emptyIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
   emptyTitle: { fontSize: Typography.size.lg, fontWeight: '700', color: Colors.text },
   emptyText: { fontSize: Typography.size.sm, color: Colors.textSecondary },
 });

@@ -31,16 +31,27 @@ const TAB_ICON_MAP: Record<keyof MainTabParamList, { active: TabIconName; inacti
   [Screen.tabMyCare]: TAB_ICONS.myCare,
 };
 
-function TabIcon({ focused, name, color }: { focused: boolean; name: TabIconName; color: string }) {
+function TabIcon({
+  focused,
+  name,
+  color,
+  showDot,
+}: {
+  focused: boolean;
+  name: TabIconName;
+  color: string;
+  showDot?: boolean;
+}) {
   return (
     <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
       <Ionicons name={name} size={focused ? 24 : 22} color={color} />
+      {showDot ? <View style={styles.notifDot} /> : null}
     </View>
   );
 }
 
 export function MainTabNavigator() {
-  const { user } = useAppStore();
+  const { user, hasUnseenCarePlan } = useAppStore();
   const hasClinician = !!user?.clinicianId;
 
   return (
@@ -56,7 +67,14 @@ export function MainTabNavigator() {
         tabBarIcon: ({ focused, color }) => {
           const icons = TAB_ICON_MAP[route.name];
           const name = focused ? icons.active : icons.inactive;
-          return <TabIcon focused={focused} name={name} color={color} />;
+          return (
+            <TabIcon
+              focused={focused}
+              name={name}
+              color={color}
+              showDot={route.name === Screen.tabMyCare && hasUnseenCarePlan}
+            />
+          );
         },
       })}
     >
@@ -141,5 +159,16 @@ const styles = StyleSheet.create({
   },
   iconWrapActive: {
     backgroundColor: Colors.primaryLight,
+  },
+  notifDot: {
+    position: 'absolute',
+    top: 2,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.error,
+    borderWidth: 1.5,
+    borderColor: Colors.white,
   },
 });

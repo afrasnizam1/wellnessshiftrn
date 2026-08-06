@@ -18,7 +18,7 @@ export {
   trackChartCategoryTap,
   type ChartTapContext,
 } from './chartTapAnalytics';
-export { default as CategoryRadarChart } from './CategoryRadarChart';
+export { default as CategoryBalanceBars } from './CategoryBalanceBars';
 export { default as ThreeDPieChart } from './ThreeDPieChart';
 export { default as TwoDPieChart } from './TwoDPieChart';
 export { default as CheckInHeatmap } from './CheckInHeatmap';

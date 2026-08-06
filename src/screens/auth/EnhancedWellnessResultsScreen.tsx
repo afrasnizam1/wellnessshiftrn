@@ -18,7 +18,7 @@ import {
 import { wellnessService } from '../../services/firebase';
 import {
   goToOnboardingMood,
-  goToCreateAccount,
+  goToNotificationPermissions,
   refreshPreAuthRouteFromPending,
   resetOnboardingStack,
 } from '../../services/onboardingNavigation';
@@ -171,9 +171,9 @@ export default function EnhancedWellnessResultsScreen() {
         }
         return;
       }
-      // Guest: Results → Create account / Sign in (pending details link on signup).
+      // Guest: Results → Notifications → Health → Create account.
       await refreshPreAuthRouteFromPending(hasSeenIntro);
-      goToCreateAccount(navigation);
+      goToNotificationPermissions(navigation);
     } catch (error) {
       console.warn('[WellnessResults] continue failed:', error);
       Alert.alert('Could not continue', 'Please try again.');

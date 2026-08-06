@@ -1,12 +1,11 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, LayoutChangeEvent } from 'react-native';
+import React, { useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, LayoutChangeEvent, Pressable } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
 import { Colors, Typography, Spacing, Radius, Shadow, Animation } from '../../theme';
-import AnimatedPressable from './AnimatedPressable';
 
 type Props<T extends string> = {
   options: T[];
@@ -21,44 +20,55 @@ export default function SegmentedControl<T extends string>({
   onChange,
   compact,
 }: Props<T>) {
-  const [layout, setLayout] = React.useState({ width: 0, segmentWidth: 0 });
-  const activeIndex = options.indexOf(value);
+  const activeIndex = Math.max(0, options.indexOf(value));
   const translateX = useSharedValue(0);
+  const segmentWidth = useSharedValue(0);
+  const hasLayout = useSharedValue(0);
 
   useEffect(() => {
-    if (layout.segmentWidth > 0) {
-      translateX.value = withSpring(activeIndex * layout.segmentWidth, Animation.spring);
+    if (segmentWidth.value > 0) {
+      translateX.value = withSpring(activeIndex * segmentWidth.value, Animation.spring);
     }
-  }, [activeIndex, layout.segmentWidth]);
+  }, [activeIndex, segmentWidth, translateX]);
 
-  const onTrackLayout = (e: LayoutChangeEvent) => {
+  const onTrackLayout = useCallback((e: LayoutChangeEvent) => {
     const width = e.nativeEvent.layout.width;
-    setLayout({ width, segmentWidth: width / options.length });
-  };
+    const next = width / options.length;
+    const isFirst = segmentWidth.value === 0;
+    segmentWidth.value = next;
+    hasLayout.value = 1;
+    translateX.value = isFirst
+      ? activeIndex * next
+      : withSpring(activeIndex * next, Animation.spring);
+  }, [activeIndex, hasLayout, options.length, segmentWidth, translateX]);
 
   const pillStyle = useAnimatedStyle(() => ({
+    opacity: hasLayout.value,
     transform: [{ translateX: translateX.value }],
-    width: layout.segmentWidth - 4,
+    width: Math.max(0, segmentWidth.value - 4),
   }));
 
   return (
     <View style={styles.track} onLayout={onTrackLayout}>
-      {layout.segmentWidth > 0 && (
-        <Animated.View style={[styles.pill, pillStyle]} />
-      )}
+      <Animated.View style={[styles.pill, pillStyle]} pointerEvents="none" />
       {options.map((option) => {
         const active = option === value;
         return (
-          <AnimatedPressable
+          <Pressable
             key={option}
             style={styles.segment}
-            onPress={() => onChange(option)}
-            scaleTo={0.98}
+            onPress={() => {
+              if (option === value) return;
+              onChange(option);
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
           >
             <Text style={[styles.label, compact && styles.labelCompact, active && styles.labelActive]} numberOfLines={1}>
               {option}
             </Text>
-          </AnimatedPressable>
+          </Pressable>
         );
       })}
     </View>
@@ -72,6 +82,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     padding: 3,
     position: 'relative',
+    zIndex: 1,
   },
   pill: {
     position: 'absolute',
@@ -80,14 +91,17 @@ const styles = StyleSheet.create({
     bottom: 3,
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg - 2,
+    zIndex: 0,
     ...Shadow.sm,
   },
   segment: {
     flex: 1,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.sm + 2,
     paddingHorizontal: Spacing.xs,
     alignItems: 'center',
-    zIndex: 1,
+    justifyContent: 'center',
+    zIndex: 2,
+    minHeight: 36,
   },
   label: {
     fontSize: Typography.size.sm,

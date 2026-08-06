@@ -1,38 +1,54 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors, Typography, Spacing } from '../../theme';
+import { Colors, Typography, Spacing, Radius } from '../../theme';
 import { AnimatedPressable } from '../ui';
 
 type Props = {
   clinicianName: string;
+  email?: string;
   specialty?: string;
   clinicName?: string;
   linkedSince?: string;
   loading?: boolean;
+  /** Larger layout for My Care hub */
+  prominent?: boolean;
   onPress?: () => void;
 };
 
 export default function ClinicianInfoCard({
   clinicianName,
+  email,
   specialty,
   clinicName,
   linkedSince,
   loading,
+  prominent,
   onPress,
 }: Props) {
+  const initial = clinicianName?.[0]?.toUpperCase() ?? 'C';
+  const hasDetails = !!(email || specialty || clinicName);
+
   const content = (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, prominent && styles.wrapProminent]}>
       <View style={styles.headerRow}>
-        <View style={styles.iconTile}>
-          <Ionicons name="medkit" size={22} color={Colors.primary} />
-        </View>
+        {prominent ? (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarInitial}>{initial}</Text>
+          </View>
+        ) : (
+          <View style={styles.iconTile}>
+            <Ionicons name="medkit" size={22} color={Colors.primary} />
+          </View>
+        )}
         <View style={styles.headerCopy}>
           <Text style={styles.eyebrow}>Your clinician</Text>
           {loading ? (
             <ActivityIndicator size="small" color={Colors.primary} style={styles.loader} />
           ) : (
-            <Text style={styles.name} numberOfLines={1}>{clinicianName}</Text>
+            <Text style={[styles.name, prominent && styles.nameProminent]} numberOfLines={1}>
+              {clinicianName}
+            </Text>
           )}
         </View>
         <View style={styles.connectedPill}>
@@ -42,25 +58,42 @@ export default function ClinicianInfoCard({
       </View>
 
       {linkedSince ? (
-        <Text style={styles.linkedSince}>Linked since {linkedSince}</Text>
+        <Text style={[styles.linkedSince, prominent && styles.metaIndent]}>
+          Linked since {linkedSince}
+        </Text>
       ) : null}
 
-      {(specialty || clinicName) && (
-        <View style={styles.metaBlock}>
+      {hasDetails && !loading ? (
+        <View style={[styles.metaBlock, prominent && styles.metaBlockProminent]}>
+          {email ? (
+            <View style={styles.metaRow}>
+              <Ionicons name="mail-outline" size={16} color={Colors.textSecondary} />
+              <View style={styles.metaCopy}>
+                <Text style={styles.metaLabel}>Email</Text>
+                <Text style={styles.metaValue} numberOfLines={1}>{email}</Text>
+              </View>
+            </View>
+          ) : null}
           {specialty ? (
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Specialty</Text>
-              <Text style={styles.metaValue} numberOfLines={1}>{specialty}</Text>
+              <Ionicons name="medical-outline" size={16} color={Colors.textSecondary} />
+              <View style={styles.metaCopy}>
+                <Text style={styles.metaLabel}>Doctor type</Text>
+                <Text style={styles.metaValue} numberOfLines={1}>{specialty}</Text>
+              </View>
             </View>
           ) : null}
           {clinicName ? (
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Practice</Text>
-              <Text style={styles.metaValue} numberOfLines={1}>{clinicName}</Text>
+              <Ionicons name="business-outline" size={16} color={Colors.textSecondary} />
+              <View style={styles.metaCopy}>
+                <Text style={styles.metaLabel}>Workplace</Text>
+                <Text style={styles.metaValue} numberOfLines={2}>{clinicName}</Text>
+              </View>
             </View>
           ) : null}
         </View>
-      )}
+      ) : null}
     </View>
   );
 
@@ -82,6 +115,10 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
   },
+  wrapProminent: {
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -94,6 +131,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(148, 107, 250, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontSize: Typography.size.xl,
+    fontWeight: '700',
+    color: '#946BFA',
   },
   headerCopy: { flex: 1, minWidth: 0 },
   eyebrow: {
@@ -108,6 +158,9 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginTop: 2,
   },
+  nameProminent: {
+    fontSize: Typography.size.lg,
+  },
   loader: { alignSelf: 'flex-start', marginTop: 4 },
   connectedPill: {
     flexDirection: 'row',
@@ -116,7 +169,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success + '18',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 100,
+    borderRadius: Radius.pill,
   },
   connectedDot: {
     width: 8,
@@ -134,16 +187,31 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     marginLeft: 52,
   },
+  metaIndent: {
+    marginLeft: 64,
+  },
   metaBlock: {
     marginTop: Spacing.xs,
     marginLeft: 52,
     gap: 6,
   },
+  metaBlockProminent: {
+    marginLeft: 0,
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderLight,
+    gap: Spacing.sm,
+  },
   metaRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  metaCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
   metaLabel: {
     fontSize: Typography.size.xs,
@@ -151,9 +219,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   metaValue: {
-    flex: 1,
-    textAlign: 'right',
-    fontSize: Typography.size.xs,
+    fontSize: Typography.size.sm,
     fontWeight: '600',
     color: Colors.text,
   },

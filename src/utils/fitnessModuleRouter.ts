@@ -2,6 +2,7 @@ import type { NavigationProp } from '@react-navigation/native';
 import { FITNESS_MODULES } from '../data/fitnessData';
 import { Screen } from '../navigation/screenNames';
 import type { FitnessModule, SubscriptionTier } from '../types';
+import { getEffectiveTier } from '../services/iap';
 
 export type FitnessScreenName =
   | typeof Screen.fitnessHub
@@ -100,7 +101,7 @@ export function navigateToFitnessModule(
   module: FitnessModule,
   subscriptionTier: SubscriptionTier = 'free'
 ) {
-  if (module.isPremium && subscriptionTier === 'free') {
+  if (module.isPremium && getEffectiveTier(subscriptionTier) === 'free') {
     navigation.navigate(Screen.subscriptionPaywall, { feature: module.title });
     return;
   }

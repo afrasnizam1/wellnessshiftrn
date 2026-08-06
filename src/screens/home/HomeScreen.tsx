@@ -48,6 +48,7 @@ import { gamificationService } from '../../services/gamificationService';
 import { getRouteForModuleId } from '../../utils/fitnessModuleRouter';
 import { greetingName } from '../../utils/greetingName';
 import { getOrGeneratePlan } from '../../services/planGenerator';
+import { syncUnseenCarePlan } from '../../services/carePlanUnseen';
 import {
   wellnessService,
   carePlanService,
@@ -74,6 +75,7 @@ export default function HomeScreen() {
     setDailyPlan,
     setWellnessScore,
     setCarePlan,
+    setHasUnseenCarePlan,
     setUser,
     markTaskComplete,
     setGymVisit,
@@ -85,6 +87,7 @@ export default function HomeScreen() {
     setCheckInMeta,
     clinicianRecommendations,
     setClinicianRecommendations,
+    hasUnseenCarePlan,
   } = useAppStore(
     useShallow((s) => ({
       user: s.user,
@@ -96,6 +99,8 @@ export default function HomeScreen() {
       setDailyPlan: s.setDailyPlan,
       setWellnessScore: s.setWellnessScore,
       setCarePlan: s.setCarePlan,
+      setHasUnseenCarePlan: s.setHasUnseenCarePlan,
+      hasUnseenCarePlan: s.hasUnseenCarePlan,
       setUser: s.setUser,
       markTaskComplete: s.markTaskComplete,
       setGymVisit: s.setGymVisit,
@@ -315,7 +320,9 @@ export default function HomeScreen() {
     })();
 
     const unsubPlans = carePlanService.watchCarePlans(user.uid, (plans) => {
-      setCarePlan(plans[0] ?? null);
+      const latest = plans[0] ?? null;
+      setCarePlan(latest);
+      syncUnseenCarePlan(user.uid, latest, setHasUnseenCarePlan).catch(() => {});
     });
     const unsubRecs = clinicianService.watchFitnessHubRecommendations(
       user.uid,
@@ -518,6 +525,20 @@ export default function HomeScreen() {
           <MarketingHero onStartQuiz={openWellnessQuiz} />
         )}
 
+        {carePlan ? (
+          <CarePlanBanner
+            carePlan={carePlan}
+            isNew={hasUnseenCarePlan}
+            onPress={() => {
+              if (user?.clinicianId) {
+                navigation.navigate(Screen.tabMyCare, { screen: Screen.carePlan });
+              } else {
+                navigation.navigate(Screen.tabMore, { screen: Screen.carePlan });
+              }
+            }}
+          />
+        ) : null}
+
         <View style={styles.greetingRow}>
           <AnimatedPressable
             onPress={openProfile}
@@ -651,7 +672,7 @@ export default function HomeScreen() {
               onDayOne={() => setShowDayOne(true)}
               onCheckIn={() => navigation.navigate(Screen.dailyCheckIn)}
               onDailyPlan={() => navigation.navigate(Screen.dailyPlan)}
-              onCarePlan={() => navigation.navigate(Screen.tabMore, { screen: Screen.carePlan })}
+              onCarePlan={() => navigation.navigate(Screen.tabMyCare, { screen: Screen.carePlan })}
               onConnectHealth={() => navigation.navigate(Screen.healthPermissions)}
               onOpenAiInsights={() => navigation.navigate(Screen.tabAiInsights)}
             />
@@ -679,13 +700,6 @@ export default function HomeScreen() {
             streak={checkInStreak}
             needsCheckIn={!hasCheckedInToday}
             onPress={() => navigation.navigate(Screen.dailyCheckIn)}
-          />
-        )}
-
-        {carePlan && (
-          <CarePlanBanner
-            carePlan={carePlan}
-            onPress={() => navigation.navigate(Screen.tabMore, { screen: Screen.carePlan })}
           />
         )}
 
@@ -755,7 +769,7 @@ export default function HomeScreen() {
             activity={activity}
             carePlan={carePlan}
             onCheckIn={() => navigation.navigate(Screen.dailyCheckIn)}
-            onCarePlan={() => navigation.navigate(Screen.tabMore, { screen: Screen.carePlan })}
+              onCarePlan={() => navigation.navigate(Screen.tabMyCare, { screen: Screen.carePlan })}
           />
         )}
 

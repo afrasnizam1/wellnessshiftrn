@@ -183,7 +183,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     paddingTop: Spacing.md,
     paddingBottom: ClinicianLayout.tabBarBottomInset,
-    gap: Spacing.sm,
   },
   listEmpty: {
     flexGrow: 1,

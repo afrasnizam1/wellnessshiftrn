@@ -1,14 +1,15 @@
 // src/screens/more/CarePlanScreen.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
 import { useAppStore } from '../../store';
 import { clinicianService } from '../../services/clinicianService';
 import { carePlanService } from '../../services/firebase';
 import { gamificationService } from '../../services/gamificationService';
+import { markCarePlanSeen } from '../../services/carePlanUnseen';
 import type { ConnectionRequest } from '../../types';
 import AppScreen from '../../components/common/AppScreen';
 
@@ -16,12 +17,19 @@ const PLAN_TABS = ['Overview', 'Workouts', 'Nutrition', 'Sleep', 'Habits', 'Mind
 
 export default function CarePlanScreen() {
   const navigation = useNavigation<any>();
-  const { user, carePlan, setCarePlan, setUser } = useAppStore();
+  const { user, carePlan, setCarePlan, setUser, setHasUnseenCarePlan } = useAppStore();
   const [activeTab, setActiveTab] = useState('Overview');
   const [connectCode, setConnectCode] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<ConnectionRequest[]>([]);
   const [responding, setResponding] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.uid || !carePlan) return;
+      markCarePlanSeen(user.uid, carePlan, setHasUnseenCarePlan).catch(() => {});
+    }, [user?.uid, carePlan?.id, setHasUnseenCarePlan]),
+  );
 
   useEffect(() => {
     if (!user || user.clinicianId) return;

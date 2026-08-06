@@ -156,17 +156,25 @@ export default function BreathingExerciseScreen() {
         </View>
       )}
 
-      {/* Breathing animation */}
+      {/* Breathing animation — tap circle when idle to begin */}
       <View style={styles.circleWrap}>
-        <Animated.View style={[
-          styles.circleOuter,
-          { borderColor: color, transform: [{ scale: animScale }], opacity: animOpacity },
-        ]}>
-          <Animated.View style={[styles.circleInner, { backgroundColor: color + '33' }]}>
-            <Text style={[styles.phaseLabel, { color }]}>{phaseLabels[phase]}</Text>
-            {countdown > 0 && <Text style={[styles.countdown, { color }]}>{countdown}</Text>}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          disabled={isRunning}
+          onPress={() => { if (!isRunning) void start(); }}
+          accessibilityRole="button"
+          accessibilityLabel={isRunning ? phaseLabels[phase] : 'Tap to begin'}
+        >
+          <Animated.View style={[
+            styles.circleOuter,
+            { borderColor: color, transform: [{ scale: animScale }], opacity: animOpacity },
+          ]}>
+            <Animated.View style={[styles.circleInner, { backgroundColor: color + '33' }]}>
+              <Text style={[styles.phaseLabel, { color }]}>{phaseLabels[phase]}</Text>
+              {countdown > 0 && <Text style={[styles.countdown, { color }]}>{countdown}</Text>}
+            </Animated.View>
           </Animated.View>
-        </Animated.View>
+        </TouchableOpacity>
 
         {isRunning && (
           <>

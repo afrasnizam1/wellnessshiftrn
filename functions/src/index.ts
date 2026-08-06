@@ -61,13 +61,9 @@ export const onCarePlanSent = onDocumentCreated(
 
     const {
       patientId,
-      clinicianName,
-      planName,
       planStatus,
     } = plan as {
       patientId?: string;
-      clinicianName?: string;
-      planName?: string;
       planStatus?: string;
     };
 
@@ -75,12 +71,10 @@ export const onCarePlanSent = onDocumentCreated(
     if (planStatus === 'draft') return;
 
     const planId = event.params.planId;
-    const clinician = clinicianName ?? 'Your clinician';
-    const name = planName ?? 'Care plan';
 
     await sendPushToUser(patientId, 'patient', {
       title: 'New care plan',
-      body: `${clinician} sent you: ${name}`,
+      body: 'Your clinician sent you a care plan',
       data: {
         type: 'care_plan',
         role: 'patient',

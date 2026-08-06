@@ -17,6 +17,7 @@ function TrialCountdownBanner() {
   const navigation = useNavigation<any>();
   const user = useAppStore((s) => s.user);
   const subscriptionTier = useAppStore((s) => s.subscriptionTier);
+  const setTrialActive = useAppStore((s) => s.setTrialActive);
   const [daysLeft, setDaysLeft] = useState(0);
   const [progress, setProgress] = useState(0);
   const [visible, setVisible] = useState(false);
@@ -34,6 +35,7 @@ function TrialCountdownBanner() {
         }
         const s = await freeTrialService.getStatus(user.uid, subscriptionTier);
         if (!cancelled) {
+          setTrialActive(s.isActive);
           setVisible(s.isActive);
           setDaysLeft(s.daysRemaining);
           setProgress(s.progressPercent);
@@ -46,7 +48,7 @@ function TrialCountdownBanner() {
     return () => {
       cancelled = true;
     };
-  }, [user?.uid, subscriptionTier]);
+  }, [user?.uid, subscriptionTier, setTrialActive]);
 
   const dismiss = async () => {
     setVisible(false);

@@ -17,6 +17,7 @@ import {
 import type { SubscriptionTier } from '../types';
 import { appConfig } from '../config/appConfig';
 import { logger } from '../utils/logger';
+import { useAppStore } from '../store';
 
 export const PRODUCT_IDS = {
   growthMonthly: 'com.wellnessshift.growth.monthly',
@@ -269,6 +270,10 @@ export function getEffectiveTier(storeTier: SubscriptionTier): SubscriptionTier 
   if (appConfig.enableDevSubscriptionBypass) {
     return appConfig.devSubscriptionTier;
   }
+  // Active complimentary preview unlocks Pro features.
+  if (storeTier === 'free' && useAppStore.getState().trialActive) {
+    return 'pro';
+  }
   return storeTier;
 }
 
@@ -280,4 +285,9 @@ export const canAccessFeature = (
   const required = PREMIUM_FEATURES[feature];
   if (!required) return true;
   return required.includes(effectiveTier);
+};
+
+/** True when the user has Growth/Pro (or an active complimentary preview). */
+export function hasPremiumAccess(tier: SubscriptionTier): boolean {
+  return getEffectiveTier(tier) !== 'free';
 };

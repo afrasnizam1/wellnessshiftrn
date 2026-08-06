@@ -19,7 +19,7 @@ const isIOS = Platform.OS === 'ios';
 const isAndroid = Platform.OS === 'android';
 
 export function getHealthPlatformName(): string {
-  return isAndroid ? 'Health Connect' : 'Apple Health';
+  return isAndroid ? 'Google Health Connect' : 'Apple Health';
 }
 
 function healthKitReady(): boolean {

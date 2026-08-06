@@ -15,7 +15,6 @@ import { clinicianService } from '../../services/clinicianService';
 import { messageService } from '../../services/firebase';
 import { onboardingStorage } from '../../services/onboardingStorage';
 import { appConfig } from '../../config/appConfig';
-import type { ClinicianProfileDoc } from '../../types';
 
 type IconName = IoniconName;
 
@@ -28,6 +27,7 @@ interface MenuRow {
   screen?: string;
   badge?: string;
   badgeColor?: string;
+  showDot?: boolean;
   destructive?: boolean;
   action?: () => void;
 }
@@ -39,35 +39,50 @@ interface MenuSection {
 
 export default function MoreMenuScreen() {
   const navigation = useNavigation<any>();
-  const { user, carePlan, wellnessScore, subscriptionTier, setUser, setCarePlan, setClinicianRecommendations } = useAppStore();
+  const { user, carePlan, wellnessScore, subscriptionTier, setUser, setCarePlan, setClinicianRecommendations, hasUnseenCarePlan } = useAppStore();
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [dayOneDone, setDayOneDone] = useState(true);
   const [showFemaleHealth, setShowFemaleHealth] = useState(true);
-  const [clinicianProfile, setClinicianProfile] = useState<ClinicianProfileDoc | null>(null);
+  const [clinicianProfile, setClinicianProfile] = useState<{
+    clinicianName: string;
+    specialty?: string;
+    email?: string;
+    clinicName?: string;
+  } | null>(null);
   const [loadingClinician, setLoadingClinician] = useState(false);
 
   const clinicianId = user?.clinicianId ?? carePlan?.clinicianId;
   const isClinicianConnected = !!clinicianId;
   const clinicianDisplayName =
-    carePlan?.clinicianName ||
-    [clinicianProfile?.firstName, clinicianProfile?.lastName].filter(Boolean).join(' ') ||
-    'Your clinician';
-  const clinicianSpecialty = carePlan?.specialty || clinicianProfile?.specialty;
+    carePlan?.clinicianName || clinicianProfile?.clinicianName || 'Your clinician';
+  const clinicianSpecialty = clinicianProfile?.specialty || carePlan?.specialty;
   const clinicianClinic = clinicianProfile?.clinicName;
+  const clinicianEmail = clinicianProfile?.email;
 
   useEffect(() => {
-    if (!clinicianId) {
+    if (!user || !clinicianId) {
       setClinicianProfile(null);
       return;
     }
     setLoadingClinician(true);
     clinicianService
-      .getClinicianProfile(clinicianId)
-      .then(setClinicianProfile)
+      .getPatientClinicianInfo(user.uid)
+      .then((info) => {
+        if (!info) {
+          setClinicianProfile(null);
+          return;
+        }
+        setClinicianProfile({
+          clinicianName: info.clinicianName,
+          specialty: info.specialty,
+          email: info.email,
+          clinicName: info.clinicName,
+        });
+      })
       .catch(() => {})
       .finally(() => setLoadingClinician(false));
-  }, [clinicianId]);
+  }, [user?.uid, clinicianId]);
 
   useEffect(() => {
     if (!user || user.clinicianId) {
@@ -158,8 +173,11 @@ export default function MoreMenuScreen() {
           icon: 'clipboard-outline',
           iconGradient: ['#8C59BF', '#946BFA'],
           label: 'My Care Plan',
-          sublabel: 'View your personalised wellness plan',
+          sublabel: hasUnseenCarePlan
+            ? 'New care plan from your clinician'
+            : 'View your personalised wellness plan',
           screen: Screen.carePlan,
+          showDot: hasUnseenCarePlan,
         },
         {
           icon: 'chatbubbles-outline',
@@ -199,13 +217,17 @@ export default function MoreMenuScreen() {
           label: 'My Care Hub',
           sublabel: 'Care plans, messages & clinician connect',
           screen: Screen.myCare,
+          showDot: hasUnseenCarePlan,
         },
         {
           icon: 'clipboard-outline',
           iconGradient: ['#8C59BF', '#946BFA'],
           label: 'My Care Plan',
-          sublabel: 'View your personalised wellness plan',
+          sublabel: hasUnseenCarePlan
+            ? 'New care plan from your clinician'
+            : 'View your personalised wellness plan',
           screen: Screen.carePlan,
+          showDot: hasUnseenCarePlan,
         },
         {
           icon: 'chatbubbles-outline',
@@ -244,6 +266,7 @@ export default function MoreMenuScreen() {
         iconGradient={row.iconGradient}
         badge={row.badge}
         badgeColor={row.badgeColor ?? Colors.success}
+        showDot={row.showDot}
         onPress={row.action || row.screen ? () => {
           if (row.action) { row.action(); return; }
           if (row.screen) nav(row.screen);
@@ -398,12 +421,16 @@ export default function MoreMenuScreen() {
       </View>
 
       <View style={styles.sectionWrap}>
-        <Text style={styles.sectionTitle}>My Care</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={[styles.sectionTitle, { paddingBottom: 0, paddingHorizontal: 0 }]}>My Care</Text>
+          {hasUnseenCarePlan ? <View style={[styles.sectionDot, { marginBottom: 0 }]} /> : null}
+        </View>
         <AppCard padded={false} style={styles.sectionCard}>
           {isClinicianConnected && (
             <>
               <ClinicianInfoCard
                 clinicianName={clinicianDisplayName}
+                email={clinicianEmail}
                 specialty={clinicianSpecialty}
                 clinicName={clinicianClinic}
                 loading={loadingClinician}
@@ -473,6 +500,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   sectionWrap: { paddingHorizontal: Spacing.base, marginBottom: Spacing.sm },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+  },
   sectionTitle: {
     fontSize: Typography.size.xs,
     fontWeight: '800',
@@ -481,6 +515,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     paddingBottom: Spacing.sm,
     paddingHorizontal: Spacing.xs,
+  },
+  sectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.error,
+    marginBottom: Spacing.sm,
   },
   sectionCard: {
     overflow: 'hidden',

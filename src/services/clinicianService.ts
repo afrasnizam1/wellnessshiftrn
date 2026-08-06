@@ -28,13 +28,136 @@ import type {
 } from '../types';
 import { FITNESS_MODULES } from '../data/fitnessData';
 import { clinicianTriageStorage, patientNeedsAttention } from './clinicianTriageStorage';
+import { isPlaceholderName, resolveDisplayName } from '../utils/greetingName';
+
+/** Coerce Firestore Timestamp | Date | ISO string | seconds map → ISO string. */
+function toIsoString(value: unknown): string | null {
+  if (value == null || value === '') return null;
+  if (typeof value === 'string') {
+    const t = new Date(value).getTime();
+    return Number.isNaN(t) ? null : new Date(value).toISOString();
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+  if (typeof value === 'object') {
+    const v = value as { toDate?: () => Date; seconds?: number; _seconds?: number; nanoseconds?: number };
+    if (typeof v.toDate === 'function') {
+      try {
+        const d = v.toDate();
+        return Number.isNaN(d.getTime()) ? null : d.toISOString();
+      } catch {
+        return null;
+      }
+    }
+    const seconds = typeof v.seconds === 'number' ? v.seconds : typeof v._seconds === 'number' ? v._seconds : null;
+    if (seconds != null) {
+      const d = new Date(seconds * 1000);
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    }
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const ms = value < 1e12 ? value * 1000 : value;
+    const d = new Date(ms);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  return null;
+}
 
 async function getProfile(uid: string): Promise<UserProfile | null> {
   try {
     const doc = await firestore().collection('users').doc(uid).get();
-    return doc.exists() ? (doc.data() as UserProfile) : null;
+    if (!doc.exists()) return null;
+    const data = doc.data() as UserProfile & Record<string, unknown>;
+    const createdAt = toIsoString(data.createdAt) ?? toIsoString(data.joinDate) ?? data.createdAt;
+    return {
+      ...data,
+      uid,
+      createdAt: typeof createdAt === 'string' ? createdAt : new Date().toISOString(),
+      displayName: resolveDisplayName({
+        displayName: data.displayName,
+        name: (data as { name?: string }).name,
+        email: data.email,
+      }),
+    };
   } catch (error) {
     console.warn('[getProfile] read failed:', uid, error);
+    return null;
+  }
+}
+
+export type ClinicianPatientProfile = UserProfile & {
+  linkedAtIso?: string | null;
+  joinDateIso?: string | null;
+  patientDocName?: string;
+};
+
+/** Full patient profile for clinician detail — merges users + patients docs. */
+async function getPatientFullProfile(patientId: string): Promise<ClinicianPatientProfile | null> {
+  try {
+    const [userDoc, patientDoc, profileDoc] = await Promise.all([
+      firestore().collection('users').doc(patientId).get().catch(() => null),
+      firestore().collection('patients').doc(patientId).get().catch(() => null),
+      firestore().collection('userProfiles').doc(patientId).get().catch(() => null),
+    ]);
+
+    const userData = userDoc?.exists() ? (userDoc.data() as Record<string, unknown>) : null;
+    const patientData = patientDoc?.exists() ? (patientDoc.data() as Record<string, unknown>) : null;
+    const extras = profileDoc?.exists() ? (profileDoc.data() as Record<string, unknown>) : null;
+
+    if (!userData && !patientData && !extras) return null;
+
+    const email =
+      (userData?.email as string) ||
+      (patientData?.email as string) ||
+      (extras?.email as string) ||
+      '';
+
+    const displayName = resolveDisplayName({
+      displayName: (userData?.displayName as string) || undefined,
+      name: (patientData?.name as string) || (extras?.name as string) || undefined,
+      email,
+    });
+
+    const createdAt =
+      toIsoString(userData?.createdAt) ||
+      toIsoString(patientData?.joinDate) ||
+      toIsoString(extras?.joinDate) ||
+      new Date().toISOString();
+
+    const healthGoals =
+      (userData?.healthGoals as string[] | undefined) ||
+      (extras?.healthGoals as string[] | undefined) ||
+      (patientData?.fitnessGoals as string[] | undefined) ||
+      undefined;
+
+    return {
+      uid: patientId,
+      email,
+      displayName,
+      role: 'patient',
+      createdAt,
+      subscriptionTier: (userData?.subscriptionTier as UserProfile['subscriptionTier']) ?? 'free',
+      onboardingComplete: Boolean(userData?.onboardingComplete ?? patientData?.onboardingComplete),
+      quizComplete: Boolean(userData?.quizComplete ?? patientData?.hasCompletedAssessment),
+      primaryGoal: (userData?.primaryGoal as string) || undefined,
+      healthGoals,
+      appPurpose: userData?.appPurpose as UserProfile['appPurpose'],
+      appPurposes: userData?.appPurposes as UserProfile['appPurposes'],
+      experienceLevel: userData?.experienceLevel as UserProfile['experienceLevel'],
+      trainingDaysPerWeek: userData?.trainingDaysPerWeek as number | undefined,
+      dateOfBirth: (userData?.dateOfBirth as string) || (extras?.dateOfBirth as string) || undefined,
+      heightCm: (userData?.heightCm as number) || (extras?.heightCm as number) || undefined,
+      weightKg: (userData?.weightKg as number) || (extras?.weightKg as number) || undefined,
+      gender: (userData?.gender as UserProfile['gender']) || undefined,
+      avatarUrl: (userData?.avatarUrl as string) || undefined,
+      clinicianId: (userData?.clinicianId as string) || (patientData?.linkedClinicianId as string) || undefined,
+      linkedAtIso: toIsoString(patientData?.linkedAt) || toIsoString(patientData?.linkedClinicianAt),
+      joinDateIso: toIsoString(patientData?.joinDate) || toIsoString(extras?.joinDate) || createdAt,
+      patientDocName: (patientData?.name as string) || undefined,
+    };
+  } catch (error) {
+    console.warn('[getPatientFullProfile] failed:', patientId, error);
     return null;
   }
 }
@@ -70,22 +193,29 @@ async function resolveClinicianName(clinicianId: string): Promise<string> {
 }
 
 async function getLatestScore(uid: string): Promise<WellnessScore | null> {
-  const snap = await firestore()
-    .collection('users')
-    .doc(uid)
-    .collection('wellnessScores')
-    .orderBy('date', 'desc')
-    .limit(1)
-    .get();
-  if (snap.empty) return null;
-  return snap.docs[0].data() as WellnessScore;
+  try {
+    const snap = await firestore()
+      .collection('users')
+      .doc(uid)
+      .collection('wellnessScores')
+      .orderBy('date', 'desc')
+      .limit(1)
+      .get();
+    if (snap.empty) return null;
+    return snap.docs[0].data() as WellnessScore;
+  } catch (error) {
+    console.warn('[getLatestScore] failed:', uid, error);
+    return null;
+  }
 }
 
 function generateCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-function formatRelativeTime(iso: string): string {
+function formatRelativeTime(value: unknown): string {
+  const iso = toIsoString(value);
+  if (!iso) return 'Unknown';
   const diff = Date.now() - new Date(iso).getTime();
   if (Number.isNaN(diff)) return 'Unknown';
   const mins = Math.floor(diff / 60000);
@@ -96,12 +226,26 @@ function formatRelativeTime(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return iso;
+function formatDate(value: unknown): string {
+  const iso = toIsoString(value);
+  if (iso) {
+    try {
+      return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch {
+      return '—';
+    }
   }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed || /invalid\s*date/i.test(trimmed)) return '—';
+    const parsed = Date.parse(trimmed);
+    if (!Number.isNaN(parsed)) {
+      return new Date(parsed).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    // Already a human-readable date string from a prior format pass
+    return trimmed;
+  }
+  return '—';
 }
 
 function needsAttention(
@@ -320,7 +464,19 @@ export const clinicianService = {
       .collection('linkedPatients')
       .get();
 
-    let linked: LinkedPatient[] = subSnap.docs.map((d) => d.data() as LinkedPatient);
+    let linked: LinkedPatient[] = subSnap.docs.map((d) => {
+      const data = d.data() as Record<string, unknown>;
+      return {
+        patientId: (data.patientId as string) || d.id,
+        patientName: (data.patientName as string) || '',
+        patientEmail: (data.patientEmail as string) || '',
+        linkedAt: toIsoString(data.linkedAt) ?? new Date().toISOString(),
+        latestOverallScore: data.latestOverallScore as number | undefined,
+        patientStatus: data.patientStatus as string | undefined,
+        lastActivityAt: toIsoString(data.lastActivityAt) ?? undefined,
+        lastCarePlanCompletedAt: toIsoString(data.lastCarePlanCompletedAt) ?? undefined,
+      } satisfies LinkedPatient;
+    });
 
     if (linked.length === 0) {
       const byPatientDoc = await firestore()
@@ -332,11 +488,20 @@ export const clinicianService = {
           byPatientDoc.docs.map(async (doc) => {
             const data = doc.data();
             const profile = await getProfile(doc.id);
+            const name = resolveDisplayName({
+              displayName: profile?.displayName,
+              name: data.name as string,
+              email: (data.email as string) ?? profile?.email,
+            });
             return {
               patientId: doc.id,
-              patientName: (data.name as string) ?? profile?.displayName ?? 'Patient',
+              patientName: name,
               patientEmail: (data.email as string) ?? profile?.email ?? '',
-              linkedAt: new Date().toISOString(),
+              linkedAt:
+                toIsoString(data.linkedAt) ||
+                toIsoString(data.joinDate) ||
+                profile?.createdAt ||
+                new Date().toISOString(),
               latestOverallScore: undefined,
             } satisfies LinkedPatient;
           })
@@ -349,7 +514,7 @@ export const clinicianService = {
       const ids = (userDoc.data()?.linkedPatients as string[]) ?? [];
       linked = ids.map((patientId) => ({
         patientId,
-        patientName: 'Patient',
+        patientName: '',
         patientEmail: '',
         linkedAt: new Date().toISOString(),
       }));
@@ -358,17 +523,31 @@ export const clinicianService = {
     const summaries = await Promise.all(
       linked.map(async (lp) => {
         const profile = await getProfile(lp.patientId);
-        const scoreDoc = await getLatestScore(lp.patientId);
+        let scoreDoc: WellnessScore | null = null;
+        try {
+          scoreDoc = await getLatestScore(lp.patientId);
+        } catch (error) {
+          console.warn('[fetchLinkedPatients] score read failed:', lp.patientId, error);
+        }
         const wellnessScore = lp.latestOverallScore ?? scoreDoc?.overall ?? 0;
-        const lastAt = lp.lastActivityAt ?? profile?.createdAt ?? lp.linkedAt;
+        const linkedIso = toIsoString(lp.linkedAt) ?? lp.linkedAt;
+        const lastAt =
+          toIsoString(lp.lastActivityAt) ??
+          toIsoString(profile?.createdAt) ??
+          linkedIso;
+        const displayName = resolveDisplayName({
+          displayName: isPlaceholderName(lp.patientName) ? profile?.displayName : lp.patientName,
+          name: profile?.displayName,
+          email: lp.patientEmail || profile?.email,
+        });
         return {
           uid: lp.patientId,
-          displayName: lp.patientName || profile?.displayName || 'Patient',
+          displayName,
           email: lp.patientEmail || profile?.email || '',
           wellnessScore,
           lastActive: formatRelativeTime(lastAt),
-          linkedSince: formatDate(lp.linkedAt),
-          needsAttention: needsAttention(wellnessScore, lastAt, triage),
+          linkedSince: formatDate(linkedIso),
+          needsAttention: needsAttention(wellnessScore, lastAt ?? undefined, triage),
           patientStatus: lp.patientStatus,
         } satisfies PatientSummary;
       })
@@ -409,7 +588,13 @@ export const clinicianService = {
 
   getPatientClinicianInfo: async (
     patientId: string
-  ): Promise<{ clinicianId: string; clinicianName: string; specialty?: string } | null> => {
+  ): Promise<{
+    clinicianId: string;
+    clinicianName: string;
+    specialty?: string;
+    email?: string;
+    clinicName?: string;
+  } | null> => {
     const patientDoc = await firestore().collection('patients').doc(patientId).get();
     const userDoc = await firestore().collection('users').doc(patientId).get();
     const patientData = patientDoc.data();
@@ -419,15 +604,26 @@ export const clinicianService = {
 
     const clinicianUser = await firestore().collection('users').doc(clinicianId).get();
     const clinicianDoc = await firestore().collection('clinicians').doc(clinicianId).get();
-    const profile = clinicianDoc.data()?.clinicianProfile as { specialty?: string } | undefined;
+    const clinicianData = clinicianDoc.data();
+    const profile = clinicianData?.clinicianProfile as ClinicianProfileDoc | undefined;
+    const clinicianUserData = clinicianUser.data();
+    const profileName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim();
 
     return {
       clinicianId,
       clinicianName:
-        (patientData?.linkedClinicianName as string) ??
-        (clinicianUser.data()?.displayName as string) ??
+        (patientData?.linkedClinicianName as string) ||
+        profileName ||
+        (clinicianData?.name as string) ||
+        (clinicianUserData?.displayName as string) ||
         'Your clinician',
-      specialty: profile?.specialty,
+      specialty: profile?.specialty ?? (clinicianData?.specialty as string | undefined),
+      email:
+        profile?.workEmail ||
+        (clinicianData?.workEmail as string | undefined) ||
+        (clinicianData?.email as string | undefined) ||
+        (clinicianUserData?.email as string | undefined),
+      clinicName: profile?.clinicName,
     };
   },
 
@@ -605,13 +801,39 @@ export const clinicianService = {
   },
 
   getCustomCarePlansForPatient: async (patientId: string): Promise<CustomCarePlan[]> => {
-    const snap = await firestore()
-      .collection('customCarePlans')
-      .where('patientId', '==', patientId)
-      .orderBy('createdAt', 'desc')
-      .get();
-    return snap.docs.map((d) => d.data() as CustomCarePlan);
+    try {
+      const snap = await firestore()
+        .collection('customCarePlans')
+        .where('patientId', '==', patientId)
+        .orderBy('createdAt', 'desc')
+        .get();
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() } as CustomCarePlan));
+    } catch (error) {
+      console.warn('[getCustomCarePlansForPatient] ordered query failed, falling back:', error);
+      try {
+        const snap = await firestore()
+          .collection('customCarePlans')
+          .where('patientId', '==', patientId)
+          .get();
+        return snap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as CustomCarePlan))
+          .sort((a, b) => {
+            const aT = toIsoString(a.createdAt) ?? '';
+            const bT = toIsoString(b.createdAt) ?? '';
+            return bT.localeCompare(aT);
+          });
+      } catch (fallbackError) {
+        console.warn('[getCustomCarePlansForPatient] fallback failed:', fallbackError);
+        return [];
+      }
+    }
   },
+
+  /** Load merged patient profile for clinician detail screens. */
+  getPatientFullProfile,
+
+  formatPatientDate: formatDate,
+  formatPatientRelativeTime: formatRelativeTime,
 
   saveFitnessHubRecommendations: async (input: {
     clinicianId: string;
@@ -717,13 +939,36 @@ export const clinicianService = {
 
   getClinicianProfile: async (clinicianId: string): Promise<ClinicianProfileDoc | null> => {
     const doc = await firestore().collection('clinicians').doc(clinicianId).get();
-    const profile = doc.data()?.clinicianProfile as ClinicianProfileDoc | undefined;
-    return profile ?? null;
+    const data = doc.data();
+    const profile = data?.clinicianProfile as ClinicianProfileDoc | undefined;
+    if (!profile) return null;
+    return {
+      ...profile,
+      specialty: profile.specialty || (data?.specialty as string) || 'General Practice',
+      clinicName: profile.clinicName || '',
+      workEmail:
+        profile.workEmail ||
+        (data?.workEmail as string) ||
+        (data?.email as string) ||
+        '',
+    };
   },
 
   isClinicianOnboardingComplete: async (clinicianId: string): Promise<boolean> => {
-    const profile = await clinicianService.getClinicianProfile(clinicianId);
-    return profile?.onboardingCompleted === true;
+    try {
+      const doc = await firestore().collection('clinicians').doc(clinicianId).get();
+      if (!doc.exists()) return false;
+      const data = doc.data() ?? {};
+      const nested = data.clinicianProfile as { onboardingCompleted?: boolean } | undefined;
+      if (nested?.onboardingCompleted === true) return true;
+      if (data.onboardingCompleted === true) return true;
+      // Native parity: completed onboarding writes onboardingCompleteDate at root.
+      if (data.onboardingCompleteDate) return true;
+      return false;
+    } catch (error) {
+      console.warn('[isClinicianOnboardingComplete] failed:', clinicianId, error);
+      return false;
+    }
   },
 
   saveClinicianProfile: async (clinicianId: string, data: ClinicianProfileDoc) => {

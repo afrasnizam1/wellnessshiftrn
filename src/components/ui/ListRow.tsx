@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { memo } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { Colors, Typography, Spacing } from '../../theme';
@@ -18,12 +18,16 @@ type Props = {
   iconGradient?: [string, string];
   badge?: string;
   badgeColor?: string;
+  /** Small red notification dot (e.g. unseen care plan). */
+  showDot?: boolean;
   onPress?: () => void;
   showDivider?: boolean;
   trailing?: React.ReactNode;
+  /** Scale feedback on press. Disable in long lists for cheaper mounts. */
+  animated?: boolean;
 };
 
-export default function ListRow({
+function ListRow({
   title,
   subtitle,
   iconName,
@@ -33,9 +37,11 @@ export default function ListRow({
   iconGradient,
   badge,
   badgeColor = Colors.brand,
+  showDot = false,
   onPress,
   showDivider = true,
   trailing,
+  animated = true,
 }: Props) {
   const tint = iconBg ?? iconTintBg(iconColor);
 
@@ -65,6 +71,7 @@ export default function ListRow({
       <View style={styles.info}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          {showDot ? <View style={styles.dot} accessibilityLabel="New" /> : null}
           {badge ? (
             <View style={[styles.badge, { backgroundColor: badgeColor + '20' }]}>
               <Text style={[styles.badgeText, { color: badgeColor }]}>{badge}</Text>
@@ -82,11 +89,16 @@ export default function ListRow({
   );
 
   if (onPress) {
+    const rowStyle = [styles.row, showDivider && styles.rowDivider];
+    if (!animated) {
+      return (
+        <Pressable style={rowStyle} onPress={onPress}>
+          {content}
+        </Pressable>
+      );
+    }
     return (
-      <AnimatedPressable
-        style={[styles.row, showDivider && styles.rowDivider]}
-        onPress={onPress}
-      >
+      <AnimatedPressable style={rowStyle} onPress={onPress}>
         {content}
       </AnimatedPressable>
     );
@@ -98,6 +110,8 @@ export default function ListRow({
     </View>
   );
 }
+
+export default memo(ListRow);
 
 const styles = StyleSheet.create({
   row: {
@@ -143,6 +157,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.error,
   },
   chevron: {
     opacity: 0.55,

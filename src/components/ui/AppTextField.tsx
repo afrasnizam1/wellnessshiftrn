@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   Platform,
   type TextInputProps,
 } from 'react-native';
@@ -29,26 +30,37 @@ export default function AppTextField({
   style,
   onFocus,
   onBlur,
+  editable = true,
   ...rest
 }: Props) {
   const [focused, setFocused] = React.useState(false);
   const [hidden, setHidden] = React.useState(secureToggle ? true : (secureTextEntry ?? false));
+  const inputRef = useRef<TextInput>(null);
+
+  const focusInput = () => {
+    if (editable === false) return;
+    inputRef.current?.focus();
+  };
 
   return (
-    <View style={styles.wrap}>
+    <View style={styles.wrap} pointerEvents="box-none">
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View
+      <Pressable
+        onPress={focusInput}
         style={[
           styles.field,
           focused && styles.fieldFocused,
           error ? styles.fieldError : null,
         ]}
+        accessibilityRole="none"
       >
         {leftIcon ? (
           <Ionicons name={leftIcon} size={18} color={focused ? Colors.primary : Colors.textTertiary} />
         ) : null}
         <TextInput
+          ref={inputRef}
           {...rest}
+          editable={editable}
           style={[styles.input, style]}
           placeholderTextColor={Colors.textTertiary}
           secureTextEntry={secureToggle ? hidden : secureTextEntry}
@@ -62,7 +74,12 @@ export default function AppTextField({
           }}
         />
         {secureToggle ? (
-          <TouchableOpacity onPress={() => setHidden((v) => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity
+            onPress={() => setHidden((v) => !v)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={hidden ? 'Show password' : 'Hide password'}
+          >
             <Ionicons
               name={hidden ? 'eye-off-outline' : 'eye-outline'}
               size={20}
@@ -70,7 +87,7 @@ export default function AppTextField({
             />
           </TouchableOpacity>
         ) : null}
-      </View>
+      </Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {hint && !error ? <Text style={styles.hint}>{hint}</Text> : null}
     </View>
@@ -111,6 +128,8 @@ const styles = StyleSheet.create({
     fontSize: Typography.size.base,
     color: Colors.text,
     padding: 0,
+    margin: 0,
+    minHeight: Platform.OS === 'ios' ? 22 : 24,
   },
   error: { fontSize: Typography.size.xs, color: Colors.error, fontWeight: '500' },
   hint: { fontSize: Typography.size.xs, color: Colors.textTertiary },

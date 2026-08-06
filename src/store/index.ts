@@ -56,12 +56,18 @@ interface AppState {
   // Care Plan
   carePlan: CarePlan | null;
   setCarePlan: (plan: CarePlan | null) => void;
+  /** True when latest care plan id has not been marked seen locally. */
+  hasUnseenCarePlan: boolean;
+  setHasUnseenCarePlan: (v: boolean) => void;
   clinicianRecommendations: FitnessHubRecommendation | null;
   setClinicianRecommendations: (rec: FitnessHubRecommendation | null) => void;
 
   // Subscription
   subscriptionTier: SubscriptionTier;
   setSubscriptionTier: (tier: SubscriptionTier) => void;
+  /** In-app complimentary preview (14-day) — treated as Pro while active. */
+  trialActive: boolean;
+  setTrialActive: (v: boolean) => void;
 
   // Clinician
   clinicianProfileReady: boolean;
@@ -150,12 +156,16 @@ export const useAppStore = create<AppState>((set) => ({
   // Care Plan
   carePlan: null,
   setCarePlan: (carePlan) => set({ carePlan }),
+  hasUnseenCarePlan: false,
+  setHasUnseenCarePlan: (hasUnseenCarePlan) => set({ hasUnseenCarePlan }),
   clinicianRecommendations: null,
   setClinicianRecommendations: (clinicianRecommendations) => set({ clinicianRecommendations }),
 
   // Subscription
   subscriptionTier: 'free',
   setSubscriptionTier: (subscriptionTier) => set({ subscriptionTier }),
+  trialActive: false,
+  setTrialActive: (trialActive) => set({ trialActive }),
 
   // Clinician
   clinicianProfileReady: false,
@@ -178,6 +188,7 @@ export const useAppStore = create<AppState>((set) => ({
       insights: [],
       chatMessages: [],
       carePlan: null,
+      hasUnseenCarePlan: false,
       clinicianRecommendations: null,
       checkInStreak: 0,
       hasCheckedInToday: false,
@@ -187,6 +198,7 @@ export const useAppStore = create<AppState>((set) => ({
       longestStreak: 0,
       clinicianProfileReady: false,
       subscriptionTier: 'free',
+      trialActive: false,
       sessionEpoch: options?.bumpEpoch ? state.sessionEpoch + 1 : state.sessionEpoch,
     })),
 }));

@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors, Spacing, Radius, Typography } from '../../theme';
-import { ClinicianTheme } from '../../theme/clinicianTheme';
+import { AnimatedPressable } from '../ui';
 
 export type StatItem = {
   label: string;
@@ -25,18 +25,24 @@ export default function ClinicianStatsRow({ stats }: Props) {
         const inner = (
           <>
             <View style={[styles.iconWrap, { backgroundColor: s.bg }]}>
-              <Ionicons name={s.icon as any} size={18} color={s.color} />
+              <Ionicons name={s.icon as any} size={16} color={s.color} />
             </View>
             <Text style={[styles.value, s.alert && { color: s.color }]}>{s.value}</Text>
-            <Text style={styles.label}>{s.label}</Text>
+            <Text style={styles.label} numberOfLines={1}>{s.label}</Text>
           </>
         );
 
         if (s.onPress) {
           return (
-            <TouchableOpacity key={s.label} style={[styles.card, s.alert && styles.cardAlert]} onPress={s.onPress} activeOpacity={0.85}>
+            <AnimatedPressable
+              key={s.label}
+              style={[styles.card, s.alert && styles.cardAlert]}
+              onPress={s.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={`${s.label}: ${s.value}`}
+            >
               {inner}
-            </TouchableOpacity>
+            </AnimatedPressable>
           );
         }
 
@@ -55,43 +61,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.sm,
   },
   card: {
     flex: 1,
     backgroundColor: Colors.surface,
     borderRadius: Radius.lg,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.borderLight,
   },
   cardAlert: {
-    borderColor: Colors.error + '35',
-    backgroundColor: '#FFFBFB',
+    borderColor: Colors.error + '40',
+    backgroundColor: Colors.errorLight,
   },
   iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
   },
   value: {
     fontSize: Typography.size.xl,
     fontWeight: '800',
     color: Colors.text,
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
+    fontVariant: ['tabular-nums'],
   },
   label: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: Typography.size.xs,
+    fontWeight: '600',
     color: Colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
     textAlign: 'center',
   },
 });

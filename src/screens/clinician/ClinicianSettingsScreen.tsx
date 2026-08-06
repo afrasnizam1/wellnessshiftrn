@@ -4,10 +4,9 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Share, Switch,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius } from '../../theme';
-import { ClinicianLayout, ClinicianShadow, ClinicianTheme } from '../../theme/clinicianTheme';
+import { ClinicianLayout, ClinicianTheme } from '../../theme/clinicianTheme';
 import { useAppStore } from '../../store';
 import { signOutCurrentUser } from '../../services/authSession';
 import { clinicianService } from '../../services/clinicianService';
@@ -84,9 +83,9 @@ export default function ClinicianSettingsScreen() {
       <AppScreen style={styles.body}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.profileCard}>
-            <LinearGradient colors={ClinicianTheme.gradient} style={styles.avatar}>
+            <View style={styles.avatar}>
               <Text style={styles.avatarText}>{initials(displayName)}</Text>
-            </LinearGradient>
+            </View>
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{displayName}</Text>
               <Text style={styles.profileEmail}>{user?.email}</Text>
@@ -241,35 +240,34 @@ const styles = StyleSheet.create({
     backgroundColor: ClinicianTheme.surface,
     borderRadius: Radius.xl,
     padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: ClinicianTheme.border,
-    ...ClinicianShadow.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
   },
   avatar: {
-    width: 56, height: 56, borderRadius: 28,
+    width: 56, height: 56, borderRadius: Radius.lg,
     alignItems: 'center', justifyContent: 'center',
+    backgroundColor: ClinicianTheme.accentSoft,
   },
-  avatarText: { fontSize: 20, fontWeight: '800', color: '#FFF' },
+  avatarText: { fontSize: 20, fontWeight: '800', color: ClinicianTheme.accentDark },
   profileInfo: { flex: 1 },
   profileName: { fontSize: Typography.size.lg, fontWeight: '800', color: Colors.text },
   profileEmail: { fontSize: Typography.size.sm, color: Colors.textSecondary, marginTop: 2 },
   profileMeta: { fontSize: Typography.size.xs, color: ClinicianTheme.accent, fontWeight: '600', marginTop: 4 },
   editBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36, height: 36, borderRadius: Radius.md,
     backgroundColor: ClinicianTheme.accentSoft,
     alignItems: 'center', justifyContent: 'center',
   },
   content: { paddingTop: Spacing.md, gap: Spacing.lg, paddingHorizontal: Spacing.base },
   section: { gap: Spacing.sm },
-  sectionTitle: { fontSize: Typography.size.md, fontWeight: '800', color: Colors.text, letterSpacing: -0.3 },
+  sectionTitle: { fontSize: Typography.size.md, fontWeight: '700', color: Colors.text, letterSpacing: -0.3 },
   card: {
     backgroundColor: ClinicianTheme.surface,
     borderRadius: Radius.xl,
     padding: Spacing.lg,
     gap: Spacing.md,
-    borderWidth: 1,
-    borderColor: ClinicianTheme.border,
-    ...ClinicianShadow.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
   },
   cardHint: { fontSize: Typography.size.xs, color: Colors.textSecondary, lineHeight: 16 },
   codeCard: {
@@ -279,9 +277,8 @@ const styles = StyleSheet.create({
     backgroundColor: ClinicianTheme.surface,
     borderRadius: Radius.xl,
     padding: Spacing.lg,
-    borderWidth: 1,
-    borderColor: ClinicianTheme.border,
-    ...ClinicianShadow.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
   },
   codeValue: { fontSize: Typography.size['2xl'], fontWeight: '800', color: ClinicianTheme.accent, letterSpacing: 4 },
   sharePill: {
@@ -291,14 +288,14 @@ const styles = StyleSheet.create({
     backgroundColor: ClinicianTheme.accent,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.lg,
   },
   shareText: { color: '#FFF', fontWeight: '700', fontSize: Typography.size.xs },
   stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   stepperLabel: { fontSize: Typography.size.sm, fontWeight: '600', color: Colors.text, flex: 1 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   stepperBtn: {
-    width: 34, height: 34, borderRadius: 17,
+    width: 34, height: 34, borderRadius: Radius.md,
     backgroundColor: ClinicianTheme.accentMuted,
     alignItems: 'center', justifyContent: 'center',
   },
@@ -309,8 +306,8 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: ClinicianTheme.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.borderLight,
   },
   detailRowLast: { borderBottomWidth: 0 },
   detailLabel: { fontSize: Typography.size.sm, color: Colors.textSecondary },
@@ -320,12 +317,11 @@ const styles = StyleSheet.create({
     backgroundColor: ClinicianTheme.surface,
     borderRadius: Radius.xl,
     padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: ClinicianTheme.border,
-    ...ClinicianShadow.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
   },
   linkIcon: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 40, height: 40, borderRadius: Radius.md,
     backgroundColor: ClinicianTheme.accentMuted,
     alignItems: 'center', justifyContent: 'center',
   },
@@ -335,10 +331,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.error + '12',
-    borderRadius: Radius.pill,
+    backgroundColor: Colors.errorLight,
+    borderRadius: Radius.lg,
     paddingVertical: Spacing.base,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.error + '30',
   },
   signOutText: { color: Colors.error, fontSize: Typography.size.base, fontWeight: '700' },

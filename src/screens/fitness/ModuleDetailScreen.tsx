@@ -10,6 +10,7 @@ import { navigateToFitnessModule } from '../../utils/fitnessModuleRouter';
 import { getModulePreview } from '../../data/moduleContentPreview';
 import AppScreen from '../../components/common/AppScreen';
 import { BackButton, IconBadge } from '../../components/ui';
+import { getEffectiveTier } from '../../services/iap';
 
 export default function ModuleDetailScreen() {
   const navigation = useNavigation<any>();
@@ -19,6 +20,7 @@ export default function ModuleDetailScreen() {
   if (!module) return null;
 
   const preview = getModulePreview(module);
+  const locked = !!module.isPremium && getEffectiveTier(subscriptionTier) === 'free';
 
   const handleStart = () => {
     navigateToFitnessModule(navigation, module, subscriptionTier);
@@ -46,7 +48,7 @@ export default function ModuleDetailScreen() {
           </View>
           {module.isPremium && (
             <View style={styles.premiumBadge}>
-              <Text style={styles.premiumBadgeText}>PRO feature</Text>
+              <Text style={styles.premiumBadgeText}>{locked ? 'PRO feature' : 'PRO · included'}</Text>
             </View>
           )}
         </View>
@@ -76,9 +78,9 @@ export default function ModuleDetailScreen() {
 
         <TouchableOpacity
           style={[styles.startBtn, { backgroundColor: module.color }]}
-          onPress={module.isPremium ? () => navigation.navigate(Screen.subscriptionPaywall, { feature: module.id }) : handleStart}
+          onPress={locked ? () => navigation.navigate(Screen.subscriptionPaywall, { feature: module.id }) : handleStart}
         >
-          <Text style={styles.startBtnText}>{module.isPremium ? 'Unlock with PRO' : 'Start'}</Text>
+          <Text style={styles.startBtnText}>{locked ? 'Unlock with PRO' : 'Start'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </AppScreen>

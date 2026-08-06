@@ -101,8 +101,104 @@ export const WORD_LISTS: Record<WordListTier, string[][]> = {
 };
 
 export function pickWordList(tier: WordListTier = 'medium'): string[] {
+  const counts: Record<WordListTier, number> = { easy: 3, medium: 5, hard: 7 };
+  const need = counts[tier];
   const pool = WORD_LISTS[tier];
-  return pool[Math.floor(Math.random() * pool.length)];
+  const flat = shuffle(pool.flat());
+  const unique: string[] = [];
+  for (const w of flat) {
+    if (!unique.includes(w)) unique.push(w);
+    if (unique.length >= need) break;
+  }
+  // Pad from other tiers if a pool is short
+  if (unique.length < need) {
+    for (const other of (['easy', 'medium', 'hard'] as WordListTier[])) {
+      if (other === tier) continue;
+      for (const w of shuffle(WORD_LISTS[other].flat())) {
+        if (!unique.includes(w)) unique.push(w);
+        if (unique.length >= need) break;
+      }
+      if (unique.length >= need) break;
+    }
+  }
+  return unique.slice(0, need);
+}
+
+export type GameDifficulty = 'easy' | 'medium' | 'hard';
+
+export const COLOR_MATCH_ROUNDS: Record<GameDifficulty, number> = {
+  easy: 8,
+  medium: 12,
+  hard: 16,
+};
+
+export const PATTERN_ROUNDS: Record<GameDifficulty, number> = {
+  easy: 6,
+  medium: 8,
+  hard: 10,
+};
+
+export const MATH_ROUNDS: Record<GameDifficulty, number> = {
+  easy: 8,
+  medium: 10,
+  hard: 12,
+};
+
+export const SEQUENCE_ROUNDS: Record<GameDifficulty, number> = {
+  easy: 6,
+  medium: 8,
+  hard: 10,
+};
+
+export const ATTENTION_ROUNDS: Record<GameDifficulty, number> = {
+  easy: 10,
+  medium: 15,
+  hard: 20,
+};
+
+export const REACTION_TRIALS_BY_DIFFICULTY: Record<GameDifficulty, number> = {
+  easy: 3,
+  medium: 5,
+  hard: 7,
+};
+
+export const FOCUS_SECONDS: Record<GameDifficulty, number> = {
+  easy: 20,
+  medium: 30,
+  hard: 40,
+};
+
+export const VISUAL_PUZZLE_MAX_LEVEL: Record<GameDifficulty, number> = {
+  easy: 4,
+  medium: 6,
+  hard: 8,
+};
+
+export const MENTAL_ROTATION_MAX_LEVEL: Record<GameDifficulty, number> = {
+  easy: 5,
+  medium: 8,
+  hard: 12,
+};
+
+/** ~50/50 congruent vs incongruent Stroop items. */
+export function generateColorMatchItem(): { word: string; displayColor: string; correct: boolean } {
+  const wordEntry = COLOR_WORDS[Math.floor(Math.random() * COLOR_WORDS.length)];
+  const congruent = Math.random() < 0.5;
+  if (congruent) {
+    return { word: wordEntry.word, displayColor: wordEntry.color, correct: true };
+  }
+  let colorEntry = COLOR_WORDS[Math.floor(Math.random() * COLOR_WORDS.length)];
+  while (colorEntry.color === wordEntry.color) {
+    colorEntry = COLOR_WORDS[Math.floor(Math.random() * COLOR_WORDS.length)];
+  }
+  return { word: wordEntry.word, displayColor: colorEntry.color, correct: false };
+}
+
+export function pickMemoryDeckForDifficulty(difficulty: GameDifficulty): MemoryDeck {
+  const deck = pickMemoryDeck();
+  const pairCounts: Record<GameDifficulty, number> = { easy: 4, medium: 6, hard: 8 };
+  const n = pairCounts[difficulty];
+  return { ...deck, pairs: shuffle(deck.pairs).slice(0, Math.min(n, deck.pairs.length)) };
 }
 
 // ─── Speed Reading ────────────────────────────────────────────────────────────

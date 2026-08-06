@@ -50,14 +50,16 @@ function pendingFullQuizFinished(
 }
 
 /**
- * Pre-auth launch route — account right after results.
+ * Pre-auth launch route — permissions then account after results.
  *
  *   1. Welcome video (breath + scenes)
  *   2. Why are you here
  *   3. Wellness quiz (10 questions — 1 per category)
  *   4. Building plan interstitial (3s)
  *   5. Results / score
- *   6. Create account / sign in → main app
+ *   6. Notification permissions
+ *   7. Apple Health / Google Health Connect
+ *   8. Create account / sign in → main app
  */
 export async function resolvePreAuthRoute(_introSeen: boolean | null): Promise<PreAuthRoute> {
   const pending = await pendingOnboardingStorage.get();
@@ -79,6 +81,14 @@ export async function resolvePreAuthRoute(_introSeen: boolean | null): Promise<P
       return Screen.buildingWellnessPlan;
     }
     return Screen.wellnessResults;
+  }
+
+  if (!pending.notificationPromptSeen) {
+    return Screen.notificationPermissions;
+  }
+
+  if (!pending.healthPromptSeen) {
+    return Screen.healthPermissions;
   }
 
   return Screen.authentication;

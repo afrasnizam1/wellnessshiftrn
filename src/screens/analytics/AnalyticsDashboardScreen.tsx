@@ -19,7 +19,7 @@ import {
   scoreLabel,
   scoreLabelColor,
   shortCategoryLabel,
-  CategoryRadarChart,
+  CategoryBalanceBars,
   ThreeDPieChart,
   TwoDPieChart,
   EngagementSummaryCard,
@@ -528,14 +528,14 @@ export default function AnalyticsDashboardScreen() {
             <View style={styles.card}>
               <CollapsibleChartHeader
                 title="Category Balance"
-                icon="git-network-outline"
+                icon="bar-chart-outline"
                 collapsed={!!collapsed.radar}
                 onToggle={() => toggleCollapse('radar')}
               />
               {!collapsed.radar && (
                 <>
-                  <Text style={styles.chartHint}>Drag to rotate · Tap a category label</Text>
-                  <CategoryRadarChart
+                  <Text style={styles.chartHint}>Tap a category to inspect</Text>
+                  <CategoryBalanceBars
                     categories={categories}
                     selectedCategory={selectedCategory}
                     onCategoryPress={selectCategory}
@@ -602,59 +602,6 @@ export default function AnalyticsDashboardScreen() {
                             {cat.label.split(' ')[0]}
                           </Text>
                           <Text style={[styles.legendScore, isSelected && { color: cat.color }]}>
-                            {score.toFixed(1)}
-                          </Text>
-                        </AnimatedPressable>
-                      );
-                    })}
-                  </View>
-                </>
-              )}
-            </View>
-
-            <View style={styles.card}>
-              <CollapsibleChartHeader
-                title="Category Scores"
-                icon="bar-chart-outline"
-                collapsed={!!collapsed.bars}
-                onToggle={() => toggleCollapse('bars')}
-              />
-              {!collapsed.bars && (
-                <>
-                  <Text style={styles.chartHint}>Tap any row to highlight</Text>
-                  <View style={styles.categoryBars}>
-                    {WELLNESS_CATEGORIES.map((cat) => {
-                      const score = categories?.[cat.key as WellnessCategoryKey] ?? 0;
-                      const isSelected = selectedCategory === cat.key;
-                      return (
-                        <AnimatedPressable
-                          key={cat.key}
-                          style={[styles.categoryBarRow, isSelected && styles.categoryBarRowSelected]}
-                          onPress={() => {
-                            if (isSelected) selectCategory(null);
-                            else selectCategory(cat.key as WellnessCategoryKey, { chart: 'Category Scores' });
-                          }}
-                          {...chartTapA11yProps(
-                            { screen: CSQ_SCREEN, chart: 'Category Scores' },
-                            cat.key as WellnessCategoryKey,
-                          )}
-                        >
-                          <Text style={[styles.categoryBarLabel, isSelected && { color: cat.color, fontWeight: '700' }]}>
-                            {cat.label}
-                          </Text>
-                          <View style={styles.categoryBarTrack}>
-                            <View
-                              style={[
-                                styles.categoryBarFill,
-                                {
-                                  width: `${score * 10}%`,
-                                  backgroundColor: cat.color,
-                                  opacity: isSelected ? 1 : 0.75,
-                                },
-                              ]}
-                            />
-                          </View>
-                          <Text style={[styles.categoryBarScore, { color: scoreLabelColor(score) }]}>
                             {score.toFixed(1)}
                           </Text>
                         </AnimatedPressable>
@@ -1211,23 +1158,6 @@ const styles = StyleSheet.create({
   legendLabelOff: { opacity: 0.45 },
   legendScore: { fontSize: Typography.size.xs, fontWeight: '700', color: Colors.text },
 
-  categoryBars: { gap: Spacing.sm },
-  categoryBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-    borderRadius: Radius.sm,
-  },
-  categoryBarRowSelected: { backgroundColor: Colors.primaryLight },
-  categoryBarLabel: { width: 110, fontSize: Typography.size.xs, color: Colors.text },
-  categoryBarTrack: {
-    flex: 1, height: 10, backgroundColor: Colors.borderLight,
-    borderRadius: 5, overflow: 'hidden',
-  },
-  categoryBarFill: { height: '100%', borderRadius: 5 },
-  categoryBarScore: { width: 32, fontSize: Typography.size.sm, fontWeight: '700', textAlign: 'right' },
   barTopLabel: { fontSize: 9, fontWeight: '700', color: Colors.text, marginBottom: 2 },
 
   trendLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },

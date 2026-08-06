@@ -548,7 +548,7 @@ export type FitnessStackParamList = {
 };
 
 export type ClinicianStackParamList = {
-  [Screen.clinicianTabs]: undefined;
+  [Screen.clinicianTabs]: { screen?: keyof ClinicianTabParamList; params?: undefined } | undefined;
   [Screen.clinicianInbox]: undefined;
   [Screen.editClinicianProfile]: undefined;
   [Screen.clinicianHelp]: undefined;
@@ -564,7 +564,7 @@ export type ClinicianStackParamList = {
   [Screen.clinicianModuleLibrary]: undefined;
   [Screen.patientDetail]: { patient: PatientSummary };
   [Screen.clinicianMessages]: { patient: PatientSummary };
-  [Screen.createCarePlan]: { patient: PatientSummary };
+  [Screen.createCarePlan]: { patient?: PatientSummary; templateId?: string };
   [Screen.fitnessRecommendations]: { patient: PatientSummary };
   [Screen.addPatient]: undefined;
   [Screen.evidenceHub]: undefined;

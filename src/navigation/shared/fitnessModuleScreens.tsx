@@ -8,11 +8,14 @@ import HealthTrackerScreen from '../../screens/fitness/HealthTrackerScreen';
 import LearningGuideDetailScreen from '../../screens/fitness/LearningGuideDetailScreen';
 import MealPlannerScreen from '../../screens/fitness/MealPlannerScreen';
 import HighProteinMealsScreen from '../../screens/fitness/HighProteinMealsScreen';
+import OrganHealthNutritionScreen from '../../screens/fitness/OrganHealthNutritionScreen';
 import MeditationTimerScreen from '../../screens/fitness/MeditationTimerScreen';
 import ModuleDetailScreen from '../../screens/fitness/ModuleDetailScreen';
 import NutritionBasicsLearningScreen from '../../screens/fitness/NutritionBasicsLearningScreen';
 import VitaminsLearningScreen from '../../screens/fitness/VitaminsLearningScreen';
 import ActivityDashboardScreen from '../../screens/home/ActivityDashboardScreen';
+import BodyMetricsScreen from '../../screens/home/BodyMetricsScreen';
+import FoodScanScreen from '../../screens/home/FoodScanScreen';
 import { Screen } from '../screenNames';
 
 /** Shared module detail screens — registered on Fitness + Clinician stacks */
@@ -28,6 +31,9 @@ export const FITNESS_MODULE_SCREEN_CONFIG = [
   { name: Screen.guidedProgram, component: GuidedProgramScreen },
   { name: Screen.mealPlanner, component: MealPlannerScreen },
   { name: Screen.highProteinMeals, component: HighProteinMealsScreen },
+  { name: Screen.foodScan, component: FoodScanScreen },
+  { name: Screen.bodyMetrics, component: BodyMetricsScreen },
+  { name: Screen.organHealthNutrition, component: OrganHealthNutritionScreen },
   { name: Screen.vitaminsLearning, component: VitaminsLearningScreen },
   { name: Screen.nutritionBasics, component: NutritionBasicsLearningScreen },
   { name: Screen.learningGuide, component: LearningGuideDetailScreen },

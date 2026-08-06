@@ -1,14 +1,16 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors, Spacing, Radius, Typography } from '../../theme';
 import { ClinicianTheme } from '../../theme/clinicianTheme';
+import { AnimatedPressable } from '../ui';
 
 type Action = {
   icon: string;
   onPress: () => void;
   badge?: number;
+  accessibilityLabel?: string;
 };
 
 type Props = {
@@ -33,21 +35,24 @@ export default function ClinicianHeroHeader({
       <SafeAreaView edges={['top']} style={styles.safe}>
         <View style={styles.inner}>
           <View style={styles.topRow}>
-            <View style={styles.brandRow}>
-              <View style={styles.brandMark} />
-              <Text style={styles.eyebrow}>{eyebrow}</Text>
-            </View>
+            <Text style={styles.eyebrow}>{eyebrow}</Text>
             {actions?.length ? (
               <View style={styles.actions}>
                 {actions.map((a) => (
-                  <TouchableOpacity key={a.icon} style={styles.actionBtn} onPress={a.onPress} activeOpacity={0.75}>
-                    <Ionicons name={a.icon as any} size={20} color={ClinicianTheme.accentDark} />
+                  <AnimatedPressable
+                    key={a.icon}
+                    style={styles.actionBtn}
+                    onPress={a.onPress}
+                    accessibilityLabel={a.accessibilityLabel}
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name={a.icon as any} size={20} color={Colors.text} />
                     {a.badge != null && a.badge > 0 ? (
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>{a.badge > 9 ? '9+' : a.badge}</Text>
                       </View>
                     ) : null}
-                  </TouchableOpacity>
+                  </AnimatedPressable>
                 ))}
               </View>
             ) : null}
@@ -74,7 +79,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     paddingTop: Spacing.xs,
     paddingBottom: Spacing.md,
-    gap: 6,
+    gap: Spacing.xs,
   },
   topRow: {
     flexDirection: 'row',
@@ -82,44 +87,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 2,
   },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  brandMark: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: ClinicianTheme.accent,
-  },
   eyebrow: {
-    fontSize: 11,
+    fontSize: Typography.size.xs,
     fontWeight: '700',
     color: ClinicianTheme.accent,
-    letterSpacing: 1.2,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   actions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: Spacing.xs,
   },
   actionBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: ClinicianTheme.accentMuted,
+    width: 40,
+    height: 40,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: ClinicianTheme.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
   },
   badge: {
     position: 'absolute',
-    top: -3,
-    right: -3,
-    minWidth: 17,
-    height: 17,
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
     borderRadius: 9,
     backgroundColor: Colors.brand,
     alignItems: 'center',
@@ -128,22 +122,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: ClinicianTheme.surface,
   },
-  badgeText: { color: '#FFF', fontSize: 9, fontWeight: '800' },
+  badgeText: { color: Colors.white, fontSize: 9, fontWeight: '800' },
   title: {
     fontSize: Typography.size['2xl'],
     fontWeight: '800',
     color: Colors.text,
     letterSpacing: -0.6,
-    lineHeight: 32,
+    lineHeight: 34,
   },
   subtitle: {
     fontSize: Typography.size.sm,
     fontWeight: '500',
     color: Colors.textSecondary,
-    marginTop: 2,
+    lineHeight: 18,
   },
   hairline: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: ClinicianTheme.border,
+    backgroundColor: Colors.borderLight,
   },
 });

@@ -10,24 +10,28 @@ import type { CarePlan } from '../../types';
 interface Props {
   carePlan: CarePlan;
   onPress: () => void;
+  isNew?: boolean;
 }
 
-export default function CarePlanBanner({ carePlan, onPress }: Props) {
+export default function CarePlanBanner({ carePlan, onPress, isNew = false }: Props) {
   const pendingCount = carePlan.tasks.filter((t) => !t.isComplete).length;
 
   return (
-    <AnimatedPressable onPress={onPress}>
+    <AnimatedPressable onPress={onPress} accessibilityRole="button" accessibilityLabel="Open care plan">
       <LinearGradient
-        colors={['#F3EEFF', '#EDE8FF']}
+        colors={isNew ? ['#FFF0F3', '#F3EEFF'] : ['#F3EEFF', '#EDE8FF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.container}
+        style={[styles.container, isNew && styles.containerNew]}
       >
         <LinearGradient colors={[Colors.purple, Colors.purpleLight]} style={styles.iconWrap}>
           <Ionicons name="clipboard" size={20} color={Colors.white} />
         </LinearGradient>
         <View style={styles.info}>
-          <Text style={styles.label}>Care Plan Available</Text>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>{isNew ? 'New care plan' : 'Care Plan Available'}</Text>
+            {isNew ? <View style={styles.dot} /> : null}
+          </View>
           <Text style={styles.sub}>From {carePlan.clinicianName ?? 'your clinician'}</Text>
           <Text style={styles.title}>{carePlan.title}</Text>
           <Text style={styles.link}>Tap to view your personalized plan</Text>
@@ -52,7 +56,11 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(140, 89, 191, 0.2)',
+    marginBottom: Spacing.sm,
     ...Shadow.sm,
+  },
+  containerNew: {
+    borderColor: 'rgba(255, 59, 48, 0.35)',
   },
   iconWrap: {
     width: 44,
@@ -62,7 +70,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   info: { flex: 1 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   label: { fontSize: Typography.size.sm, fontWeight: '700', color: Colors.text },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.error,
+  },
   sub: { fontSize: Typography.size.xs, color: Colors.textSecondary, marginTop: 1 },
   title: { fontSize: Typography.size.base, fontWeight: '700', color: Colors.text, marginTop: 4, letterSpacing: -0.2 },
   link: { fontSize: Typography.size.xs, color: Colors.purple, marginTop: 4, fontWeight: '600' },

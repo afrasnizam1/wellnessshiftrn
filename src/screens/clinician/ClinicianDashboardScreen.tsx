@@ -5,17 +5,16 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  Alert,
   ActivityIndicator,
   RefreshControl,
   Share,
+  Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Typography, Spacing, Radius } from '../../theme';
-import { ClinicianLayout, ClinicianTheme } from '../../theme/clinicianTheme';
+import { ClinicianLayout, ClinicianTheme, ClinicianType } from '../../theme/clinicianTheme';
 import { useAppStore } from '../../store';
 import { clinicianService } from '../../services/clinicianService';
 import type { ClinicianStackParamList } from '../../types';
@@ -24,6 +23,7 @@ import ClinicianHeroHeader from '../../components/clinician/ClinicianHeroHeader'
 import ClinicianStatsRow from '../../components/clinician/ClinicianStatsRow';
 import ClinicianPatientCard from '../../components/clinician/ClinicianPatientCard';
 import { ClinicianQuickActions } from '../../components/clinician/ClinicianQuickAction';
+import { AnimatedPressable, AppCard, ListRow } from '../../components/ui';
 
 type Nav = NativeStackNavigationProp<ClinicianStackParamList>;
 
@@ -106,7 +106,7 @@ export default function ClinicianDashboardScreen() {
       Alert.alert('Add a patient first', 'Link a patient before creating a care plan.');
       return;
     }
-    navigation.navigate(Screen.createCarePlan, { patient: patients[0] });
+    navigation.navigate(Screen.createCarePlan, {});
   };
 
   const attentionPatients = patients.filter((p) => p.needsAttention);
@@ -118,27 +118,55 @@ export default function ClinicianDashboardScreen() {
   })();
 
   const QUICK_ACTIONS = [
-    { icon: 'document-text-outline', title: 'Care Plan', subtitle: 'Create new', color: Colors.brand, bg: Colors.brandSubtle, onPress: openNewCarePlan },
-    { icon: 'person-add-outline', title: 'Add Patient', subtitle: 'Link by email', color: ClinicianTheme.accent, bg: ClinicianTheme.accentSoft, onPress: () => navigation.navigate(Screen.addPatient) },
-    { icon: 'chatbubbles-outline', title: 'Inbox', subtitle: unread > 0 ? `${unread} unread` : 'Messages', color: Colors.physical, bg: 'rgba(56,158,250,0.12)', onPress: () => navigation.navigate(Screen.clinicianInbox) },
-    { icon: 'layers-outline', title: 'Bulk', subtitle: 'Batch tools', color: Colors.nutrition, bg: 'rgba(46,219,189,0.12)', onPress: () => navigation.navigate(Screen.bulkActions) },
+    {
+      icon: 'document-text-outline',
+      title: 'Care Plan',
+      subtitle: 'Create new',
+      color: Colors.brand,
+      bg: Colors.brandSubtle,
+      onPress: openNewCarePlan,
+    },
+    {
+      icon: 'person-add-outline',
+      title: 'Add Patient',
+      subtitle: 'Link by email',
+      color: ClinicianTheme.accent,
+      bg: ClinicianTheme.accentSoft,
+      onPress: () => navigation.navigate(Screen.addPatient),
+    },
+    {
+      icon: 'chatbubbles-outline',
+      title: 'Inbox',
+      subtitle: unread > 0 ? `${unread} unread` : 'Messages',
+      color: Colors.physical,
+      bg: Colors.primaryLight,
+      onPress: () => navigation.navigate(Screen.clinicianInbox),
+    },
+    {
+      icon: 'library-outline',
+      title: 'Modules',
+      subtitle: 'Fitness Hub',
+      color: Colors.nutrition,
+      bg: Colors.successLight,
+      onPress: () => navigation.navigate(Screen.clinicianModuleLibrary),
+    },
   ];
 
-  const MORE_TOOLS = [
-    { icon: 'clipboard-outline', title: 'Templates', screen: Screen.messageTemplates },
-    { icon: 'library-outline', title: 'Modules', screen: Screen.clinicianModuleLibrary },
-    { icon: 'calendar-outline', title: 'Schedule', screen: Screen.clinicianSchedule },
-    { icon: 'chatbubble-ellipses-outline', title: 'Starters', screen: Screen.conversationStarters },
-    { icon: 'notifications-outline', title: 'Support', screen: Screen.betweenVisits },
-    { icon: 'time-outline', title: 'Audit', screen: Screen.auditLog },
-    { icon: 'fitness-outline', title: 'Practice', screen: Screen.practiceMode },
-    { icon: 'person-circle-outline', title: 'Profile', screen: Screen.editClinicianProfile },
-    { icon: 'shield-checkmark-outline', title: 'Legal', screen: Screen.clinicianLegal },
+  const PRACTICE_TOOLS = [
+    { icon: 'layers-outline' as const, title: 'Bulk actions', subtitle: 'Batch tools', screen: Screen.bulkActions },
+    { icon: 'clipboard-outline' as const, title: 'Templates', subtitle: 'Body-system care plans', screen: Screen.messageTemplates },
+    { icon: 'calendar-outline' as const, title: 'Schedule', subtitle: 'Visit planning', screen: Screen.clinicianSchedule },
+    { icon: 'chatbubble-ellipses-outline' as const, title: 'Conversation starters', subtitle: 'Visit prompts', screen: Screen.conversationStarters },
+    { icon: 'notifications-outline' as const, title: 'Between visits', subtitle: 'Support nudges', screen: Screen.betweenVisits },
+    { icon: 'time-outline' as const, title: 'Audit log', subtitle: 'Activity history', screen: Screen.auditLog },
+    { icon: 'fitness-outline' as const, title: 'Practice mode', subtitle: 'Workflow settings', screen: Screen.practiceMode },
+    { icon: 'person-circle-outline' as const, title: 'Edit profile', subtitle: 'Practice details', screen: Screen.editClinicianProfile },
+    { icon: 'shield-checkmark-outline' as const, title: 'Legal', subtitle: 'Policies & terms', screen: Screen.clinicianLegal },
   ];
 
   if (loading) {
     return (
-      <AppScreen mesh={false} backgroundColor={Colors.background} style={styles.loading}>
+      <AppScreen mesh={false} backgroundColor={ClinicianTheme.canvas} style={styles.loading}>
         <ActivityIndicator size="large" color={ClinicianTheme.accent} />
       </AppScreen>
     );
@@ -150,12 +178,17 @@ export default function ClinicianDashboardScreen() {
         title={`Hello, ${greetingName}`}
         subtitle={`${patients.length} patient${patients.length === 1 ? '' : 's'} · ${activePlans} active plan${activePlans === 1 ? '' : 's'}`}
         actions={[
-          { icon: 'refresh-outline', onPress: onRefresh },
-          { icon: 'mail-unread-outline', onPress: () => navigation.navigate(Screen.clinicianInbox), badge: unread },
+          { icon: 'refresh-outline', onPress: onRefresh, accessibilityLabel: 'Refresh' },
+          {
+            icon: 'mail-unread-outline',
+            onPress: () => navigation.navigate(Screen.clinicianInbox),
+            badge: unread,
+            accessibilityLabel: 'Inbox',
+          },
         ]}
       />
 
-      <AppScreen mesh={false} backgroundColor={Colors.background} style={styles.body} edges={[]}>
+      <AppScreen mesh={false} backgroundColor={ClinicianTheme.canvas} style={styles.body} edges={[]}>
         <ScrollView
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
@@ -166,25 +199,44 @@ export default function ClinicianDashboardScreen() {
           <View style={styles.statsBlock}>
             <ClinicianStatsRow
               stats={[
-              { label: 'Patients', value: patients.length, icon: 'people-outline', color: ClinicianTheme.accent, bg: ClinicianTheme.accentSoft },
-              { label: 'Attention', value: attentionPatients.length, icon: 'alert-circle-outline', color: Colors.error, bg: Colors.errorLight, alert: attentionPatients.length > 0 },
-              { label: 'Unread', value: unread, icon: 'chatbubble-outline', color: Colors.physical, bg: 'rgba(56,158,250,0.12)', alert: unread > 0, onPress: () => navigation.navigate(Screen.clinicianInbox) },
+                {
+                  label: 'Patients',
+                  value: patients.length,
+                  icon: 'people-outline',
+                  color: ClinicianTheme.accent,
+                  bg: ClinicianTheme.accentSoft,
+                },
+                {
+                  label: 'Attention',
+                  value: attentionPatients.length,
+                  icon: 'alert-circle-outline',
+                  color: Colors.error,
+                  bg: Colors.errorLight,
+                  alert: attentionPatients.length > 0,
+                },
+                {
+                  label: 'Unread',
+                  value: unread,
+                  icon: 'chatbubble-outline',
+                  color: Colors.physical,
+                  bg: Colors.primaryLight,
+                  alert: unread > 0,
+                  onPress: () => navigation.navigate(Screen.clinicianInbox),
+                },
               ]}
             />
           </View>
 
           {inviteCode ? (
-            <Section>
-              <View style={styles.inviteCard}>
+            <Section title="Invite patients">
+              <AppCard style={styles.inviteCard}>
                 <View style={styles.inviteHeader}>
-                  <View style={styles.inviteHeaderLeft}>
-                    <View style={styles.inviteIcon}>
-                      <Ionicons name="qr-code-outline" size={18} color={ClinicianTheme.accent} />
-                    </View>
-                    <View style={styles.inviteHeaderText}>
-                      <Text style={styles.inviteLabel}>Patient invite code</Text>
-                      <Text style={styles.inviteHint}>Share this code so patients can link to you</Text>
-                    </View>
+                  <View style={styles.inviteIcon}>
+                    <Ionicons name="qr-code-outline" size={18} color={ClinicianTheme.accent} />
+                  </View>
+                  <View style={styles.inviteHeaderText}>
+                    <Text style={styles.inviteLabel}>Patient invite code</Text>
+                    <Text style={styles.inviteHint}>Share so patients can link to your care team</Text>
                   </View>
                 </View>
 
@@ -200,11 +252,11 @@ export default function ClinicianDashboardScreen() {
                   </Text>
                 </View>
 
-                <TouchableOpacity style={styles.shareButton} onPress={shareInviteCode} activeOpacity={0.85}>
+                <AnimatedPressable style={styles.shareButton} onPress={shareInviteCode} accessibilityRole="button">
                   <Ionicons name="share-outline" size={18} color={Colors.white} />
                   <Text style={styles.shareButtonText}>Share invite code</Text>
-                </TouchableOpacity>
-              </View>
+                </AnimatedPressable>
+              </AppCard>
             </Section>
           ) : null}
 
@@ -232,24 +284,33 @@ export default function ClinicianDashboardScreen() {
             </Section>
           ) : null}
 
-          <Section title={patients.length ? 'Your patients' : 'Get started'}>
+          <Section
+            title={patients.length ? 'Your patients' : 'Get started'}
+            action={
+              patients.length > 5 ? (
+                <AnimatedPressable onPress={() => navigation.navigate(Screen.clinicianTabs, { screen: Screen.patients })} hitSlop={8}>
+                  <Text style={styles.seeAllInline}>View all</Text>
+                </AnimatedPressable>
+              ) : null
+            }
+          >
             {patients.length === 0 ? (
-              <View style={styles.emptyCard}>
+              <AppCard style={styles.emptyCard}>
                 <View style={styles.emptyIcon}>
-                  <Ionicons name="people-outline" size={32} color={ClinicianTheme.accent} />
+                  <Ionicons name="people-outline" size={28} color={ClinicianTheme.accent} />
                 </View>
                 <Text style={styles.emptyTitle}>No patients linked yet</Text>
                 <Text style={styles.emptyHint}>
                   Share your invite code above or add a patient by email to start building care plans.
                 </Text>
-                <TouchableOpacity
+                <AnimatedPressable
                   style={styles.emptyBtn}
                   onPress={() => navigation.navigate(Screen.addPatient)}
-                  activeOpacity={0.85}
+                  accessibilityRole="button"
                 >
                   <Text style={styles.emptyBtnText}>Add first patient</Text>
-                </TouchableOpacity>
-              </View>
+                </AnimatedPressable>
+              </AppCard>
             ) : (
               <>
                 {patients.slice(0, 5).map((p) => (
@@ -261,33 +322,33 @@ export default function ClinicianDashboardScreen() {
                   />
                 ))}
                 {patients.length > 5 ? (
-                  <TouchableOpacity style={styles.seeAll} onPress={() => navigation.navigate(Screen.patients)}>
+                  <AnimatedPressable
+                    style={styles.seeAll}
+                    onPress={() => navigation.navigate(Screen.clinicianTabs, { screen: Screen.patients })}
+                    accessibilityRole="button"
+                  >
                     <Text style={styles.seeAllText}>View all {patients.length} patients</Text>
                     <Ionicons name="arrow-forward" size={16} color={ClinicianTheme.accent} />
-                  </TouchableOpacity>
+                  </AnimatedPressable>
                 ) : null}
               </>
             )}
           </Section>
 
           <Section title="Practice tools">
-            <View style={styles.toolsGrid}>
-              {MORE_TOOLS.map((t) => (
-                <TouchableOpacity
+            <AppCard padded={false}>
+              {PRACTICE_TOOLS.map((t, i) => (
+                <ListRow
                   key={t.title}
-                  style={styles.toolTile}
+                  title={t.title}
+                  subtitle={t.subtitle}
+                  iconName={t.icon}
+                  iconColor={ClinicianTheme.accent}
                   onPress={() => navigation.navigate(t.screen)}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.toolIcon}>
-                    <Ionicons name={t.icon as any} size={20} color={ClinicianTheme.accent} />
-                  </View>
-                  <Text style={styles.toolLabel} numberOfLines={1}>
-                    {t.title}
-                  </Text>
-                </TouchableOpacity>
+                  showDivider={i < PRACTICE_TOOLS.length - 1}
+                />
               ))}
-            </View>
+            </AppCard>
           </Section>
         </ScrollView>
       </AppScreen>
@@ -298,7 +359,7 @@ export default function ClinicianDashboardScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: ClinicianTheme.canvas,
   },
   loading: {
     flex: 1,
@@ -309,10 +370,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statsBlock: {
-    marginBottom: Spacing.lg,
+    marginBottom: ClinicianLayout.sectionGap,
+    marginTop: Spacing.sm,
   },
   quickActionsBlock: {
-    marginBottom: Spacing.lg,
+    marginBottom: ClinicianLayout.sectionGap,
   },
   content: {
     paddingTop: Spacing.sm,
@@ -320,7 +382,7 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.lg,
+    marginBottom: ClinicianLayout.sectionGap,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -329,25 +391,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: Typography.size.md,
-    fontWeight: '800',
-    color: Colors.text,
-    letterSpacing: -0.3,
+    ...ClinicianType.sectionTitle,
   },
   inviteCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderLight,
-    padding: Spacing.base,
     gap: Spacing.md,
   },
   inviteHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  inviteHeaderLeft: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
@@ -359,7 +408,7 @@ const styles = StyleSheet.create({
   inviteIcon: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: Radius.md,
     backgroundColor: ClinicianTheme.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -401,7 +450,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs,
     backgroundColor: ClinicianTheme.accent,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.lg,
     paddingVertical: Spacing.md,
   },
   shareButtonText: {
@@ -413,7 +462,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.errorLight,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.sm,
   },
   countBadgeText: {
     fontSize: 11,
@@ -421,21 +470,18 @@ const styles = StyleSheet.create({
     color: Colors.error,
   },
   emptyCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.xl,
     alignItems: 'center',
-    gap: Spacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderLight,
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xl,
   },
   emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
+    borderRadius: Radius.lg,
     backgroundColor: ClinicianTheme.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: Spacing.xs,
   },
   emptyTitle: {
     fontSize: Typography.size.lg,
@@ -448,18 +494,24 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+    paddingHorizontal: Spacing.sm,
   },
   emptyBtn: {
-    marginTop: Spacing.xs,
+    marginTop: Spacing.sm,
     backgroundColor: ClinicianTheme.accent,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-    borderRadius: Radius.pill,
+    borderRadius: Radius.lg,
   },
   emptyBtnText: {
     color: Colors.white,
     fontWeight: '700',
     fontSize: Typography.size.sm,
+  },
+  seeAllInline: {
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    color: ClinicianTheme.accent,
   },
   seeAll: {
     flexDirection: 'row',
@@ -472,37 +524,5 @@ const styles = StyleSheet.create({
     fontSize: Typography.size.sm,
     fontWeight: '700',
     color: ClinicianTheme.accent,
-  },
-  toolsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  toolTile: {
-    width: '31%',
-    minWidth: 100,
-    flexGrow: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xs,
-    alignItems: 'center',
-    gap: Spacing.xs,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.borderLight,
-  },
-  toolIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: ClinicianTheme.accentMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toolLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.text,
-    textAlign: 'center',
   },
 });

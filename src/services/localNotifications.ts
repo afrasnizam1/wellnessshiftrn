@@ -238,6 +238,42 @@ export const localNotificationService = {
     await Promise.all(Object.values(LOCAL_IDS).map(cancelSafe));
   },
 
+  /** Show an immediate local notification (e.g. FCM received while app is foregrounded). */
+  displayRemote: async (
+    title: string,
+    body: string,
+    data?: Record<string, string>,
+  ) => {
+    try {
+      await ensureAndroidChannel();
+      await notifee.displayNotification({
+        title,
+        body,
+        data: data ?? {},
+        ...(Platform.OS === 'android'
+          ? {
+              android: {
+                channelId: ANDROID_CHANNEL_ID,
+                pressAction: { id: 'default' },
+              },
+            }
+          : {
+              ios: {
+                sound: 'default',
+                foregroundPresentationOptions: {
+                  badge: true,
+                  sound: true,
+                  banner: true,
+                  list: true,
+                },
+              },
+            }),
+      });
+    } catch (e) {
+      console.warn('displayRemote failed:', e);
+    }
+  },
+
   getInitialPressRoute: async (): Promise<string | null> => {
     try {
       const initial = await notifee.getInitialNotification();
@@ -276,6 +312,13 @@ export function resolveLocalRoute(data?: Record<string, string>): string | null 
       return Screen.tabFitness;
     case 'goal':
       return Screen.tabFitness;
+    case 'care_plan':
+    case 'carePlan':
+      return Screen.carePlan;
+    case 'connection_request':
+      return Screen.myCare;
+    case 'message':
+      return Screen.messages;
     default:
       return null;
   }

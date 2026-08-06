@@ -20,9 +20,9 @@ function resolveNotificationRoute(data?: Record<string, string>): string | null 
   if (type === 'checkin') return Screen.dailyCheckIn;
   if (type === 'meditation') return Screen.tabFitness;
   if (type === 'goal') return Screen.tabFitness;
-  if (type === 'care_plan') return Screen.carePlan;
+  if (type === 'care_plan' || type === 'carePlan') return Screen.carePlan;
   if (type === 'message') return data.role === 'clinician' ? Screen.clinicianInbox : Screen.messages;
-  if (type === 'connection_request') return Screen.carePlan;
+  if (type === 'connection_request') return Screen.myCare;
   if (type === 'insight') return Screen.tabAiInsights;
   return null;
 }
@@ -163,9 +163,16 @@ export function setupNotificationNavigation(onNavigate: (route: string) => void)
     if (route) onNavigate(route);
   });
 
-  const unsubForeground = messaging().onMessage((remoteMessage) => {
-    const route = resolveNotificationRoute(remoteMessage?.data as Record<string, string>);
-    if (route) onNavigate(route);
+  // Foreground: show a local banner; do not auto-navigate away.
+  const unsubForeground = messaging().onMessage(async (remoteMessage) => {
+    try {
+      const title = remoteMessage.notification?.title ?? 'Wellness Shift';
+      const body = remoteMessage.notification?.body ?? '';
+      const data = (remoteMessage.data ?? {}) as Record<string, string>;
+      await localNotificationService.displayRemote(title, body, data);
+    } catch (e) {
+      console.warn('Foreground notification display failed:', e);
+    }
   });
 
   const unsubLocal = localNotificationService.setupPressHandlers(onNavigate);

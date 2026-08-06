@@ -1,29 +1,56 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Screen } from '../../navigation/screenNames';
 import {
   View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius } from '../../theme';
 import {
   AppCard, ListRow, ScreenHeader, BrandButton, SectionHeader, IconBadge,
 } from '../../components/ui';
+import ClinicianInfoCard from '../../components/care/ClinicianInfoCard';
 import { useAppStore } from '../../store';
 import { clinicianService } from '../../services/clinicianService';
 import { carePlanService } from '../../services/firebase';
+import { markCarePlanSeen, syncUnseenCarePlan } from '../../services/carePlanUnseen';
 import type { ConnectionRequest } from '../../types';
 import AppScreen from '../../components/common/AppScreen';
 import { CLINICIAN_CONNECT_ELIGIBILITY, CLINICIAN_CONNECT_SHORT } from '../../types/onboardingPrefs';
 
+type LinkedClinicianDetails = {
+  clinicianId: string;
+  clinicianName: string;
+  specialty?: string;
+  email?: string;
+  clinicName?: string;
+};
+
 export default function MyCareHubScreen() {
   const navigation = useNavigation<any>();
-  const { user, carePlan, wellnessScore, setUser, setCarePlan, setClinicianRecommendations } = useAppStore();
+  const {
+    user,
+    carePlan,
+    wellnessScore,
+    setUser,
+    setCarePlan,
+    setClinicianRecommendations,
+    setHasUnseenCarePlan,
+  } = useAppStore();
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [pendingRequests, setPendingRequests] = useState<ConnectionRequest[]>([]);
   const [taskProgress, setTaskProgress] = useState({ done: 0, total: 0 });
   const [loading, setLoading] = useState(true);
+  const [clinicianDetails, setClinicianDetails] = useState<LinkedClinicianDetails | null>(null);
+  const [loadingClinician, setLoadingClinician] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.uid || !carePlan) return;
+      markCarePlanSeen(user.uid, carePlan, setHasUnseenCarePlan).catch(() => {});
+    }, [user?.uid, carePlan?.id, setHasUnseenCarePlan]),
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -44,26 +71,74 @@ export default function MyCareHubScreen() {
       setUnreadMessages(0);
     }
 
-    carePlanService
-      .getCarePlans(user.uid)
-      .then((plans) => {
-        const plan = plans[0] ?? carePlan;
-        if (plan?.tasks) {
-          const done = plan.tasks.filter((t) => t.isComplete).length;
-          setTaskProgress({ done, total: plan.tasks.length });
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    const unsubPlans = carePlanService.watchCarePlans(user.uid, (plans) => {
+      const latest = plans[0] ?? null;
+      setCarePlan(latest);
+      if (latest?.tasks) {
+        const done = latest.tasks.filter((t) => t.isComplete).length;
+        setTaskProgress({ done, total: latest.tasks.length });
+      } else {
+        setTaskProgress({ done: 0, total: 0 });
+      }
+      syncUnseenCarePlan(user.uid, latest, setHasUnseenCarePlan).catch(() => {});
+      setLoading(false);
+    });
 
     return () => {
       unsubPending?.();
       unsubMsgs?.();
+      unsubPlans();
     };
-  }, [user?.uid, user?.clinicianId, carePlan?.clinicianId, carePlan]);
+  }, [user?.uid, user?.clinicianId, carePlan?.clinicianId, setCarePlan, setHasUnseenCarePlan]);
+
+  useEffect(() => {
+    const clinicianId = user?.clinicianId ?? carePlan?.clinicianId;
+    if (!user || !clinicianId) {
+      setClinicianDetails(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingClinician(true);
+    clinicianService
+      .getPatientClinicianInfo(user.uid)
+      .then((info) => {
+        if (cancelled) return;
+        if (info) {
+          setClinicianDetails({
+            ...info,
+            clinicianName: carePlan?.clinicianName || info.clinicianName,
+            specialty: info.specialty || carePlan?.specialty,
+          });
+          return;
+        }
+        setClinicianDetails({
+          clinicianId,
+          clinicianName: carePlan?.clinicianName || 'Your clinician',
+          specialty: carePlan?.specialty,
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setClinicianDetails({
+          clinicianId,
+          clinicianName: carePlan?.clinicianName || 'Your clinician',
+          specialty: carePlan?.specialty,
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingClinician(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid, user?.clinicianId, carePlan?.clinicianId, carePlan?.clinicianName, carePlan?.specialty]);
 
   const handleDisconnect = () => {
-    if (!user || !carePlan) return;
+    const linkedClinicianId =
+      carePlan?.clinicianId ?? user?.clinicianId ?? clinicianDetails?.clinicianId;
+    if (!user || !linkedClinicianId) return;
     Alert.alert('Disconnect', 'Stop sharing data with your clinician?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -71,10 +146,11 @@ export default function MyCareHubScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await clinicianService.disconnectPatient(user.uid, carePlan.clinicianId);
+            await clinicianService.disconnectPatient(user.uid, linkedClinicianId);
             setUser({ ...user, clinicianId: undefined });
             setCarePlan(null);
             setClinicianRecommendations(null);
+            setClinicianDetails(null);
             Alert.alert('Disconnected', 'You are no longer linked to your clinician.');
           } catch {
             Alert.alert('Error', 'Could not disconnect. Please try again.');
@@ -84,7 +160,7 @@ export default function MyCareHubScreen() {
     ]);
   };
 
-  const connected = !!(carePlan || user?.clinicianId);
+  const connected = !!(carePlan || user?.clinicianId || clinicianDetails);
 
   const renderStatusCard = () => {
     if (loading) {
@@ -95,29 +171,21 @@ export default function MyCareHubScreen() {
       );
     }
 
-    if (connected && carePlan) {
+    if (connected) {
+      const name =
+        clinicianDetails?.clinicianName ||
+        carePlan?.clinicianName ||
+        'Your clinician';
       return (
         <AppCard style={styles.statusCard}>
-          <View style={styles.clinicianRow}>
-            <View style={styles.clinicianAvatar}>
-              <Text style={styles.clinicianInitial}>
-                {carePlan.clinicianName?.[0]?.toUpperCase() ?? 'C'}
-              </Text>
-            </View>
-            <View style={styles.clinicianInfo}>
-              <Text style={styles.clinicianName} numberOfLines={1}>
-                {carePlan.clinicianName}
-              </Text>
-              <Text style={styles.clinicianSpec} numberOfLines={1}>
-                {carePlan.specialty}
-              </Text>
-              <View style={styles.connectedPill}>
-                <View style={styles.connectedDot} />
-                <Text style={styles.connectedText}>Connected</Text>
-              </View>
-            </View>
-            <IconBadge name="checkmark-circle" color={Colors.success} size="md" variant="plain" />
-          </View>
+          <ClinicianInfoCard
+            clinicianName={name}
+            email={clinicianDetails?.email}
+            specialty={clinicianDetails?.specialty || carePlan?.specialty}
+            clinicName={clinicianDetails?.clinicName}
+            loading={loadingClinician}
+            prominent
+          />
 
           {taskProgress.total > 0 && (
             <View style={styles.progressBlock}>
@@ -303,51 +371,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
   },
   statusCard: { gap: Spacing.md },
-  clinicianRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  clinicianAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(148, 107, 250, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clinicianInitial: {
-    fontSize: Typography.size.xl,
-    fontWeight: '700',
-    color: '#946BFA',
-  },
-  clinicianInfo: { flex: 1, gap: 2 },
-  clinicianName: {
-    fontSize: Typography.size.lg,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  clinicianSpec: {
-    fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
-  },
-  connectedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  connectedDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.success,
-  },
-  connectedText: {
-    fontSize: Typography.size.xs,
-    color: Colors.success,
-    fontWeight: '600',
-  },
   progressBlock: { gap: Spacing.xs },
   progressHeader: {
     flexDirection: 'row',

@@ -1,9 +1,11 @@
 // src/screens/fitness/FitnessHubScreen.tsx
-import React, { useState, useMemo, useEffect } from 'react';
+import React, {
+  useState, useMemo, useEffect, useCallback, memo, useRef, useImperativeHandle, forwardRef,
+} from 'react';
 import { Screen } from '../../navigation/screenNames';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, NativeSyntheticEvent, NativeScrollEvent,
+  View, Text, StyleSheet, ScrollView, TextInput, Pressable, FlatList,
+  InteractionManager, type ListRenderItem, type NativeSyntheticEvent, type NativeScrollEvent,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -18,14 +20,19 @@ import {
   FITNESS_DOMAIN_GROUPS,
   getRecommendedModules,
 } from '../../data/fitnessData';
-import type { FitnessModule } from '../../types';
+import type { FitnessModule, FitnessHubRecommendation } from '../../types';
 import { navigateToFitnessModule, getRouteForModuleId } from '../../utils/fitnessModuleRouter';
 import { clinicianService } from '../../services/clinicianService';
 import ClinicianRecommendationsCard from '../../components/home/ClinicianRecommendationsCard';
-import type { FitnessHubRecommendation } from '../../types';
 import AppScreen from '../../components/common/AppScreen';
 
 type Tab = 'recommended' | 'all';
+type DomainSection = (typeof FITNESS_DOMAIN_GROUPS)[number];
+type ProgressHandle = { setProgress: (value: number) => void };
+
+const TAB_OPTIONS: Array<'Recommended' | 'Explore all'> = ['Recommended', 'Explore all'];
+const MODULE_COUNT = FITNESS_MODULES.length;
+const LIST_BOTTOM = <View style={{ height: 100 }} />;
 
 const LEARNING_ROUTES: Record<string, string> = {
   vitamins: Screen.vitaminsLearning,
@@ -38,11 +45,30 @@ function learningRoute(guideId: string): { screen: string; params?: object } {
   return { screen: Screen.learningGuide, params: { topicId: guideId } };
 }
 
-function ScrollProgressBar({ progress }: { progress: number }) {
+const LearningGuideItem = memo(function LearningGuideItem({
+  guide,
+  onOpen,
+}: {
+  guide: (typeof LEARNING_GUIDES)[number];
+  onOpen: (id: string) => void;
+}) {
+  const onPress = useCallback(() => onOpen(guide.id), [guide.id, onOpen]);
+  return <FeaturedGuideCard guide={guide} onPress={onPress} />;
+});
+
+/** Progress UI owns its own state so parent lists don't re-render on scroll. */
+const ScrollProgressBar = memo(forwardRef<ProgressHandle>(function ScrollProgressBar(_props, ref) {
+  const [progress, setProgress] = useState(0);
+  useImperativeHandle(ref, () => ({
+    setProgress: (value: number) => {
+      setProgress((prev) => (Math.abs(prev - value) < 0.008 ? prev : value));
+    },
+  }), []);
+
   const clamped = Math.max(0, Math.min(1, progress));
-  // Sliding thumb (not a left-growing fill) — moves right as you scroll.
   const thumbPct = 32;
   const leftPct = clamped * (100 - thumbPct);
+
   return (
     <View style={styles.progressWrap} accessibilityRole="progressbar">
       <View style={styles.progressTrack}>
@@ -50,26 +76,95 @@ function ScrollProgressBar({ progress }: { progress: number }) {
       </View>
     </View>
   );
-}
+}));
+
+const ModuleRow = memo(function ModuleRow({
+  module,
+  onPress,
+  showDivider,
+}: {
+  module: FitnessModule;
+  onPress: (module: FitnessModule) => void;
+  showDivider: boolean;
+}) {
+  const handlePress = useCallback(() => onPress(module), [module, onPress]);
+  return (
+    <ListRow
+      title={module.title}
+      subtitle={module.subtitle}
+      iconName={fitnessModuleIonIcon(module)}
+      iconColor={module.color}
+      badge={module.isPremium ? 'PRO' : undefined}
+      badgeColor={Colors.brand}
+      onPress={handlePress}
+      showDivider={showDivider}
+      animated={false}
+    />
+  );
+});
+
+const ModuleGroup = memo(function ModuleGroup({
+  modules,
+  onPress,
+}: {
+  modules: FitnessModule[];
+  onPress: (module: FitnessModule) => void;
+}) {
+  return (
+    <AppCard padded={false}>
+      {modules.map((mod, index) => (
+        <ModuleRow
+          key={mod.id}
+          module={mod}
+          onPress={onPress}
+          showDivider={index < modules.length - 1}
+        />
+      ))}
+    </AppCard>
+  );
+});
+
+const DomainSectionItem = memo(function DomainSectionItem({
+  section,
+  onPress,
+}: {
+  section: DomainSection;
+  onPress: (module: FitnessModule) => void;
+}) {
+  return (
+    <View>
+      <SectionHeader title={String(section.title)} />
+      <ModuleGroup modules={section.data} onPress={onPress} />
+    </View>
+  );
+});
 
 export default function FitnessHubScreen() {
   const navigation = useNavigation<any>();
-  const { user, wellnessScore, subscriptionTier } = useAppStore();
+  const user = useAppStore((s) => s.user);
+  const wellnessScore = useAppStore((s) => s.wellnessScore);
+  const subscriptionTier = useAppStore((s) => s.subscriptionTier);
 
   const [activeTab, setActiveTab] = useState<Tab>('recommended');
   const [searchQuery, setSearchQuery] = useState('');
   const [clinicianRec, setClinicianRec] = useState<FitnessHubRecommendation | null>(null);
-  const [exploreProgress, setExploreProgress] = useState(0);
-  const [learningProgress, setLearningProgress] = useState(0);
+  /** Mount Explore list once, then keep it alive so tab switches are instant. */
+  const [exploreMounted, setExploreMounted] = useState(false);
+
+  const exploreProgressRef = useRef<ProgressHandle>(null);
+  const learningProgressRef = useRef<ProgressHandle>(null);
 
   useEffect(() => {
     if (!user) return;
-    return clinicianService.watchFitnessHubRecommendations(user.uid, setClinicianRec);
+    let unsub: (() => void) | undefined;
+    const task = InteractionManager.runAfterInteractions(() => {
+      unsub = clinicianService.watchFitnessHubRecommendations(user.uid, setClinicianRec);
+    });
+    return () => {
+      task.cancel();
+      unsub?.();
+    };
   }, [user?.uid]);
-
-  useEffect(() => {
-    setExploreProgress(0);
-  }, [activeTab, searchQuery]);
 
   const recommendedModules = useMemo(
     () => getRecommendedModules(wellnessScore, 10),
@@ -89,49 +184,102 @@ export default function FitnessHubScreen() {
       .filter((s) => s.data.length > 0);
   }, [searchQuery]);
 
-  const navigateToModule = (module: FitnessModule) => {
+  const navigateToModule = useCallback((module: FitnessModule) => {
     navigateToFitnessModule(navigation, module, subscriptionTier);
-  };
+  }, [navigation, subscriptionTier]);
 
-  const openLearningGuide = (guideId: string) => {
+  const openLearningGuide = useCallback((guideId: string) => {
     const route = learningRoute(guideId);
     navigation.navigate(route.screen, route.params);
-  };
+  }, [navigation]);
 
-  const openClinicianModule = (moduleId: string) => {
+  const openClinicianModule = useCallback((moduleId: string) => {
     const route = getRouteForModuleId(moduleId);
     if (route) navigation.navigate(route.screen, route.params);
-  };
+  }, [navigation]);
+
+  const openSteps = useCallback(() => {
+    navigation.navigate(Screen.stepsDetail);
+  }, [navigation]);
+
+  const openActivityDashboard = useCallback(() => {
+    navigation.navigate(Screen.activityDashboard);
+  }, [navigation]);
+
+  const openProgressTracking = useCallback(() => {
+    navigation.navigate(Screen.tabAnalytics, { screen: Screen.progressTracking });
+  }, [navigation]);
+
+  const switchToExplore = useCallback(() => {
+    setExploreMounted(true);
+    setActiveTab('all');
+  }, []);
+
+  const onTabChange = useCallback((v: string) => {
+    const next: Tab = v === 'Recommended' ? 'recommended' : 'all';
+    if (next === 'all') setExploreMounted(true);
+    exploreProgressRef.current?.setProgress(0);
+    setActiveTab(next);
+  }, []);
+
+  const onSearchChange = useCallback((text: string) => {
+    if (text.length > 0) setExploreMounted(true);
+    exploreProgressRef.current?.setProgress(0);
+    setSearchQuery(text);
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    exploreProgressRef.current?.setProgress(0);
+    setSearchQuery('');
+  }, []);
 
   const showExplore = activeTab === 'all' || searchQuery.length > 0;
-  const moduleCount = FITNESS_MODULES.length;
+  const segmentValue = activeTab === 'recommended' ? 'Recommended' : 'Explore all';
 
-  const onExploreScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const onExploreScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     const travel = Math.max(1, contentSize.height - layoutMeasurement.height);
-    setExploreProgress(contentOffset.y / travel);
-  };
+    exploreProgressRef.current?.setProgress(contentOffset.y / travel);
+  }, []);
 
-  const onLearningScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const onLearningScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     const travel = Math.max(1, contentSize.width - layoutMeasurement.width);
-    setLearningProgress(contentOffset.x / travel);
-  };
+    learningProgressRef.current?.setProgress(contentOffset.x / travel);
+  }, []);
+
+  const renderDomainSection = useCallback<ListRenderItem<DomainSection>>(
+    ({ item }) => <DomainSectionItem section={item} onPress={navigateToModule} />,
+    [navigateToModule]
+  );
+
+  const keyExtractor = useCallback((item: DomainSection) => String(item.title), []);
+
+  const exploreEmpty = useMemo(
+    () => (
+      <View style={styles.emptyState}>
+        <View style={styles.emptyIconWrap}>
+          <Ionicons name="search-outline" size={32} color={Colors.textTertiary} />
+        </View>
+        <Text style={styles.emptyTitle}>No modules found</Text>
+        <Text style={styles.emptyText}>Try a different search term</Text>
+      </View>
+    ),
+    []
+  );
 
   return (
     <AppScreen style={styles.safe}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Fitness Hub</Text>
         <Text style={styles.headerSub}>
-          {moduleCount} modules, tools & learning guides
+          {MODULE_COUNT} modules, tools & learning guides
         </Text>
 
         <SegmentedControl
-          options={['Recommended', 'Explore all']}
-          value={activeTab === 'recommended' ? 'Recommended' : 'Explore all'}
-          onChange={(v) => {
-            setActiveTab(v === 'Recommended' ? 'recommended' : 'all');
-          }}
+          options={TAB_OPTIONS}
+          value={segmentValue}
+          onChange={onTabChange}
         />
 
         <View style={styles.searchWrap}>
@@ -141,29 +289,30 @@ export default function FitnessHubScreen() {
             placeholder="Search modules..."
             placeholderTextColor={Colors.textTertiary}
             value={searchQuery}
-            onChangeText={setSearchQuery}
+            onChangeText={onSearchChange}
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Pressable onPress={clearSearch} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
 
-        {showExplore ? <ScrollProgressBar progress={exploreProgress} /> : null}
+        {showExplore ? <ScrollProgressBar ref={exploreProgressRef} /> : null}
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        onScroll={showExplore ? onExploreScroll : undefined}
-        scrollEventThrottle={16}
-      >
-        {!showExplore ? (
-          <>
+      <View style={styles.body}>
+        <View
+          style={[styles.pane, showExplore && styles.paneHidden]}
+          pointerEvents={showExplore ? 'none' : 'auto'}
+        >
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {clinicianRec && (
               <>
                 <SectionHeader title="From your clinician" icon="medkit-outline" />
@@ -178,102 +327,91 @@ export default function FitnessHubScreen() {
               title="Learning"
               icon="book-outline"
               actionLabel="See all"
-              onAction={() => setActiveTab('all')}
+              onAction={switchToExplore}
             />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.featuredRow}
               onScroll={onLearningScroll}
-              scrollEventThrottle={16}
+              scrollEventThrottle={32}
             >
               {LEARNING_GUIDES.map((g) => (
-                <FeaturedGuideCard
+                <LearningGuideItem
                   key={g.id}
                   guide={g}
-                  onPress={() => openLearningGuide(g.id)}
+                  onOpen={openLearningGuide}
                 />
               ))}
             </ScrollView>
             <View style={styles.learningProgressWrap}>
-              <ScrollProgressBar progress={learningProgress} />
+              <ScrollProgressBar ref={learningProgressRef} />
             </View>
 
             <SectionHeader title="Activity & progress" icon="pulse-outline" />
             <AppCard padded={false}>
-              <StepsPinnedPreviewCard onPress={() => navigation.navigate(Screen.stepsDetail)} />
+              <StepsPinnedPreviewCard onPress={openSteps} />
               <View style={styles.cardDivider} />
               <ListRow
                 title="Activity Dashboard"
                 subtitle="Weekly goals, heart points & metrics"
                 iconName="analytics-outline"
                 iconColor={Colors.brand}
-                onPress={() => navigation.navigate(Screen.activityDashboard)}
+                onPress={openActivityDashboard}
+                animated={false}
               />
               <ListRow
                 title="Track your progress"
                 subtitle="Progress charts & body composition"
                 iconName="trending-up-outline"
                 iconColor={Colors.brand}
-                onPress={() => navigation.navigate(Screen.tabAnalytics, { screen: Screen.progressTracking })}
+                onPress={openProgressTracking}
                 showDivider={false}
+                animated={false}
               />
             </AppCard>
 
             <SectionHeader title="Recommended for you" icon="star-outline" />
             <ModuleGroup modules={recommendedModules} onPress={navigateToModule} />
-          </>
-        ) : domainSections.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconWrap}>
-              <Ionicons name="search-outline" size={32} color={Colors.textTertiary} />
-            </View>
-            <Text style={styles.emptyTitle}>No modules found</Text>
-            <Text style={styles.emptyText}>Try a different search term</Text>
+
+            {LIST_BOTTOM}
+          </ScrollView>
+        </View>
+
+        {exploreMounted ? (
+          <View
+            style={[styles.pane, !showExplore && styles.paneHidden]}
+            pointerEvents={showExplore ? 'auto' : 'none'}
+          >
+            <FlatList
+              data={domainSections}
+              keyExtractor={keyExtractor}
+              renderItem={renderDomainSection}
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              onScroll={onExploreScroll}
+              scrollEventThrottle={32}
+              initialNumToRender={3}
+              maxToRenderPerBatch={2}
+              windowSize={5}
+              removeClippedSubviews
+              ListEmptyComponent={exploreEmpty}
+              ListFooterComponent={LIST_BOTTOM}
+            />
           </View>
-        ) : (
-          domainSections.map((section) => (
-            <View key={String(section.title)}>
-              <SectionHeader title={String(section.title)} />
-              <ModuleGroup modules={section.data} onPress={navigateToModule} />
-            </View>
-          ))
-        )}
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
+        ) : null}
+      </View>
     </AppScreen>
-  );
-}
-
-function ModuleGroup({
-  modules,
-  onPress,
-}: {
-  modules: FitnessModule[];
-  onPress: (module: FitnessModule) => void;
-}) {
-  return (
-    <AppCard padded={false}>
-      {modules.map((mod, index) => (
-        <ListRow
-          key={mod.id}
-          title={mod.title}
-          subtitle={mod.subtitle}
-          iconName={fitnessModuleIonIcon(mod)}
-          iconColor={mod.color}
-          badge={mod.isPremium ? 'PRO' : undefined}
-          badgeColor={Colors.brand}
-          onPress={() => onPress(mod)}
-          showDivider={index < modules.length - 1}
-        />
-      ))}
-    </AppCard>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
+  body: { flex: 1 },
+  pane: { flex: 1 },
+  paneHidden: { display: 'none' },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.base },
 

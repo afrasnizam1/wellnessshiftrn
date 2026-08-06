@@ -15,7 +15,8 @@ type Props = {
 };
 
 export default function StepsPinnedPreviewCard({ onPress }: Props) {
-  const { activity, setActivity } = useAppStore();
+  const activity = useAppStore((s) => s.activity);
+  const setActivity = useAppStore((s) => s.setActivity);
   const [weeklySteps, setWeeklySteps] = useState<number[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 

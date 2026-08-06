@@ -24,7 +24,11 @@ import {
   enterDemoClinicianSession,
   canSkipToApp,
 } from '../../services/demoSession';
-import { appConfig, isGoogleSignInConfigured } from '../../config/appConfig';
+import { isGoogleSignInConfigured } from '../../config/appConfig';
+import {
+  authErrorMessage,
+  accountTypeMismatchMessage,
+} from '../../utils/authErrorMessage';
 
 export default function SignInScreen() {
   const navigation = useNavigation<any>();
@@ -44,11 +48,16 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<'apple' | 'google' | null>(null);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const clearFormError = () => {
+    if (formError) setFormError(null);
+  };
 
   const validate = () => {
     const e: typeof errors = {};
     if (!email.trim()) e.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email';
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Please enter a valid email address';
     if (!password) e.password = 'Password is required';
     else if (password.length < 6) e.password = 'Password must be at least 6 characters';
     setErrors(e);
@@ -57,23 +66,23 @@ export default function SignInScreen() {
 
   const handleSignIn = async () => {
     if (!validate()) return;
+    setFormError(null);
     setLoading(true);
     try {
       const cred = await firebaseAuth.signInWithEmail(email.trim(), password);
       await ensureAuthReadyForUid(cred.user.uid);
       const profile = await userService.getProfile(cred.user.uid);
+      if (profile && profile.role !== role) {
+        await firebaseAuth.signOut().catch(() => {});
+        setFormError(accountTypeMismatchMessage(role, profile.role));
+        return;
+      }
       if (profile) {
         setUser(profile);
         await contentsquareService.onAuthSuccess(profile);
       }
-    } catch (err: any) {
-      const msg =
-        err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password'
-          ? 'Incorrect email or password.'
-          : err.code === 'auth/too-many-requests'
-          ? 'Too many attempts. Please try again later.'
-          : 'Sign in failed. Please try again.';
-      Alert.alert('Sign In Failed', msg);
+    } catch (err: unknown) {
+      setFormError(authErrorMessage(err, 'Sign in failed. Please try again.', 'signin'));
     } finally {
       setLoading(false);
     }
@@ -204,13 +213,13 @@ export default function SignInScreen() {
               <View style={styles.segmented}>
                 <TouchableOpacity
                   style={[styles.segment, role === 'patient' && styles.segmentActive]}
-                  onPress={() => setRole('patient')}
+                  onPress={() => { setRole('patient'); clearFormError(); }}
                 >
                   <Text style={[styles.segmentText, role === 'patient' && styles.segmentTextActive]}>Patient</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.segment, role === 'clinician' && styles.segmentActive]}
-                  onPress={() => setRole('clinician')}
+                  onPress={() => { setRole('clinician'); clearFormError(); }}
                 >
                   <Text style={[styles.segmentText, role === 'clinician' && styles.segmentTextActive]}>Clinician</Text>
                 </TouchableOpacity>
@@ -231,7 +240,11 @@ export default function SignInScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={email}
-                  onChangeText={(v) => { setEmail(v); setErrors((e) => ({ ...e, email: undefined })); }}
+                  onChangeText={(v) => {
+                    setEmail(v);
+                    setErrors((e) => ({ ...e, email: undefined }));
+                    clearFormError();
+                  }}
                   error={errors.email}
                 />
                 <AppTextField
@@ -240,13 +253,24 @@ export default function SignInScreen() {
                   placeholder="••••••••"
                   secureToggle
                   value={password}
-                  onChangeText={(v) => { setPassword(v); setErrors((e) => ({ ...e, password: undefined })); }}
+                  onChangeText={(v) => {
+                    setPassword(v);
+                    setErrors((e) => ({ ...e, password: undefined }));
+                    clearFormError();
+                  }}
                   returnKeyType="done"
                   onSubmitEditing={handleSignIn}
                   error={errors.password}
                 />
               </View>
             </View>
+
+            {formError ? (
+              <View style={styles.errorBanner} accessibilityRole="alert" accessibilityLiveRegion="polite">
+                <Ionicons name="alert-circle" size={20} color={Colors.error} />
+                <Text style={styles.errorBannerText}>{formError}</Text>
+              </View>
+            ) : null}
 
             <TouchableOpacity onPress={handleSignIn} disabled={loading || !!socialLoading} activeOpacity={0.9}>
               <LinearGradient
@@ -322,6 +346,24 @@ const styles = StyleSheet.create({
   segmentText: { fontSize: Typography.size.sm, color: Colors.textSecondary, fontWeight: '600' },
   segmentTextActive: { color: Colors.text, fontWeight: '700' },
   fieldGap: { gap: Spacing.md },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    backgroundColor: Colors.errorLight,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.error,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  errorBannerText: {
+    flex: 1,
+    fontSize: Typography.size.sm,
+    color: Colors.error,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
   submitBtn: {
     height: 56,
     borderRadius: Radius.lg,

@@ -196,6 +196,8 @@ export async function ensureClinicianSchema(
 
   const onboardingCompleted =
     (existingNested.onboardingCompleted as boolean | undefined) ??
+    (existing.onboardingCompleted as boolean | undefined) ??
+    (existing.onboardingCompleteDate ? true : undefined) ??
     profile.onboardingComplete ??
     false;
   const onboardingCompletedAt =
@@ -403,8 +405,8 @@ export async function enqueueCarePlanNotification(input: {
     patientId: input.patientId,
     type: 'carePlan',
     subtype: 'customCarePlan',
-    title: 'New Care Plan Available',
-    body: `${input.clinicianName} has shared a new care plan: ${input.planName}`,
+    title: 'New care plan',
+    body: 'Your clinician sent you a care plan',
     planId: input.planId,
     planName: input.planName,
     clinicianName: input.clinicianName,
@@ -424,8 +426,8 @@ export async function enqueueCarePlanNotification(input: {
     type: 'carePlan',
     planId: input.planId,
     planName: input.planName,
-    title: 'New Care Plan Available',
-    body: `${input.clinicianName} has shared a new care plan: ${input.planName}`,
+    title: 'New care plan',
+    body: 'Your clinician sent you a care plan',
     createdAt: now,
     status: 'pending',
     retryCount: 0,

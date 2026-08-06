@@ -20,7 +20,7 @@ import { analyticsHelper } from '../../services/analyticsHelper';
 import { Screen } from '../../navigation/screenNames';
 import { onboardingStorage } from '../../services/onboardingStorage';
 import { pendingOnboardingStorage } from '../../services/pendingOnboardingStorage';
-import { refreshPreAuthRouteFromPending } from '../../services/onboardingNavigation';
+import { refreshPreAuthRouteFromPending, goToCreateAccount } from '../../services/onboardingNavigation';
 import { useAppStore } from '../../store';
 import AppScreen from '../../components/common/AppScreen';
 import { BrandButton, BackButton } from '../../components/ui';
@@ -209,15 +209,18 @@ export default function HealthKitPermissionScreen() {
   const leaveScreen = async () => {
     if (user) {
       await onboardingStorage.markHealthKitPromptSeen(user.uid);
-    } else {
-      await pendingOnboardingStorage.save({ healthPromptSeen: true });
-      await refreshPreAuthRouteFromPending(hasSeenIntro);
-    }
-    if (isReconnect) {
-      navigation.goBack();
+      if (isReconnect) {
+        navigation.goBack();
+        return;
+      }
+      navigation.replace(Screen.subscriptionPaywall, { fromOnboarding: true });
       return;
     }
-    navigation.replace(Screen.subscriptionPaywall, { fromOnboarding: true });
+
+    // Guest pre-auth: Health → Create Account
+    await pendingOnboardingStorage.save({ healthPromptSeen: true });
+    await refreshPreAuthRouteFromPending(hasSeenIntro);
+    goToCreateAccount(navigation);
   };
 
   const handleConnect = async () => {
@@ -288,7 +291,7 @@ export default function HealthKitPermissionScreen() {
           </Text>
           {isAndroid && (
             <Text style={styles.androidNote}>
-              Requires Health Connect (built into Android 14+, or install from Play Store on Android 13).
+              Requires Google Health Connect (built into Android 14+, or install from Play Store on Android 13).
             </Text>
           )}
           <View style={styles.privacyRow}>
@@ -301,7 +304,7 @@ export default function HealthKitPermissionScreen() {
 
         <View style={styles.footer}>
           <BrandButton
-            label="Continue"
+            label={loading ? 'Connecting…' : `Connect to ${platformName}`}
             onPress={handleConnect}
             loading={loading}
             disabled={loading}

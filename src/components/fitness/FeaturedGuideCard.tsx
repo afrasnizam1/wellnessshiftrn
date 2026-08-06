@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -11,7 +11,7 @@ type Props = {
   onPress: () => void;
 };
 
-export default function FeaturedGuideCard({ guide, onPress }: Props) {
+function FeaturedGuideCard({ guide, onPress }: Props) {
   const [imageFailed, setImageFailed] = useState(false);
   const imageSource = guide.image ?? (guide.imageUrl ? { uri: guide.imageUrl } : null);
   const useImage = !!imageSource && !imageFailed;
@@ -56,6 +56,8 @@ export default function FeaturedGuideCard({ guide, onPress }: Props) {
     </AnimatedPressable>
   );
 }
+
+export default memo(FeaturedGuideCard);
 
 const styles = StyleSheet.create({
   card: {
