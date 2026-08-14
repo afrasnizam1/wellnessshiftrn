@@ -109,5 +109,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   labelCompact: { fontSize: Typography.size.xs },
-  labelActive: { color: Colors.text, fontWeight: '700' },
+  labelActive: { color: Colors.purple, fontWeight: '700' },
 });

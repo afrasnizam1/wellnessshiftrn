@@ -31,6 +31,7 @@ export default function AppTextField({
   onFocus,
   onBlur,
   editable = true,
+  placeholderTextColor,
   ...rest
 }: Props) {
   const [focused, setFocused] = React.useState(false);
@@ -62,7 +63,7 @@ export default function AppTextField({
           {...rest}
           editable={editable}
           style={[styles.input, style]}
-          placeholderTextColor={Colors.textTertiary}
+          placeholderTextColor={placeholderTextColor ?? Colors.textTertiary}
           secureTextEntry={secureToggle ? hidden : secureTextEntry}
           onFocus={(e) => {
             setFocused(true);

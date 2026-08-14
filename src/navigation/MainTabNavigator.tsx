@@ -56,6 +56,7 @@ export function MainTabNavigator() {
 
   return (
     <Tab.Navigator
+      backBehavior="history"
       screenOptions={({ route }) => ({
         headerShown: false,
         sceneContainerStyle: styles.scene,

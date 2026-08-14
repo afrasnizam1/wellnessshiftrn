@@ -168,6 +168,20 @@ export default function BreathWelcomeScreen() {
             onPress={async () => {
               await pendingOnboardingStorage.markBreathWelcomeComplete();
               await refreshPreAuthRouteFromPending(hasSeenIntro);
+              navigation.navigate(Screen.authentication, {
+                screen: Screen.signIn,
+                params: { role: 'clinician' },
+              });
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Clinician sign in"
+          >
+            <Text style={styles.clinicianSignIn}>I'm a clinician — Sign in</Text>
+          </AnimatedPressable>
+          <AnimatedPressable
+            onPress={async () => {
+              await pendingOnboardingStorage.markBreathWelcomeComplete();
+              await refreshPreAuthRouteFromPending(hasSeenIntro);
               navigation.navigate(Screen.authentication, { screen: Screen.signIn });
             }}
             accessibilityRole="button"
@@ -299,6 +313,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     fontSize: Typography.size.sm,
     fontWeight: '600',
+    paddingVertical: Spacing.xs,
+  },
+  clinicianSignIn: {
+    color: Colors.white,
+    fontSize: Typography.size.sm,
+    fontWeight: '700',
     paddingVertical: Spacing.xs,
   },
 });

@@ -23,8 +23,10 @@ import {
   resetOnboardingStack,
 } from '../../services/onboardingNavigation';
 import { getCategoryScoreSummary } from '../../utils/quizResultsHelpers';
-import { getRecommendedModules } from '../../utils/recommendedModules';
+import { getRecommendedModules, getScoreImprovementAdvice } from '../../utils/recommendedModules';
+import { navigateToLinkedModule } from '../../utils/fitnessModuleRouter';
 import { fitnessModuleIonIcon } from '../../theme';
+import ScoreImprovementCard from '../../components/wellness/ScoreImprovementCard';
 import { PROGRAM_CATALOG } from '../../data/programCatalog';
 import { getProgramDayLesson, getRecommendedProgramId } from '../../data/programDayContent';
 import type { WellnessCategoryKey } from '../../types';
@@ -140,6 +142,16 @@ export default function EnhancedWellnessResultsScreen() {
   );
   const strengths = ranked.slice(0, 3);
   const focusAreas = [...ranked].reverse().slice(0, 3);
+  const improvementPlan = useMemo(
+    () => getScoreImprovementAdvice(categories, 3),
+    [categories],
+  );
+
+  const canOpenImprovementModules = !!user?.onboardingComplete;
+
+  const openImprovementModule = (title: string) => {
+    navigateToLinkedModule(navigation, title, { fromRootStack: true });
+  };
 
   const showClinicianNudge =
     purpose === 'clinician' ||
@@ -272,6 +284,12 @@ export default function EnhancedWellnessResultsScreen() {
           </AppCard>
         </View>
 
+        <ScoreImprovementCard
+          plan={improvementPlan}
+          canOpenModules={canOpenImprovementModules}
+          onOpenModule={openImprovementModule}
+        />
+
         {programPreview.length > 0 && (
           <AppCard>
             <Text style={styles.sectionTitle}>Your starter program</Text>
@@ -293,7 +311,7 @@ export default function EnhancedWellnessResultsScreen() {
 
         <AppCard>
           <Text style={styles.sectionTitle}>Recommended for you</Text>
-          <Text style={styles.sectionSub}>Based on your goals and assessment scores</Text>
+          <Text style={styles.sectionSub}>Based on your goals</Text>
           {recommended.map((module) => (
             <View key={module.id} style={styles.moduleRow}>
               <IconBadge name={fitnessModuleIonIcon(module)} color={module.color} size="sm" />

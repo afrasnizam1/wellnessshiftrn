@@ -100,3 +100,6 @@ tmp/
 .tmp-ios-check.png
 tmp/
 .tmp-ios-check.png
+
+# Copied from iOS at Android build time
+android/app/src/main/assets/hologram/models/

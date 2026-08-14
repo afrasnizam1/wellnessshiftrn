@@ -13,12 +13,16 @@ import BodyMetricsScreen from '../../screens/home/BodyMetricsScreen';
 import FoodScanScreen from '../../screens/home/FoodScanScreen';
 import HealthRecordsScreen from '../../screens/home/HealthRecordsScreen';
 import { Screen } from '../screenNames';
+import { carePlanReturnListeners } from '../carePlanReturn';
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 
 export default function HomeStackNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      screenListeners={carePlanReturnListeners}
+    >
       <Stack.Screen name={Screen.homeDashboard} component={HomeScreen} />
       <Stack.Screen name={Screen.dailyPlan} component={DailyPlanScreen} />
       <Stack.Screen name={Screen.taskDetail} component={TaskDetailScreen} />

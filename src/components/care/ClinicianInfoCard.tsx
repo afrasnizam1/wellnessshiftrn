@@ -50,6 +50,28 @@ export default function ClinicianInfoCard({
               {clinicianName}
             </Text>
           )}
+          {hasDetails && !loading && !prominent ? (
+            <View style={styles.inlineDetails}>
+              {specialty ? (
+                <View>
+                  <Text style={styles.inlineLabel}>Doctor type</Text>
+                  <Text style={styles.inlineMeta} numberOfLines={1}>{specialty}</Text>
+                </View>
+              ) : null}
+              {clinicName ? (
+                <View>
+                  <Text style={styles.inlineLabel}>Workplace</Text>
+                  <Text style={styles.inlineMeta} numberOfLines={1}>{clinicName}</Text>
+                </View>
+              ) : null}
+              {email ? (
+                <View>
+                  <Text style={styles.inlineLabel}>Email</Text>
+                  <Text style={styles.inlineMeta} numberOfLines={1}>{email}</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
         </View>
         <View style={styles.connectedPill}>
           <View style={styles.connectedDot} />
@@ -63,8 +85,8 @@ export default function ClinicianInfoCard({
         </Text>
       ) : null}
 
-      {hasDetails && !loading ? (
-        <View style={[styles.metaBlock, prominent && styles.metaBlockProminent]}>
+      {hasDetails && !loading && prominent ? (
+        <View style={[styles.metaBlock, styles.metaBlockProminent]}>
           {email ? (
             <View style={styles.metaRow}>
               <Ionicons name="mail-outline" size={16} color={Colors.textSecondary} />
@@ -161,6 +183,21 @@ const styles = StyleSheet.create({
   nameProminent: {
     fontSize: Typography.size.lg,
   },
+  inlineDetails: {
+    marginTop: 6,
+    gap: 8,
+  },
+  inlineLabel: {
+    fontSize: Typography.size.xs,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  inlineMeta: {
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    color: Colors.text,
+    marginTop: 1,
+  },
   loader: { alignSelf: 'flex-start', marginTop: 4 },
   connectedPill: {
     flexDirection: 'row',
@@ -185,14 +222,12 @@ const styles = StyleSheet.create({
   linkedSince: {
     fontSize: Typography.size.xs,
     color: Colors.textTertiary,
-    marginLeft: 52,
   },
   metaIndent: {
-    marginLeft: 64,
+    marginLeft: 0,
   },
   metaBlock: {
     marginTop: Spacing.xs,
-    marginLeft: 52,
     gap: 6,
   },
   metaBlockProminent: {

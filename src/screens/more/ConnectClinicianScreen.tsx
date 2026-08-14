@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
 import { ScreenHeader } from '../../components/ui';
 import { useAppStore } from '../../store';
-import { clinicianService } from '../../services/clinicianService';
+import { clinicianService, normalizeInviteCode, formatClinicianConnectedMessage } from '../../services/clinicianService';
 import { carePlanService } from '../../services/firebase';
 import { gamificationService } from '../../services/gamificationService';
 import type { ConnectionRequest } from '../../types';
@@ -35,7 +35,11 @@ export default function ConnectClinicianScreen() {
       setUser({ ...user, clinicianId });
       const plans = await carePlanService.getCarePlans(user.uid);
       if (plans.length > 0) setCarePlan(plans[0]);
-      Alert.alert('Connected!', `You are now linked with ${request.clinicianName}.`);
+      const info = await clinicianService.getPatientClinicianInfo(user.uid).catch(() => null);
+      Alert.alert(
+        'Connected!',
+        formatClinicianConnectedMessage(info ?? { clinicianName: request.clinicianName }),
+      );
       gamificationService.evaluateAchievements(user.uid).catch(() => {});
       navigation.goBack();
     } catch (err: any) {
@@ -46,17 +50,16 @@ export default function ConnectClinicianScreen() {
   };
 
   const handleConnect = async () => {
-    if (connectCode.trim().length < 4 || !user) return;
+    const code = normalizeInviteCode(connectCode);
+    if (code.length < 4 || !user) return;
     setConnecting(true);
     try {
-      const clinicianId = await clinicianService.connectWithCode(
-        user.uid,
-        connectCode.trim().toUpperCase(),
-      );
+      const clinicianId = await clinicianService.connectWithCode(user.uid, code);
       setUser({ ...user, clinicianId });
       const plans = await carePlanService.getCarePlans(user.uid).catch(() => []);
       if (plans.length > 0) setCarePlan(plans[0]);
-      Alert.alert('Connected!', 'You are now linked with your clinician.');
+      const info = await clinicianService.getPatientClinicianInfo(user.uid).catch(() => null);
+      Alert.alert('Connected!', formatClinicianConnectedMessage(info ?? {}));
       navigation.goBack();
     } catch (err: any) {
       const message = err?.message ?? '';
@@ -112,9 +115,10 @@ export default function ConnectClinicianScreen() {
             placeholder="e.g. ABC123"
             placeholderTextColor={Colors.textTertiary}
             value={connectCode}
-            onChangeText={setConnectCode}
+            onChangeText={(text) => setConnectCode(normalizeInviteCode(text))}
             autoCapitalize="characters"
-            maxLength={8}
+            autoCorrect={false}
+            maxLength={12}
           />
           <TouchableOpacity
             style={[styles.connectBtn, connecting && { opacity: 0.6 }]}

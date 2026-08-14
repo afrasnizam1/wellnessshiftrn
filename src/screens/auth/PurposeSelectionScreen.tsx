@@ -191,13 +191,32 @@ export default function PurposeSelectionScreen() {
           loading={saving}
         />
         {!user ? (
-          <AnimatedPressable
-            onPress={() => navigation.navigate(Screen.authentication, { screen: Screen.signIn })}
-            accessibilityRole="button"
-            accessibilityLabel="Sign in"
-          >
-            <Text style={styles.signInLink}>Already have an account? Sign in</Text>
-          </AnimatedPressable>
+          <>
+            <AnimatedPressable
+              onPress={() =>
+                navigation.navigate(Screen.authentication, {
+                  screen: Screen.signIn,
+                  params: { role: 'patient' },
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel="I'm a patient/user — Sign in"
+            >
+              <Text style={styles.signInLink}>I'm a patient/user — Sign in</Text>
+            </AnimatedPressable>
+            <AnimatedPressable
+              onPress={() =>
+                navigation.navigate(Screen.authentication, {
+                  screen: Screen.signIn,
+                  params: { role: 'clinician' },
+                })
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Clinician sign in"
+            >
+              <Text style={styles.signInLink}>I'm a clinician — Sign in</Text>
+            </AnimatedPressable>
+          </>
         ) : null}
       </View>
     </AppScreen>
@@ -309,7 +328,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.size.sm,
     color: Colors.primary,
     textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: '700',
     paddingVertical: Spacing.xs,
   },
 });

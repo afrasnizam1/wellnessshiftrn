@@ -10,8 +10,8 @@ import { Screen } from './screenNames';
 
 type AuthStackParamList = {
   [Screen.authLanding]: undefined;
-  [Screen.signIn]: undefined;
-  [Screen.createAccount]: { savePlan?: boolean } | undefined;
+  [Screen.signIn]: { role?: 'patient' | 'clinician' } | undefined;
+  [Screen.createAccount]: { savePlan?: boolean; role?: 'patient' | 'clinician' } | undefined;
   [Screen.chooseRole]: undefined;
 };
 
@@ -25,11 +25,17 @@ export function AuthNavigator({ route }: Props) {
   const initial = route.params?.screen ?? Screen.authLanding;
   const createAccountParams =
     route.params?.screen === Screen.createAccount ? route.params?.params : undefined;
+  const signInParams =
+    route.params?.screen === Screen.signIn ? route.params?.params : undefined;
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initial}>
       <Stack.Screen name={Screen.authLanding} component={AuthMainLandingScreen} />
-      <Stack.Screen name={Screen.signIn} component={SignInScreen} />
+      <Stack.Screen
+        name={Screen.signIn}
+        component={SignInScreen}
+        initialParams={signInParams}
+      />
       <Stack.Screen
         name={Screen.createAccount}
         component={SignUpScreen}

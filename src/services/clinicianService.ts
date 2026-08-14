@@ -213,6 +213,23 @@ function generateCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+/** Copy for the post-link success alert. */
+export function formatClinicianConnectedMessage(info: {
+  clinicianName?: string;
+  specialty?: string;
+  clinicName?: string;
+}): string {
+  const name = info.clinicianName?.trim();
+  if (!name || name === 'Your clinician') {
+    return 'You are now linked with your clinician.';
+  }
+  const bits = [info.specialty, info.clinicName].map((v) => v?.trim()).filter(Boolean);
+  if (bits.length > 0) {
+    return `You are now linked with ${name} (${bits.join(' · ')}).`;
+  }
+  return `You are now linked with ${name}.`;
+}
+
 function formatRelativeTime(value: unknown): string {
   const iso = toIsoString(value);
   if (!iso) return 'Unknown';
@@ -310,19 +327,30 @@ export const clinicianService = {
   generateInviteCode: async (clinicianId: string) => clinicianService.ensureInviteCode(clinicianId),
 
   findClinicianByInviteCode: async (code: string): Promise<string | null> => {
-    const normalized = code.trim().toUpperCase();
-    const byMain = await firestore()
-      .collection('clinicians')
-      .where('clinicianInviteCode', '==', normalized)
-      .limit(1)
-      .get();
-    if (!byMain.empty) return byMain.docs[0].id;
+    const normalized = normalizeInviteCode(code);
+    if (normalized.length < 4) return null;
 
-    const legacy = await firestore().collection('inviteCodes').doc(normalized).get();
-    if (legacy.exists()) {
-      const data = legacy.data();
-      if (data?.clinicianId && !data.used) return data.clinicianId as string;
+    try {
+      const byMain = await firestore()
+        .collection('clinicians')
+        .where('clinicianInviteCode', '==', normalized)
+        .limit(1)
+        .get();
+      if (!byMain.empty) return byMain.docs[0].id;
+    } catch (error) {
+      console.warn('[findClinicianByInviteCode] clinicians query failed:', error);
     }
+
+    try {
+      const legacy = await firestore().collection('inviteCodes').doc(normalized).get();
+      if (legacy.exists()) {
+        const data = legacy.data();
+        if (data?.clinicianId && !data.used) return data.clinicianId as string;
+      }
+    } catch (error) {
+      console.warn('[findClinicianByInviteCode] legacy inviteCodes lookup failed:', error);
+    }
+
     return null;
   },
 
@@ -873,6 +901,73 @@ export const clinicianService = {
       .collection('fitnessHubRecommendations')
       .doc(recId)
       .set(rec);
+
+    const taskTypeFor = (wellness?: string): CarePlanTask['type'] => {
+      if (wellness === 'fitness' || wellness === 'physical') return 'workout';
+      if (wellness === 'nutrition') return 'nutrition';
+      if (wellness === 'sleep') return 'sleep';
+      if (wellness === 'mindfulness' || wellness === 'stress') return 'mindfulness';
+      if (wellness === 'mental') return 'habit';
+      return 'goal';
+    };
+
+    const tasks: CarePlanTask[] = input.moduleIds
+      .map((id) => FITNESS_MODULES.find((m) => m.id === id))
+      .filter(Boolean)
+      .map((m) => ({
+        id: m!.id,
+        title: m!.title,
+        description: m!.subtitle,
+        type: taskTypeFor(m!.wellnessCategory),
+        isComplete: false,
+        moduleId: m!.id,
+      }));
+
+    const carePlan: CarePlan = {
+      id: recId,
+      clinicianId: input.clinicianId,
+      clinicianName: input.clinicianName,
+      specialty: 'General Practice',
+      title: 'Your care plan',
+      tasks,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await firestore()
+      .collection('users')
+      .doc(input.patientId)
+      .collection('carePlans')
+      .doc(recId)
+      .set(carePlan);
+
+    await firestore().collection('customCarePlans').doc(recId).set({
+      id: recId,
+      clinicianId: input.clinicianId,
+      clinicianName: input.clinicianName,
+      patientId: input.patientId,
+      planName: 'Your care plan',
+      description: input.personalNote || 'Fitness Hub modules from your clinician.',
+      personalNote: input.personalNote,
+      recommendations: tasks.map((t, i) => ({
+        id: t.id,
+        type: 'module',
+        title: t.title,
+        description: t.description,
+        order: i,
+      })),
+      createdAt: now,
+      sentAt: now,
+      planStatus: 'sent',
+      ...buildCustomCarePlanNativeFields(recId),
+    });
+
+    await enqueueCarePlanNotification({
+      patientId: input.patientId,
+      planId: recId,
+      planName: 'Your care plan',
+      clinicianName: input.clinicianName,
+    });
 
     await firestore().collection('patients').doc(input.patientId).set(
       {

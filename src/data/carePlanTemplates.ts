@@ -624,6 +624,51 @@ export function getCarePlanTemplate(id: string): CarePlanTemplate | undefined {
   return CARE_PLAN_TEMPLATES.find((t) => t.id === id);
 }
 
+export function getCarePlanTemplates(ids: string[]): CarePlanTemplate[] {
+  const seen = new Set<string>();
+  const out: CarePlanTemplate[] = [];
+  for (const id of ids) {
+    if (seen.has(id)) continue;
+    const t = getCarePlanTemplate(id);
+    if (!t) continue;
+    seen.add(id);
+    out.push(t);
+  }
+  return out;
+}
+
+/** Merge one or more templates into a single editable care-plan seed. */
+export function mergeCarePlanTemplates(templates: CarePlanTemplate[]): {
+  title: string;
+  description: string;
+  tasks: string[];
+} {
+  if (templates.length === 0) {
+    return { title: '', description: '', tasks: [] };
+  }
+  if (templates.length === 1) {
+    const t = templates[0];
+    return { title: t.title, description: t.purpose, tasks: [...t.tasks] };
+  }
+  const titles = templates.map((t) => t.title);
+  const title =
+    titles.length <= 2
+      ? titles.join(' + ')
+      : `${titles[0]} + ${titles.length - 1} more`;
+  const description = templates.map((t) => t.purpose).join('\n\n');
+  const seen = new Set<string>();
+  const tasks: string[] = [];
+  for (const t of templates) {
+    for (const task of t.tasks) {
+      const key = task.trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      tasks.push(task);
+    }
+  }
+  return { title, description, tasks };
+}
+
 export function templatesForCategory(category: CarePlanTemplateCategory): CarePlanTemplate[] {
   return category.templateIds
     .map((id) => getCarePlanTemplate(id))

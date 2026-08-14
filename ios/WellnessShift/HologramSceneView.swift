@@ -217,8 +217,6 @@ enum HologramLoader {
     var accent: UIColor = .cyan
     var accentIntensity: CGFloat = 1500
 
-    var centerOffset = SCNVector3(0, 0, 0)
-
     switch preset {
     case .brain, .anatomy:
       appliedScale = defaultScale * 1.35
@@ -257,11 +255,9 @@ enum HologramLoader {
       cameraDistance = maxDimension * appliedScale * 1.55
       fieldOfView = 50
       accent = .white
-      // Bronchial tree extends upward; nudge the framed model down slightly in view.
-      centerOffset = SCNVector3(0, -targetSize * 0.1, 0)
     }
 
-    centerModel(in: scene, scale: appliedScale, offset: centerOffset)
+    centerModel(in: scene, scale: appliedScale)
     addLights(to: scene.rootNode, accent: accent, accentIntensity: accentIntensity)
     setupCamera(on: sceneView, in: scene, distance: cameraDistance, fieldOfView: fieldOfView)
   }
@@ -324,16 +320,12 @@ enum HologramLoader {
     return (center, maxDimension)
   }
 
-  private static func centerModel(in scene: SCNScene, scale: Float, offset: SCNVector3) {
+  private static func centerModel(in scene: SCNScene, scale: Float) {
     let root = scene.rootNode
     let (center, _) = modelBounds(for: root)
 
     let container = SCNNode()
-    container.position = SCNVector3(
-      -center.x * scale + offset.x,
-      -center.y * scale + offset.y,
-      -center.z * scale + offset.z
-    )
+    container.position = SCNVector3(-center.x * scale, -center.y * scale, -center.z * scale)
     container.scale = SCNVector3(scale, scale, scale)
 
     let children = root.childNodes
@@ -345,6 +337,11 @@ enum HologramLoader {
       container.addChildNode(child)
     }
     root.addChildNode(container)
+
+    let (centered, _) = modelBounds(for: root)
+    container.position.x -= centered.x
+    container.position.y -= centered.y
+    container.position.z -= centered.z
   }
 
   private static func addLights(to root: SCNNode, accent: UIColor, accentIntensity: CGFloat) {
@@ -382,6 +379,7 @@ enum HologramLoader {
     scene.rootNode.addChildNode(cameraNode)
     sceneView.pointOfView = cameraNode
     sceneView.defaultCameraController.target = SCNVector3(0, 0, 0)
+    sceneView.defaultCameraController.pointOfView = cameraNode
   }
 
   static func showPlaceholder(in sceneView: SCNView) {

@@ -1,6 +1,7 @@
-import type { NavigationProp } from '@react-navigation/native';
+import { CommonActions, type NavigationProp } from '@react-navigation/native';
 import { FITNESS_MODULES } from '../data/fitnessData';
 import { Screen } from '../navigation/screenNames';
+import { navigationRef } from '../navigation/navigationRef';
 import type { FitnessModule, SubscriptionTier } from '../types';
 import { getEffectiveTier } from '../services/iap';
 
@@ -128,29 +129,60 @@ const LINKED_TITLE_OVERRIDES: Record<string, FitnessRoute> = {
   'Sleep Debt Calculator': { screen: Screen.healthCalculator, params: { calculatorId: 'sleep-debt' } },
 };
 
+function fitnessNestedNavigate(
+  navigation: NavigationProp<any>,
+  route: FitnessRoute,
+  fromRootStack: boolean,
+  extraParams?: Record<string, unknown>,
+) {
+  const params = { ...(route.params ?? {}), ...(extraParams ?? {}) };
+  const nested = {
+    screen: Screen.tabFitness,
+    params: { screen: route.screen, params },
+  };
+  if (fromRootStack) {
+    if (navigationRef.isReady()) {
+      navigationRef.dispatch(
+        CommonActions.navigate({
+          name: Screen.patientApp,
+          params: nested,
+        }),
+      );
+      return;
+    }
+    navigation.navigate(Screen.patientApp, nested);
+    return;
+  }
+  navigation.navigate(Screen.tabFitness, { screen: route.screen, params });
+}
+
 export function navigateToLinkedModule(
   navigation: NavigationProp<any>,
-  linkedModule?: string
+  linkedModule?: string,
+  options?: { fromRootStack?: boolean; fromCarePlan?: boolean },
 ) {
+  const fromRoot = options?.fromRootStack === true;
+  const extra = options?.fromCarePlan ? { fromCarePlan: true } : undefined;
+  const hub: FitnessRoute = { screen: Screen.fitnessHub };
+
   if (!linkedModule) {
-    navigation.navigate(Screen.tabFitness, { screen: Screen.fitnessHub });
+    fitnessNestedNavigate(navigation, hub, fromRoot, extra);
     return;
   }
 
   const override = LINKED_TITLE_OVERRIDES[linkedModule];
   if (override) {
-    navigation.navigate(Screen.tabFitness, { screen: override.screen, params: override.params });
+    fitnessNestedNavigate(navigation, override, fromRoot, extra);
     return;
   }
 
   const module = findModuleByTitleOrId(linkedModule);
   if (module) {
-    const route = getRouteForModule(module);
-    navigation.navigate(Screen.tabFitness, { screen: route.screen, params: route.params });
+    fitnessNestedNavigate(navigation, getRouteForModule(module), fromRoot, extra);
     return;
   }
 
-  navigation.navigate(Screen.tabFitness, { screen: Screen.fitnessHub });
+  fitnessNestedNavigate(navigation, hub, fromRoot, extra);
 }
 
 /** Normalise legacy calculator param IDs to registry keys */

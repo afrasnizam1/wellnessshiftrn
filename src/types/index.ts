@@ -282,6 +282,9 @@ export interface CarePlanTask {
   type: 'workout' | 'nutrition' | 'sleep' | 'habit' | 'mindfulness' | 'goal';
   dueDate?: string;
   isComplete: boolean;
+  /** Fitness Hub module id when this task is a recommended module. */
+  moduleId?: string;
+  completedAt?: string;
 }
 
 export interface CarePlan {
@@ -468,7 +471,12 @@ export type WebViewScreenParams = {
 export type RootStackParamList = {
   [Screen.welcome]: undefined;
   [Screen.breathWelcome]: undefined;
-  [Screen.authentication]: { screen?: AuthNestedScreen; params?: { savePlan?: boolean } } | undefined;
+  [Screen.authentication]:
+    | {
+        screen?: AuthNestedScreen;
+        params?: { savePlan?: boolean; role?: 'patient' | 'clinician' };
+      }
+    | undefined;
   [Screen.emailVerification]: undefined;
   [Screen.introVideo]: undefined;
   [Screen.purposeSelection]: undefined;
@@ -564,7 +572,12 @@ export type ClinicianStackParamList = {
   [Screen.clinicianModuleLibrary]: undefined;
   [Screen.patientDetail]: { patient: PatientSummary };
   [Screen.clinicianMessages]: { patient: PatientSummary };
-  [Screen.createCarePlan]: { patient?: PatientSummary; templateId?: string };
+  [Screen.createCarePlan]: {
+    patient?: PatientSummary;
+    templateId?: string;
+    /** Multi-select from Templates — merged into one editable plan. */
+    templateIds?: string[];
+  };
   [Screen.fitnessRecommendations]: { patient: PatientSummary };
   [Screen.addPatient]: undefined;
   [Screen.evidenceHub]: undefined;

@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "912633076119-bpc55u19ktlp5gvioklu4gndmtlhhs7d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "afras.wellnessshiftrn.android",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
           "client_id": "912633076119-e6c3dmt3h1l4m199q63dpk8sake686j6.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -31,10 +39,10 @@
               "client_type": 3
             },
             {
-              "client_id": "912633076119-2v82ufgk5pgaqh4boups9t3j776g6k66.apps.googleusercontent.com",
+              "client_id": "912633076119-2l95phl98uu3uldjdp7vlavf1ch1q303.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "Afras.WellnessShiftRNIOS"
+                "bundle_id": "afras.wellnessshiftrn.ios"
               }
             }
           ]

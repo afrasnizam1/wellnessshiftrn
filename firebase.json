@@ -23,6 +23,10 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      { "source": "/auth-action", "destination": "/email-verified.html" },
+      { "source": "/auth-action.html", "destination": "/email-verified.html" }
     ]
   }
 }

@@ -77,7 +77,7 @@ export default function AnatomyViewerScreen() {
   const factsTitle = FACTS_SECTION_TITLES[modelId] ?? 'Did you know?';
 
   return (
-    <AppScreen style={styles.safe}>
+    <AppScreen mesh={false} style={styles.safe}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backText}>‹</Text>

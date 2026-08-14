@@ -2,6 +2,8 @@
 // Install: npx react-native-firebase
 // Add GoogleService-Info.plist to ios/ folder from Firebase Console
 
+import { Platform } from 'react-native';
+import firebaseApp from '@react-native-firebase/app';
 import auth from '@react-native-firebase/auth';
 import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import { ensureAuthReadyForUid, isFirebaseReady, NOOP_UNSUB } from './firebaseReady';
@@ -20,12 +22,49 @@ import type {
   WellnessCategoryKey,
 } from '../types';
 import { logger } from '../utils/logger';
+import { isAuthNetworkError } from '../utils/authErrorMessage';
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Android cold-start can race Auth before the default Firebase app is ready. */
+function ensureDefaultFirebaseApp(): void {
+  try {
+    if (!firebaseApp.apps.length) {
+      logger.warn('[firebaseAuth] no Firebase apps registered yet');
+    } else {
+      firebaseApp.app();
+    }
+  } catch (error) {
+    logger.warn('[firebaseAuth] default app not ready:', error);
+  }
+}
 
 // ─── Auth ─────────────────────────────────────────────────────────────────
 
 export const firebaseAuth = {
-  signInWithEmail: (email: string, password: string) =>
-    auth().signInWithEmailAndPassword(email, password),
+  /**
+   * Email/password sign-in with one retry on transient Auth network failures.
+   * Android uses a longer backoff — Play Services / Identity Toolkit blips are common.
+   */
+  signInWithEmail: async (email: string, password: string) => {
+    ensureDefaultFirebaseApp();
+    try {
+      return await auth().signInWithEmailAndPassword(email, password);
+    } catch (error) {
+      if (!isAuthNetworkError(error)) throw error;
+      const backoffMs = Platform.OS === 'android' ? 900 : 500;
+      if (__DEV__) {
+        logger.warn(
+          `[firebaseAuth] network-request-failed on ${Platform.OS}; retrying once after ${backoffMs}ms`,
+        );
+      }
+      await delay(backoffMs);
+      ensureDefaultFirebaseApp();
+      return auth().signInWithEmailAndPassword(email, password);
+    }
+  },
 
   signUpWithEmail: (email: string, password: string) =>
     auth().createUserWithEmailAndPassword(email, password),
@@ -49,6 +88,11 @@ export const firebaseAuth = {
       await currentUser.sendEmailVerification({
         url: appConfig.emailVerificationContinueUrl,
         handleCodeInApp: false,
+        iOS: { bundleId: 'afras.wellnessshiftrn.ios' },
+        android: {
+          packageName: 'afras.wellnessshiftrn.android',
+          installApp: false,
+        },
       });
       logger.log('Verification email sent successfully');
       return;
@@ -88,7 +132,11 @@ export const userService = {
   getProfile: async (uid: string): Promise<UserProfile | null> => {
     if (!isFirebaseReady()) return null;
     try {
-      await ensureAuthReadyForUid(uid);
+      // Soften token warm-up: a transient getIdToken network blip should not
+      // look like "no profile" right after a successful sign-in.
+      await ensureAuthReadyForUid(uid).catch((error) => {
+        console.warn('[userService] getProfile auth warm-up failed:', error);
+      });
       const doc = await firestore().collection('users').doc(uid).get();
       return doc.exists() ? (doc.data() as UserProfile) : null;
     } catch (error) {
@@ -108,11 +156,13 @@ export const userService = {
       const existing = existingDoc.exists() ? (existingDoc.data() as UserProfile) : null;
 
       const now = new Date().toISOString();
+      // Prefer an existing role so a transient ensureProfile miss cannot stamp
+      // `patient` over a clinician account (Android auth/Firestore race).
+      const resolvedRole = existing?.role ?? data.role ?? 'patient';
       const profile: UserProfile = {
         uid,
         email: data.email ?? existing?.email ?? '',
         displayName: data.displayName ?? existing?.displayName ?? 'User',
-        role: data.role ?? existing?.role ?? 'patient',
         createdAt: existing?.createdAt ?? now,
         subscriptionTier: existing?.subscriptionTier ?? data.subscriptionTier ?? 'free',
         onboardingComplete: data.onboardingComplete ?? existing?.onboardingComplete ?? false,
@@ -120,6 +170,8 @@ export const userService = {
         streakFreezes: existing?.streakFreezes ?? data.streakFreezes ?? 1,
         csq: data.csq ?? existing?.csq ?? { identity: uid },
         ...data,
+        uid,
+        role: resolvedRole,
       };
 
       const batch = firestore().batch();
@@ -347,6 +399,25 @@ export const carePlanService = {
         },
         (error) => logFirestoreListenerError('watchCarePlans', error)
       );
+  },
+
+  completeTask: async (uid: string, planId: string, taskId: string): Promise<CarePlan | null> => {
+    if (!isFirebaseReady()) return null;
+    const ref = firestore()
+      .collection('users')
+      .doc(uid)
+      .collection('carePlans')
+      .doc(planId);
+    const snap = await ref.get();
+    if (!snap.exists) return null;
+    const plan = snap.data() as CarePlan;
+    const now = new Date().toISOString();
+    const tasks = (plan.tasks ?? []).map((t) =>
+      t.id === taskId ? { ...t, isComplete: true, completedAt: now } : t,
+    );
+    const next: CarePlan = { ...plan, tasks, updatedAt: now };
+    await ref.set(next, { merge: true });
+    return next;
   },
 };
 

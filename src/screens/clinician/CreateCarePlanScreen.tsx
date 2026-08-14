@@ -26,6 +26,8 @@ import {
   COMPREHENSIVE_CARE_PLAN,
   TEMPLATE_COLOR,
   getCarePlanTemplate,
+  getCarePlanTemplates,
+  mergeCarePlanTemplates,
   searchCarePlanCategories,
   templatesForCategory,
   type CarePlanTemplate,
@@ -41,43 +43,58 @@ type PlanSeed = {
   tasks: string[];
 };
 
+function seedFromRouteParams(
+  templateId?: string,
+  templateIds?: string[],
+): { step: Step; seed: PlanSeed | null } {
+  const multi = templateIds?.filter(Boolean) ?? [];
+  if (multi.length > 0) {
+    const templates = getCarePlanTemplates(multi);
+    if (templates.length > 0) {
+      return { step: 'edit', seed: mergeCarePlanTemplates(templates) };
+    }
+  }
+  if (!templateId) return { step: 'hub', seed: null };
+  if (templateId === BLANK_CARE_PLAN.id) {
+    return {
+      step: 'edit',
+      seed: {
+        title: BLANK_CARE_PLAN.title,
+        description: BLANK_CARE_PLAN.description,
+        tasks: [...BLANK_CARE_PLAN.tasks],
+      },
+    };
+  }
+  if (templateId === COMPREHENSIVE_CARE_PLAN.id) {
+    return {
+      step: 'edit',
+      seed: {
+        title: COMPREHENSIVE_CARE_PLAN.title,
+        description: COMPREHENSIVE_CARE_PLAN.description,
+        tasks: [...COMPREHENSIVE_CARE_PLAN.tasks],
+      },
+    };
+  }
+  const t = getCarePlanTemplate(templateId);
+  if (t) {
+    return {
+      step: 'edit',
+      seed: { title: t.title, description: t.purpose, tasks: [...t.tasks] },
+    };
+  }
+  return { step: 'hub', seed: null };
+}
+
 export default function CreateCarePlanScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<Route>();
-  const { patient: routePatient, templateId } = route.params ?? {};
+  const { patient: routePatient, templateId, templateIds: routeTemplateIds } = route.params ?? {};
   const { user } = useAppStore();
 
-  const initialFromRoute = useMemo((): { step: Step; seed: PlanSeed | null } => {
-    if (!templateId) return { step: 'hub', seed: null };
-    if (templateId === BLANK_CARE_PLAN.id) {
-      return {
-        step: 'edit',
-        seed: {
-          title: BLANK_CARE_PLAN.title,
-          description: BLANK_CARE_PLAN.description,
-          tasks: [...BLANK_CARE_PLAN.tasks],
-        },
-      };
-    }
-    if (templateId === COMPREHENSIVE_CARE_PLAN.id) {
-      return {
-        step: 'edit',
-        seed: {
-          title: COMPREHENSIVE_CARE_PLAN.title,
-          description: COMPREHENSIVE_CARE_PLAN.description,
-          tasks: [...COMPREHENSIVE_CARE_PLAN.tasks],
-        },
-      };
-    }
-    const t = getCarePlanTemplate(templateId);
-    if (t) {
-      return {
-        step: 'edit',
-        seed: { title: t.title, description: t.purpose, tasks: [...t.tasks] },
-      };
-    }
-    return { step: 'hub', seed: null };
-  }, [templateId]);
+  const initialFromRoute = useMemo(
+    () => seedFromRouteParams(templateId, routeTemplateIds),
+    [templateId, routeTemplateIds],
+  );
 
   const [step, setStep] = useState<Step>(initialFromRoute.step);
   const [planName, setPlanName] = useState(initialFromRoute.seed?.title ?? '');
@@ -89,9 +106,10 @@ export default function CreateCarePlanScreen() {
 
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CarePlanTemplateCategory | null>(null);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [previewTemplate, setPreviewTemplate] = useState<CarePlanTemplate | null>(null);
   const [editCameFromTemplates, setEditCameFromTemplates] = useState(false);
-  const enteredWithTemplate = Boolean(templateId);
+  const enteredWithTemplate = Boolean(templateId || (routeTemplateIds && routeTemplateIds.length > 0));
 
   const [patients, setPatients] = useState<PatientSummary[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<PatientSummary | null>(routePatient ?? null);
@@ -151,6 +169,7 @@ export default function CreateCarePlanScreen() {
 
   const applyTemplate = (template: CarePlanTemplate) => {
     setPreviewTemplate(null);
+    setSelectedTemplateIds([]);
     applySeed(
       {
         title: template.title,
@@ -159,6 +178,29 @@ export default function CreateCarePlanScreen() {
       },
       true,
     );
+  };
+
+  const toggleTemplateId = (id: string) => {
+    setSelectedTemplateIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const toggleCategorySelection = (cat: CarePlanTemplateCategory) => {
+    const templates = templatesForCategory(cat);
+    if (templates.length === 0) return;
+    if (templates.length === 1) {
+      toggleTemplateId(templates[0].id);
+      return;
+    }
+    setSelectedCategory(cat);
+  };
+
+  const continueWithSelected = () => {
+    const templates = getCarePlanTemplates(selectedTemplateIds);
+    if (templates.length === 0) return;
+    setPreviewTemplate(null);
+    applySeed(mergeCarePlanTemplates(templates), true);
   };
 
   const addTask = () => {
@@ -213,6 +255,7 @@ export default function CreateCarePlanScreen() {
         return;
       }
       setSearchText('');
+      setSelectedTemplateIds([]);
       setStep('hub');
       return;
     }
@@ -251,25 +294,6 @@ export default function CreateCarePlanScreen() {
       {step === 'hub' ? (
         <HubStep
           patientName={selectedPatient?.displayName}
-          onTemplates={() => {
-            setSelectedCategory(null);
-            setSearchText('');
-            setStep('templates');
-          }}
-          onCustom={() =>
-            applySeed({
-              title: BLANK_CARE_PLAN.title,
-              description: BLANK_CARE_PLAN.description,
-              tasks: [...BLANK_CARE_PLAN.tasks],
-            })
-          }
-          onComprehensive={() =>
-            applySeed({
-              title: COMPREHENSIVE_CARE_PLAN.title,
-              description: COMPREHENSIVE_CARE_PLAN.description,
-              tasks: [...COMPREHENSIVE_CARE_PLAN.tasks],
-            })
-          }
           onFitnessHub={() => {
             if (!selectedPatient) {
               Alert.alert('Select a patient', 'Choose a patient before assigning Fitness Hub modules.');
@@ -282,14 +306,41 @@ export default function CreateCarePlanScreen() {
       ) : null}
 
       {step === 'templates' ? (
-        <TemplatesStep
-          searchText={searchText}
-          onSearchChange={setSearchText}
-          filteredCategories={filteredCategories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-          onPreview={setPreviewTemplate}
-        />
+        <View style={styles.templatesPane}>
+          <TemplatesStep
+            searchText={searchText}
+            onSearchChange={setSearchText}
+            filteredCategories={filteredCategories}
+            selectedCategory={selectedCategory}
+            selectedTemplateIds={selectedTemplateIds}
+            onToggleCategory={toggleCategorySelection}
+            onToggleTemplate={toggleTemplateId}
+            onPreview={setPreviewTemplate}
+            footerInset={selectedTemplateIds.length > 0}
+          />
+          {selectedTemplateIds.length > 0 ? (
+            <View style={styles.selectionFooter}>
+              <TouchableOpacity
+                onPress={() => setSelectedTemplateIds([])}
+                hitSlop={8}
+                accessibilityRole="button"
+              >
+                <Text style={styles.clearSelection}>Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.continueBtn}
+                onPress={continueWithSelected}
+                activeOpacity={0.88}
+              >
+                <Text style={styles.continueBtnText}>
+                  {selectedTemplateIds.length === 1
+                    ? 'Continue with 1 template'
+                    : `Continue with ${selectedTemplateIds.length} templates`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
       ) : null}
 
       {step === 'edit' ? (
@@ -320,7 +371,12 @@ export default function CreateCarePlanScreen() {
         {previewTemplate ? (
           <TemplatePreview
             template={previewTemplate}
-            onConfirm={() => applyTemplate(previewTemplate)}
+            isSelected={selectedTemplateIds.includes(previewTemplate.id)}
+            onToggleSelect={() => {
+              toggleTemplateId(previewTemplate.id);
+              setPreviewTemplate(null);
+            }}
+            onUseAlone={() => applyTemplate(previewTemplate)}
             onClose={() => setPreviewTemplate(null)}
           />
         ) : null}
@@ -460,82 +516,31 @@ function PatientSelector({
 
 function HubStep({
   patientName,
-  onTemplates,
-  onCustom,
-  onComprehensive,
   onFitnessHub,
 }: {
   patientName?: string;
-  onTemplates: () => void;
-  onCustom: () => void;
-  onComprehensive: () => void;
   onFitnessHub: () => void;
 }) {
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.hubHero}>
         <View style={styles.hubIconWrap}>
-          <Ionicons name="heart" size={36} color={ClinicianTheme.accent} />
+          <Ionicons name="barbell" size={36} color={ClinicianTheme.accent} />
         </View>
         <Text style={styles.hubTitle}>Create Care Plan</Text>
         {patientName ? <Text style={styles.hubFor}>for {patientName}</Text> : null}
         <Text style={styles.hubSub}>
-          Choose how you&apos;d like to create your patient&apos;s care plan
+          Select Fitness Hub modules for your patient — the same ones they see in the app
         </Text>
       </View>
 
       <OptionCard
-        icon="document-text"
-        color={TEMPLATE_COLOR.purple}
-        title="Care Plan Templates"
-        subtitle="Pre-built templates for common conditions"
-        description="Choose from body-system or outcome-driven templates with pre-configured plan blocks. Perfect for quick, evidence-based care plans."
-        features={[
-          'Respiratory Health',
-          'Cardiovascular Care',
-          'Mental Wellness',
-          'Weight Management',
-          'Sleep Improvement',
-          'Stress Reduction',
-        ]}
-        onPress={onTemplates}
-      />
-      <OptionCard
-        icon="options"
-        color={TEMPLATE_COLOR.blue}
-        title="Custom Plan"
-        subtitle="Build a personalized care plan from scratch"
-        description="Write your own plan name, description, personal note, and tasks — or start blank and customise for this patient."
-        features={[
-          'Individual Recommendations',
-          'Personal Notes',
-          'Custom Tasks',
-          'Send to Patient',
-        ]}
-        onPress={onCustom}
-      />
-      <OptionCard
-        icon="heart"
-        color={TEMPLATE_COLOR.teal}
-        title="Comprehensive Care Plan"
-        subtitle="Full wellness plan with workouts, nutrition, sleep"
-        description="Create a complete care plan including workouts, nutrition goals, sleep targets, habits, mindfulness, and mood tracking."
-        features={[
-          'Workouts & Fitness',
-          'Nutrition & Hydration',
-          'Sleep Goals',
-          'Habits & Mindfulness',
-          'Mood Tracking',
-        ]}
-        onPress={onComprehensive}
-      />
-      <OptionCard
         icon="barbell"
         color={TEMPLATE_COLOR.orange}
         title="Fitness Hub Modules"
-        subtitle="Assign fitness and exercise modules"
-        description="Select from pre-built fitness and exercise modules to assign to your patient."
-        features={['Exercise Programs', 'Workout Modules', 'Fitness Recommendations']}
+        subtitle="Same modules your patient sees"
+        description="Browse the Fitness Hub catalog, pick modules for this patient, and send them as recommendations."
+        features={['Workouts', 'Nutrition', 'Mindfulness', 'Sleep', 'Education']}
         onPress={onFitnessHub}
       />
     </ScrollView>
@@ -590,22 +595,43 @@ function TemplatesStep({
   onSearchChange,
   filteredCategories,
   selectedCategory,
-  onSelectCategory,
+  selectedTemplateIds,
+  onToggleCategory,
+  onToggleTemplate,
   onPreview,
+  footerInset,
 }: {
   searchText: string;
   onSearchChange: (v: string) => void;
   filteredCategories: CarePlanTemplateCategory[];
   selectedCategory: CarePlanTemplateCategory | null;
-  onSelectCategory: (c: CarePlanTemplateCategory | null) => void;
+  selectedTemplateIds: string[];
+  onToggleCategory: (c: CarePlanTemplateCategory) => void;
+  onToggleTemplate: (id: string) => void;
   onPreview: (t: CarePlanTemplate) => void;
+  footerInset?: boolean;
 }) {
+  const selectedSet = useMemo(() => new Set(selectedTemplateIds), [selectedTemplateIds]);
+  const categorySelected = (cat: CarePlanTemplateCategory) => {
+    const ids = templatesForCategory(cat).map((t) => t.id);
+    return ids.length > 0 && ids.every((id) => selectedSet.has(id));
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={styles.flex}
+      contentContainerStyle={[
+        styles.content,
+        footerInset ? { paddingBottom: Spacing.xl * 4 } : null,
+      ]}
+      keyboardShouldPersistTaps="handled"
+    >
       {!selectedCategory ? (
         <>
           <Text style={styles.templatesHero}>Care Plan Templates</Text>
-          <Text style={styles.templatesSub}>Tap to preview templates for your patients</Text>
+          <Text style={styles.templatesSub}>
+            Tap to select · Long-press to preview
+          </Text>
 
           <View style={styles.searchBar}>
             <Ionicons name="search" size={18} color={Colors.textTertiary} />
@@ -634,20 +660,33 @@ function TemplatesStep({
             <View style={styles.categoryGrid}>
               {filteredCategories.map((cat) => {
                 const color = TEMPLATE_COLOR[cat.colorKey];
+                const selected = categorySelected(cat);
                 return (
                   <TouchableOpacity
                     key={cat.name}
-                    style={styles.categoryCard}
-                    onPress={() => {
+                    style={[
+                      styles.categoryCard,
+                      selected && {
+                        borderColor: ClinicianTheme.accent,
+                        backgroundColor: ClinicianTheme.accentMuted,
+                      },
+                    ]}
+                    onPress={() => onToggleCategory(cat)}
+                    onLongPress={() => {
                       const templates = templatesForCategory(cat);
-                      if (templates.length === 1) {
-                        onPreview(templates[0]);
-                      } else {
-                        onSelectCategory(cat);
-                      }
+                      if (templates.length === 1) onPreview(templates[0]);
                     }}
+                    delayLongPress={280}
                     activeOpacity={0.85}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
+                    accessibilityHint="Long press to preview"
                   >
+                    {selected ? (
+                      <View style={styles.categoryCheck}>
+                        <Ionicons name="checkmark-circle" size={20} color={ClinicianTheme.accent} />
+                      </View>
+                    ) : null}
                     <View
                       style={[
                         styles.categoryIconBg,
@@ -675,14 +714,26 @@ function TemplatesStep({
             />
             <Text style={styles.categoryHeaderTitle}>{selectedCategory.name}</Text>
           </View>
+          <Text style={styles.templatesSub}>Tap to select · Long-press to preview</Text>
           {templatesForCategory(selectedCategory).map((t) => {
             const color = TEMPLATE_COLOR[t.colorKey];
+            const selected = selectedSet.has(t.id);
             return (
               <TouchableOpacity
                 key={t.id}
-                style={styles.templateRow}
-                onPress={() => onPreview(t)}
+                style={[
+                  styles.templateRow,
+                  selected && {
+                    borderColor: ClinicianTheme.accent,
+                    backgroundColor: ClinicianTheme.accentMuted,
+                  },
+                ]}
+                onPress={() => onToggleTemplate(t.id)}
+                onLongPress={() => onPreview(t)}
+                delayLongPress={280}
                 activeOpacity={0.85}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: selected }}
               >
                 <View style={[styles.templateRowIcon, { backgroundColor: color + '22' }]}>
                   <Ionicons name={t.icon as any} size={26} color={color} />
@@ -693,7 +744,11 @@ function TemplatesStep({
                     {t.purpose}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
+                <Ionicons
+                  name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={24}
+                  color={selected ? ClinicianTheme.accent : Colors.textTertiary}
+                />
               </TouchableOpacity>
             );
           })}
@@ -809,11 +864,15 @@ function EditStep({
 
 function TemplatePreview({
   template,
-  onConfirm,
+  isSelected,
+  onToggleSelect,
+  onUseAlone,
   onClose,
 }: {
   template: CarePlanTemplate;
-  onConfirm: () => void;
+  isSelected: boolean;
+  onToggleSelect: () => void;
+  onUseAlone: () => void;
   onClose: () => void;
 }) {
   const color = TEMPLATE_COLOR[template.colorKey];
@@ -872,9 +931,16 @@ function TemplatePreview({
 
         <TouchableOpacity
           style={[styles.saveBtn, { backgroundColor: color, marginTop: Spacing.lg }]}
-          onPress={onConfirm}
+          onPress={onToggleSelect}
         >
-          <Text style={styles.saveBtnText}>Use this template</Text>
+          <Text style={styles.saveBtnText}>
+            {isSelected ? 'Remove from selection' : 'Add to selection'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.cancelBtn} onPress={onUseAlone}>
+          <Text style={[styles.cancelText, { color: ClinicianTheme.accent }]}>
+            Use this template only
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
           <Text style={styles.cancelText}>Cancel</Text>
@@ -886,6 +952,8 @@ function TemplatePreview({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: ClinicianTheme.canvas },
+  flex: { flex: 1 },
+  templatesPane: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1135,7 +1203,16 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     alignItems: 'center',
     gap: Spacing.sm,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    position: 'relative',
     ...Shadow.sm,
+  },
+  categoryCheck: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    zIndex: 1,
   },
   categoryIconBg: {
     width: '100%',
@@ -1168,6 +1245,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
     padding: Spacing.base,
+    borderWidth: 2,
+    borderColor: 'transparent',
     ...Shadow.sm,
   },
   templateRowIcon: {
@@ -1255,5 +1334,35 @@ const styles = StyleSheet.create({
     padding: Spacing.base,
     gap: Spacing.xs,
     ...Shadow.sm,
+  },
+  selectionFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.base,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    ...Shadow.sm,
+  },
+  clearSelection: {
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    paddingHorizontal: Spacing.sm,
+  },
+  continueBtn: {
+    flex: 1,
+    backgroundColor: ClinicianTheme.accent,
+    borderRadius: Radius.xl,
+    paddingVertical: Spacing.base,
+    alignItems: 'center',
+  },
+  continueBtnText: {
+    color: Colors.white,
+    fontWeight: '700',
+    fontSize: Typography.size.base,
   },
 });

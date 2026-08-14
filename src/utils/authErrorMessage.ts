@@ -1,6 +1,21 @@
+import { Platform } from 'react-native';
 import type { UserRole } from '../types';
 
 export type AuthErrorContext = 'signin' | 'signup' | 'general';
+
+/** Normalize Firebase Auth / RN Firebase error codes (with or without `auth/` prefix). */
+export function authErrorCode(err: unknown): string {
+  const raw = String((err as { code?: string })?.code ?? '').trim();
+  if (raw) return raw.startsWith('auth/') ? raw : `auth/${raw}`;
+
+  const message = String((err as { message?: string })?.message ?? '');
+  const match = message.match(/auth\/[a-z0-9-]+/i);
+  return match ? match[0].toLowerCase() : '';
+}
+
+export function isAuthNetworkError(err: unknown): boolean {
+  return authErrorCode(err) === 'auth/network-request-failed';
+}
 
 /** Map Firebase / Firestore errors to clear, user-facing messages. */
 export function authErrorMessage(
@@ -8,8 +23,10 @@ export function authErrorMessage(
   fallback = 'Something went wrong. Please try again.',
   context: AuthErrorContext = 'general',
 ): string {
-  const code = (err as { code?: string })?.code ?? '';
+  const code = authErrorCode(err);
   const message = (err as { message?: string })?.message ?? '';
+  const withDebug = (text: string) =>
+    __DEV__ && code ? `${text} (${code})` : text;
 
   switch (code) {
     case 'auth/email-already-in-use':
@@ -42,8 +59,19 @@ export function authErrorMessage(
         ? 'Too many attempts. Wait a minute, then try again.'
         : 'Too many sign-in attempts. Please wait a few minutes and try again.';
 
-    case 'auth/network-request-failed':
-      return 'Unable to connect. Check your internet connection and try again.';
+    case 'auth/network-request-failed': {
+      // Often a transient Auth/service blip — not proof the device is offline.
+      // Android-only failures (iOS OK) usually mean Play Services / SHA / API key app restrictions.
+      // Production: short copy only. DEV Android: SHA / Play Services guidance for setup.
+      const base =
+        'Unable to connect. Check your internet connection and try again.';
+      if (__DEV__ && Platform.OS === 'android') {
+        return withDebug(
+          `${base} On Android, confirm Google Play Services and register the debug/release SHA-1 in Firebase Console for afras.wellnessshiftrn.android.`,
+        );
+      }
+      return withDebug(base);
+    }
 
     case 'auth/unauthorized-continue-uri':
     case 'auth/invalid-continue-uri':
@@ -54,7 +82,10 @@ export function authErrorMessage(
       return 'Could not save your profile. Please try again in a moment, or sign out and create your account again.';
 
     default:
-      if (__DEV__ && message) return message;
+      // Never map unknown / credential errors to a network message.
+      if (__DEV__ && (code || message)) {
+        return code ? `${message || fallback} (${code})` : message;
+      }
       return fallback;
   }
 }

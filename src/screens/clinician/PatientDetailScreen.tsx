@@ -15,8 +15,9 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Typography, Spacing, Radius } from '../../theme';
 import { ClinicianTheme, ClinicianType } from '../../theme/clinicianTheme';
 import { AppCard, AnimatedPressable, ScreenHeader } from '../../components/ui';
-import type { ClinicianStackParamList, CustomCarePlan, UserGender } from '../../types';
+import type { CarePlan, ClinicianStackParamList, CustomCarePlan, UserGender } from '../../types';
 import { clinicianService, type ClinicianPatientProfile } from '../../services/clinicianService';
+import { carePlanService } from '../../services/firebase';
 import { patientDashboardService, type PatientDashboardData } from '../../services/patientDashboardService';
 import AppScreen from '../../components/common/AppScreen';
 import { initialsFromName, resolveDisplayName } from '../../utils/greetingName';
@@ -65,6 +66,7 @@ export default function PatientDetailScreen() {
 
   const [profile, setProfile] = useState<ClinicianPatientProfile | null>(null);
   const [plans, setPlans] = useState<CustomCarePlan[]>([]);
+  const [liveCarePlan, setLiveCarePlan] = useState<CarePlan | null>(null);
   const [dashboard, setDashboard] = useState<PatientDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -118,6 +120,12 @@ export default function PatientDetailScreen() {
     setLoading(true);
     load().finally(() => setLoading(false));
   }, [load]);
+
+  useEffect(() => {
+    return carePlanService.watchCarePlans(routePatient.uid, (list) => {
+      setLiveCarePlan(list[0] ?? null);
+    });
+  }, [routePatient.uid]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -325,15 +333,43 @@ export default function PatientDetailScreen() {
           </View>
         ) : null}
 
-        <Text style={styles.sectionTitle}>Care plans ({plans.length})</Text>
-        {plans.length === 0 ? (
+        <Text style={styles.sectionTitle}>Care plan</Text>
+        {liveCarePlan?.tasks?.length ? (
+          <AppCard>
+            <Text style={styles.planTitle}>{liveCarePlan.title}</Text>
+            <Text style={styles.planMeta}>
+              {liveCarePlan.tasks.filter((t) => t.isComplete).length} of {liveCarePlan.tasks.length} complete
+            </Text>
+            {liveCarePlan.tasks.map((task) => (
+              <View key={task.id} style={styles.taskRow}>
+                <Ionicons
+                  name={task.isComplete ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={20}
+                  color={task.isComplete ? Colors.success : Colors.textTertiary}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.taskTitle, task.isComplete && styles.taskTitleDone]}>
+                    {task.title}
+                  </Text>
+                  {task.completedAt ? (
+                    <Text style={styles.taskDoneAt}>
+                      Done {new Date(task.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </Text>
+                  ) : (
+                    <Text style={styles.taskPending}>Not done yet</Text>
+                  )}
+                </View>
+              </View>
+            ))}
+          </AppCard>
+        ) : plans.length === 0 ? (
           <AppCard style={styles.emptyCard}>
-            <Text style={styles.empty}>No care plans yet. Create one for this patient.</Text>
+            <Text style={styles.empty}>No care plan yet. Recommend Fitness Hub modules for this patient.</Text>
             <AnimatedPressable
               style={styles.emptyBtn}
-              onPress={() => navigation.navigate(Screen.createCarePlan, { patient: linkedPatient })}
+              onPress={() => navigation.navigate(Screen.fitnessRecommendations, { patient: linkedPatient })}
             >
-              <Text style={styles.emptyBtnText}>Create care plan</Text>
+              <Text style={styles.emptyBtnText}>Recommend modules</Text>
             </AnimatedPressable>
           </AppCard>
         ) : (
@@ -342,7 +378,7 @@ export default function PatientDetailScreen() {
               <Text style={styles.planTitle}>{plan.planName}</Text>
               <Text style={styles.planDesc}>{plan.description}</Text>
               <Text style={styles.planMeta}>
-                {plan.recommendations.length} tasks · {plan.planStatus ?? 'sent'}
+                {plan.recommendations.length} items · {plan.planStatus ?? 'sent'}
               </Text>
             </AppCard>
           ))
@@ -605,5 +641,17 @@ const styles = StyleSheet.create({
   planCard: { gap: 4 },
   planTitle: { fontSize: Typography.size.base, fontWeight: '700', color: Colors.text },
   planDesc: { fontSize: Typography.size.sm, color: Colors.textSecondary },
-  planMeta: { fontSize: Typography.size.xs, color: Colors.textTertiary, marginTop: 4 },
+  planMeta: { fontSize: Typography.size.xs, color: Colors.textTertiary, marginTop: 4, marginBottom: Spacing.sm },
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderLight,
+  },
+  taskTitle: { fontSize: Typography.size.sm, fontWeight: '700', color: Colors.text },
+  taskTitleDone: { color: Colors.textSecondary, textDecorationLine: 'line-through' },
+  taskDoneAt: { fontSize: Typography.size.xs, color: Colors.success, marginTop: 2 },
+  taskPending: { fontSize: Typography.size.xs, color: Colors.textTertiary, marginTop: 2 },
 });

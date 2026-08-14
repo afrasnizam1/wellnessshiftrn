@@ -3,15 +3,16 @@ import React, { useState } from 'react';
 import { Screen } from '../../navigation/screenNames';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  KeyboardAvoidingView, ScrollView, ActivityIndicator,
+  KeyboardAvoidingView, ScrollView,
   Platform, Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
-import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
-import { AppTextField } from '../../components/ui';
+import { AppTextField, BrandButton } from '../../components/ui';
 import AuthLandingScreen from '../../components/auth/AuthLandingScreen';
+import AuthFormHeader from '../../components/auth/AuthFormHeader';
 import { firebaseAuth, userService } from '../../services/firebase';
 import { ensureAuthReadyForUid } from '../../services/firebaseReady';
 import { signInWithApple, signInWithGoogle, resolveCurrentUserProfile } from '../../services/socialAuth';
@@ -28,10 +29,32 @@ import { isGoogleSignInConfigured } from '../../config/appConfig';
 import {
   authErrorMessage,
   accountTypeMismatchMessage,
+  authErrorCode,
 } from '../../utils/authErrorMessage';
+import type { UserProfile } from '../../types';
+import { logger } from '../../utils/logger';
+
+const PROFILE_FETCH_RETRY_MS = 250;
+const PROFILE_FETCH_RETRY_ATTEMPTS = 5;
+
+type SignInRoute = RouteProp<
+  { [Screen.signIn]: { role?: 'patient' | 'clinician' } | undefined },
+  typeof Screen.signIn
+>;
+
+async function loadProfileWithRetry(uid: string): Promise<UserProfile | null> {
+  let profile = await userService.getProfile(uid);
+  for (let attempt = 0; !profile && attempt < PROFILE_FETCH_RETRY_ATTEMPTS; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, PROFILE_FETCH_RETRY_MS));
+    profile = await userService.getProfile(uid);
+  }
+  return profile;
+}
 
 export default function SignInScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<SignInRoute>();
+  const initialRole = route.params?.role === 'clinician' ? 'clinician' : 'patient';
   const {
     setUser,
     setWellnessScore,
@@ -41,8 +64,11 @@ export default function SignInScreen() {
     setClinicianProfileReady,
   } = useAppStore();
 
-  const [mode, setMode] = useState<'landing' | 'email'>('landing');
-  const [role, setRole] = useState<'patient' | 'clinician'>('patient');
+  // Clinicians arriving from Welcome / Purpose skip straight to email form.
+  const [mode, setMode] = useState<'landing' | 'email'>(
+    route.params?.role ? 'email' : 'landing',
+  );
+  const [role, setRole] = useState<'patient' | 'clinician'>(initialRole);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -70,18 +96,48 @@ export default function SignInScreen() {
     setLoading(true);
     try {
       const cred = await firebaseAuth.signInWithEmail(email.trim(), password);
-      await ensureAuthReadyForUid(cred.user.uid);
-      const profile = await userService.getProfile(cred.user.uid);
-      if (profile && profile.role !== role) {
+
+      // Auth already succeeded — do not surface token warm-up / network races as
+      // a hard sign-in failure (common on Android after signInWithEmailAndPassword).
+      await ensureAuthReadyForUid(cred.user.uid).catch((warmErr) => {
+        if (__DEV__) {
+          logger.warn(
+            '[SignIn] auth warm-up failed (continuing):',
+            authErrorCode(warmErr) || warmErr,
+          );
+        }
+      });
+
+      const profile = await loadProfileWithRetry(cred.user.uid);
+
+      if (!profile) {
+        // Keep the Firebase session so RootNavigator ensureProfile can recover;
+        // only clear it when we know the account type is wrong.
+        setFormError(
+          "Signed in, but couldn't load your profile yet. Wait a moment and try again — check Account Type if this keeps happening.",
+        );
+        return;
+      }
+
+      if (profile.role !== role) {
         await firebaseAuth.signOut().catch(() => {});
         setFormError(accountTypeMismatchMessage(role, profile.role));
         return;
       }
-      if (profile) {
-        setUser(profile);
-        await contentsquareService.onAuthSuccess(profile);
+
+      // Force clinician gate to re-resolve so a stale ready flag cannot skip the portal.
+      // Gate/profile work runs in RootNavigator — never let it fail this catch path.
+      if (profile.role === 'clinician') {
+        setClinicianProfileReady(false);
       }
+      setUser(profile);
+      contentsquareService.onAuthSuccess(profile).catch((csqErr) => {
+        console.warn('[SignIn] Contentsquare onAuthSuccess failed:', csqErr);
+      });
     } catch (err: unknown) {
+      if (__DEV__) {
+        logger.warn('[SignIn] failed:', authErrorCode(err) || err);
+      }
       setFormError(authErrorMessage(err, 'Sign in failed. Please try again.', 'signin'));
     } finally {
       setLoading(false);
@@ -184,42 +240,49 @@ export default function SignInScreen() {
   }
 
   return (
-    <View style={styles.root}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.formScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <TouchableOpacity
-            onPress={() => setMode('landing')}
-            style={styles.closeBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-          >
-            <Ionicons name="close" size={20} color={Colors.text} />
-          </TouchableOpacity>
-
+    <AuthFormHeader
+      title="Welcome Back"
+      subtitle={
+        role === 'clinician'
+          ? 'Sign in to your clinician portal'
+          : 'Sign in to continue your wellness journey'
+      }
+      onBack={() => (route.params?.role ? navigation.goBack() : setMode('landing'))}
+    >
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={styles.formScroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
           <SensitiveCSQMask>
-            <View style={styles.header}>
-              <View style={styles.headerIconCircle}>
-                <Ionicons name="person" size={28} color={Colors.white} />
-              </View>
-              <Text style={styles.headerTitle}>Welcome Back</Text>
-              <Text style={styles.headerSubtitle}>Sign in to continue your wellness journey</Text>
-            </View>
-
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Ionicons name="people" size={18} color={Colors.primary} />
+                <View style={[styles.cardIconWrap, styles.cardIconPurple]}>
+                  <Ionicons name="people" size={16} color={Colors.purple} />
+                </View>
                 <Text style={styles.cardHeaderText}>Account Type</Text>
               </View>
               <View style={styles.segmented}>
                 <TouchableOpacity
                   style={[styles.segment, role === 'patient' && styles.segmentActive]}
                   onPress={() => { setRole('patient'); clearFormError(); }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: role === 'patient' }}
                 >
                   <Text style={[styles.segmentText, role === 'patient' && styles.segmentTextActive]}>Patient</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.segment, role === 'clinician' && styles.segmentActive]}
                   onPress={() => { setRole('clinician'); clearFormError(); }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: role === 'clinician' }}
                 >
                   <Text style={[styles.segmentText, role === 'clinician' && styles.segmentTextActive]}>Clinician</Text>
                 </TouchableOpacity>
@@ -228,7 +291,9 @@ export default function SignInScreen() {
 
             <View style={styles.card}>
               <View style={styles.cardHeader}>
-                <Ionicons name="lock-closed" size={18} color={Colors.primary} />
+                <View style={[styles.cardIconWrap, styles.cardIconBrand]}>
+                  <Ionicons name="lock-closed" size={16} color={Colors.brand} />
+                </View>
                 <Text style={styles.cardHeaderText}>Credentials</Text>
               </View>
               <View style={styles.fieldGap}>
@@ -236,6 +301,7 @@ export default function SignInScreen() {
                   label="Email"
                   leftIcon="mail-outline"
                   placeholder="your@email.com"
+                  placeholderTextColor={Colors.textSecondary}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -251,6 +317,7 @@ export default function SignInScreen() {
                   label="Password"
                   leftIcon="lock-closed-outline"
                   placeholder="••••••••"
+                  placeholderTextColor={Colors.textSecondary}
                   secureToggle
                   value={password}
                   onChangeText={(v) => {
@@ -271,26 +338,20 @@ export default function SignInScreen() {
                 <Text style={styles.errorBannerText}>{formError}</Text>
               </View>
             ) : null}
-
-            <TouchableOpacity onPress={handleSignIn} disabled={loading || !!socialLoading} activeOpacity={0.9}>
-              <LinearGradient
-                colors={[Colors.purple, Colors.purpleLight]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={[styles.submitBtn, (loading || !!socialLoading) && styles.submitBtnDisabled]}
-              >
-                {loading ? (
-                  <ActivityIndicator color={Colors.white} size="small" />
-                ) : (
-                  <Text style={styles.submitText}>Sign In</Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.linkRow} onPress={handleForgotPassword}>
-              <Text style={styles.linkText}>Forgot Password?</Text>
-            </TouchableOpacity>
           </SensitiveCSQMask>
+
+          {/* BrandButton: solid base + absolute gradient + white label — Android-safe */}
+          <BrandButton
+            label="Sign In"
+            onPress={handleSignIn}
+            loading={loading}
+            disabled={!!socialLoading}
+            style={styles.submitWrap}
+          />
+
+          <TouchableOpacity style={styles.linkRow} onPress={handleForgotPassword}>
+            <Text style={styles.linkText}>Forgot Password?</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate(Screen.createAccount)} style={styles.switchRow}>
             <Text style={styles.switchPrompt}>Don't have an account? </Text>
@@ -298,41 +359,41 @@ export default function SignInScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </AuthFormHeader>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
-  formScroll: { flexGrow: 1, padding: Spacing.xl, paddingBottom: Spacing['2xl'] },
-  closeBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: Colors.surface,
-    alignItems: 'center', justifyContent: 'center',
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.md,
+  flex: { flex: 1 },
+  formScroll: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.base,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.xl,
   },
-  header: { alignItems: 'center', marginBottom: Spacing.xl },
-  headerIconCircle: {
-    width: 70, height: 70, borderRadius: 35,
-    backgroundColor: Colors.purple,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  headerTitle: { fontSize: Typography.size.xl, fontWeight: '800', color: Colors.text },
-  headerSubtitle: { fontSize: Typography.size.sm, color: Colors.textSecondary, marginTop: Spacing.xs },
   card: {
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
     padding: Spacing.base,
     marginBottom: Spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
     ...Shadow.sm,
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.md },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.md },
+  cardIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardIconPurple: { backgroundColor: Colors.primaryBg },
+  cardIconBrand: { backgroundColor: Colors.brandSubtle },
   cardHeaderText: { fontSize: Typography.size.base, fontWeight: '700', color: Colors.text },
   segmented: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.backgroundAlt,
     borderRadius: Radius.xl,
     padding: 4,
   },
@@ -342,9 +403,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: Radius.xl,
   },
-  segmentActive: { backgroundColor: Colors.white, ...Shadow.sm },
+  segmentActive: {
+    backgroundColor: Colors.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(140, 89, 191, 0.28)',
+    ...Shadow.sm,
+  },
   segmentText: { fontSize: Typography.size.sm, color: Colors.textSecondary, fontWeight: '600' },
-  segmentTextActive: { color: Colors.text, fontWeight: '700' },
+  segmentTextActive: { color: Colors.purple, fontWeight: '700' },
   fieldGap: { gap: Spacing.md },
   errorBanner: {
     flexDirection: 'row',
@@ -364,19 +430,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 20,
   },
-  submitBtn: {
-    height: 56,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Spacing.sm,
-    ...Shadow.md,
-  },
-  submitBtnDisabled: { opacity: 0.55 },
-  submitText: { color: Colors.white, fontSize: Typography.size.md, fontWeight: '700' },
+  submitWrap: { marginTop: Spacing.sm },
   linkRow: { alignItems: 'center', marginTop: Spacing.md },
-  linkText: { fontSize: Typography.size.sm, color: Colors.primary, fontWeight: '600' },
+  linkText: { fontSize: Typography.size.sm, color: Colors.purple, fontWeight: '600' },
   switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: Spacing.xl },
-  switchPrompt: { fontSize: Typography.size.sm, color: Colors.textSecondary },
-  switchLink: { fontSize: Typography.size.sm, color: Colors.primary, fontWeight: '700' },
+  switchPrompt: { fontSize: Typography.size.sm, color: Colors.text },
+  switchLink: { fontSize: Typography.size.sm, color: Colors.purple, fontWeight: '700' },
 });

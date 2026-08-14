@@ -38,6 +38,9 @@ import NextBestActions from '../../components/home/NextBestActions';
 import WeeklyStepChallenge from '../../components/home/WeeklyStepChallenge';
 import AssessmentInsights from '../../components/home/AssessmentInsights';
 import BiologicalAgeCard from '../../components/home/BiologicalAgeCard';
+import ScoreImprovementCard from '../../components/wellness/ScoreImprovementCard';
+import { getScoreImprovementAdvice } from '../../utils/recommendedModules';
+import { navigateToLinkedModule } from '../../utils/fitnessModuleRouter';
 import BodyMetricsCard from '../../components/home/BodyMetricsCard';
 import HomePurposeLeadCard from '../../components/home/HomePurposeLeadCard';
 import ClinicianRecommendationsCard from '../../components/home/ClinicianRecommendationsCard';
@@ -525,20 +528,6 @@ export default function HomeScreen() {
           <MarketingHero onStartQuiz={openWellnessQuiz} />
         )}
 
-        {carePlan ? (
-          <CarePlanBanner
-            carePlan={carePlan}
-            isNew={hasUnseenCarePlan}
-            onPress={() => {
-              if (user?.clinicianId) {
-                navigation.navigate(Screen.tabMyCare, { screen: Screen.carePlan });
-              } else {
-                navigation.navigate(Screen.tabMore, { screen: Screen.carePlan });
-              }
-            }}
-          />
-        ) : null}
-
         <View style={styles.greetingRow}>
           <AnimatedPressable
             onPress={openProfile}
@@ -563,6 +552,20 @@ export default function HomeScreen() {
             <Text style={styles.dateText}>{format(new Date(), 'EEE, d MMM')}</Text>
           </View>
         </View>
+
+        {carePlan ? (
+          <CarePlanBanner
+            carePlan={carePlan}
+            isNew={hasUnseenCarePlan}
+            onPress={() => {
+              if (user?.clinicianId) {
+                navigation.navigate(Screen.tabMyCare, { screen: Screen.carePlan });
+              } else {
+                navigation.navigate(Screen.tabMore, { screen: Screen.carePlan });
+              }
+            }}
+          />
+        ) : null}
 
         {user?.primaryGoal && (
           <GoalReminderCard goal={user.primaryGoal as any} />
@@ -642,6 +645,14 @@ export default function HomeScreen() {
           onImproveScore={openWellnessQuiz}
           onAddDateOfBirth={openProfile}
         />
+
+        {hasAssessment ? (
+          <ScoreImprovementCard
+            plan={getScoreImprovementAdvice(wellnessScore?.categories, 3)}
+            canOpenModules
+            onOpenModule={(title) => navigateToLinkedModule(navigation, title)}
+          />
+        ) : null}
 
         <BodyMetricsCard
           activity={activity}

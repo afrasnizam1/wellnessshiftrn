@@ -14,7 +14,8 @@
     "deploy:backend": "firebase deploy --only firestore,functions",
     "deploy:rules": "firebase deploy --only firestore:rules --project wellnessshift-rn-ios",
     "deploy:hosting": "firebase deploy --only hosting --project wellnessshift-rn-ios",
-    "generate:icons": "python3 scripts/generate-app-icons.py"
+    "generate:icons": "python3 scripts/generate-app-icons.py",
+    "bundle:hologram": "npx esbuild src/hologram/androidHologramViewer.ts --bundle --format=iife --platform=browser --outfile=android/app/src/main/assets/hologram/viewer.js --minify"
   },
   "dependencies": {
     "@contentsquare/react-native-bridge": "^6.4.0",

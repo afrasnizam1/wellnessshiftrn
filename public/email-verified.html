@@ -9,7 +9,7 @@
     body {
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background: linear-gradient(160deg, #f0f2f8 0%, #ede8ff 45%, #fff0f5 100%);
+      background: linear-gradient(160deg, #e8e4f8 0%, #ddd6f3 42%, #f3eefc 100%);
       color: #1c1c1e;
       display: flex;
       align-items: center;
@@ -20,67 +20,148 @@
       width: 100%;
       max-width: 420px;
       background: #fff;
-      border-radius: 24px;
-      padding: 40px 32px;
+      border-radius: 28px;
+      padding: 40px 32px 32px;
       text-align: center;
-      box-shadow: 0 8px 32px rgba(28, 28, 30, 0.08);
-      border: 1px solid rgba(140, 89, 191, 0.12);
+      box-shadow: 0 10px 36px rgba(92, 45, 145, 0.10);
     }
     .icon {
       width: 72px;
       height: 72px;
-      margin: 0 auto 20px;
+      margin: 0 auto 22px;
       border-radius: 50%;
-      background: rgba(52, 199, 89, 0.12);
+      background: #d8f5e2;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 36px;
-      line-height: 1;
     }
+    .icon svg { width: 34px; height: 34px; }
     h1 {
-      font-size: 1.5rem;
+      font-size: 1.65rem;
       font-weight: 800;
-      letter-spacing: -0.02em;
-      margin-bottom: 12px;
-      color: #1c1c1e;
+      letter-spacing: -0.03em;
+      margin-bottom: 14px;
+      color: #111;
     }
     p {
-      font-size: 1rem;
-      line-height: 1.55;
+      font-size: 1.02rem;
+      line-height: 1.5;
       color: #6c6c70;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .highlight {
-      margin-top: 20px;
-      padding: 16px;
-      border-radius: 16px;
-      background: #f3eeff;
+      margin-top: 22px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: #ece6f8;
       color: #5c2d91;
-      font-weight: 600;
-      font-size: 0.95rem;
+      font-weight: 500;
+      font-size: 0.98rem;
       line-height: 1.45;
     }
     .brand {
       margin-top: 28px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: #8c59bf;
+      color: #7b4bb8;
     }
+    .status { min-height: 1.2em; }
+    .error-title { color: #1c1c1e; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <main class="card">
-    <div class="icon" aria-hidden="true">✓</div>
-    <h1>You're all set!</h1>
-    <p>Great — your account has been verified.</p>
-    <p>You can now log into the Wellness Shift app on your phone.</p>
-    <div class="highlight">
-      Return to the app and tap <strong>I've verified, continue</strong> to finish signing in.
+    <div id="panel-loading">
+      <div class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9" opacity="0.25"/>
+        </svg>
+      </div>
+      <h1>Confirming…</h1>
+      <p class="status">Please wait a moment.</p>
     </div>
-    <p class="brand">Wellness Shift</p>
+
+    <div id="panel-success" class="hidden">
+      <div class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 12.5l4 4 8-9"/>
+        </svg>
+      </div>
+      <h1>You're all set!</h1>
+      <p>Great — your account has been verified.</p>
+      <p>You can now log into the Wellness Shift app on your phone.</p>
+      <div class="highlight">
+        Return to the app and tap <strong>I've verified, continue</strong> to finish signing in.
+      </div>
+      <p class="brand">Wellness Shift</p>
+    </div>
+
+    <div id="panel-error" class="hidden">
+      <div class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.4" stroke-linecap="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 8v5"/>
+          <circle cx="12" cy="16.2" r="0.8" fill="#111" stroke="none"/>
+        </svg>
+      </div>
+      <h1 class="error-title">Couldn't confirm</h1>
+      <p id="error-message">This verification link is invalid or has expired. Return to the app and request a new email.</p>
+      <p class="brand">Wellness Shift</p>
+    </div>
   </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var mode = params.get('mode');
+      var oobCode = params.get('oobCode');
+      var apiKey = params.get('apiKey') || 'AIzaSyCxbnbGcTlLnW2TAWVLSBR8Kd-XDt59ldg';
+
+      function show(id) {
+        ['panel-loading', 'panel-success', 'panel-error'].forEach(function (key) {
+          document.getElementById(key).classList.toggle('hidden', key !== id);
+        });
+      }
+
+      function showError(message) {
+        if (message) document.getElementById('error-message').textContent = message;
+        show('panel-error');
+      }
+
+      // Continue-URL visits (no oobCode) already verified — show the same success card.
+      if (!oobCode) {
+        show('panel-success');
+        return;
+      }
+
+      if (mode && mode !== 'verifyEmail') {
+        showError('This link is not an email verification link. Open it from the verification email we sent you.');
+        return;
+      }
+
+      firebase.initializeApp({
+        apiKey: apiKey,
+        authDomain: 'wellnessshift-rn-ios.firebaseapp.com',
+        projectId: 'wellnessshift-rn-ios',
+      });
+
+      firebase.auth().applyActionCode(oobCode).then(function () {
+        show('panel-success');
+      }).catch(function (err) {
+        var code = err && err.code;
+        // Link already used (user refreshed, or Mail prefetched) — still show success.
+        if (code === 'auth/invalid-action-code' || code === 'auth/expired-action-code') {
+          show('panel-success');
+          return;
+        }
+        showError('This verification link is invalid or has expired. Return to the app and request a new email.');
+      });
+    })();
+  </script>
 </body>
 </html>

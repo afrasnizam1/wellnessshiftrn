@@ -473,14 +473,42 @@ export default function IntroVideoScreen() {
                 disabled={finishing}
                 style={styles.cta}
               />
-              <AnimatedPressable
-                onPress={finish}
-                disabled={finishing}
-                accessibilityRole="button"
-                accessibilityLabel="Skip welcome"
-              >
-                <Text style={styles.skip}>Skip</Text>
-              </AnimatedPressable>
+              {!user ? (
+                <>
+                  <AnimatedPressable
+                    onPress={() =>
+                      navigation.navigate(Screen.authentication, {
+                        screen: Screen.signIn,
+                        params: { role: 'clinician' },
+                      })
+                    }
+                    disabled={finishing}
+                    accessibilityRole="button"
+                    accessibilityLabel="Clinician sign in"
+                  >
+                    <Text style={styles.clinicianSignIn}>I'm a clinician — Sign in</Text>
+                  </AnimatedPressable>
+                  <AnimatedPressable
+                    onPress={() =>
+                      navigation.navigate(Screen.authentication, { screen: Screen.signIn })
+                    }
+                    disabled={finishing}
+                    accessibilityRole="button"
+                    accessibilityLabel="Sign in"
+                  >
+                    <Text style={styles.skip}>Already have an account? Sign in</Text>
+                  </AnimatedPressable>
+                </>
+              ) : (
+                <AnimatedPressable
+                  onPress={finish}
+                  disabled={finishing}
+                  accessibilityRole="button"
+                  accessibilityLabel="Skip welcome"
+                >
+                  <Text style={styles.skip}>Skip</Text>
+                </AnimatedPressable>
+              )}
             </>
           )}
         </View>
@@ -697,6 +725,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     fontSize: Typography.size.sm,
     fontWeight: '600',
+    paddingVertical: Spacing.xs,
+  },
+  clinicianSignIn: {
+    color: Colors.white,
+    fontSize: Typography.size.sm,
+    fontWeight: '700',
     paddingVertical: Spacing.xs,
   },
 });

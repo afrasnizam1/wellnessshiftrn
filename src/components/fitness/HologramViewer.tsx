@@ -9,9 +9,7 @@ type NativeProps = {
   style?: ViewStyle;
 };
 
-const NativeHologramSceneView = Platform.OS === 'ios'
-  ? requireNativeComponent<NativeProps>('HologramSceneView')
-  : null;
+const NativeHologramSceneView = requireNativeComponent<NativeProps>('HologramSceneView');
 
 type Props = {
   modelFile: string;
@@ -19,32 +17,31 @@ type Props = {
   height?: number;
 };
 
-/** Native SceneKit hologram viewer — uses the same USDZ assets as the iOS native app. */
+/** Native SceneKit (iOS) / Three.js USD viewer (Android) — same USDZ assets. */
 export default function HologramViewer({ modelFile, preset, height = 300 }: Props) {
-  if (Platform.OS === 'ios' && NativeHologramSceneView) {
-    const SceneView = NativeHologramSceneView;
+  if (!NativeHologramSceneView) {
     return (
-      <View style={[styles.wrap, { height }]}>
-        <SceneView
-          modelFile={modelFile}
-          preset={preset}
-          style={styles.nativeView}
-        />
-        <View style={styles.hintBar}>
-          <Text style={styles.hint}>Pinch & drag to rotate · Double-tap to reset</Text>
-        </View>
+      <View style={[styles.fallback, { height }]}>
+        <Text style={styles.fallbackIcon}>🧬</Text>
+        <Text style={styles.fallbackTitle}>3D hologram</Text>
+        <Text style={styles.fallbackText}>This anatomy model could not be loaded on this device.</Text>
+        <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing.sm }} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.fallback, { height }]}>
-      <Text style={styles.fallbackIcon}>🧬</Text>
-      <Text style={styles.fallbackTitle}>Native hologram model</Text>
-      <Text style={styles.fallbackText}>
-        This 3D anatomy hologram uses the same USDZ assets as the native iOS app and is available on iPhone and iPad.
-      </Text>
-      <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing.sm }} />
+    <View style={[styles.wrap, { height }]}>
+      <NativeHologramSceneView
+        modelFile={modelFile}
+        preset={preset}
+        style={styles.nativeView}
+      />
+      {Platform.OS === 'ios' ? (
+        <View style={styles.hintBar}>
+          <Text style={styles.hint}>Pinch & drag to rotate · Double-tap to reset</Text>
+        </View>
+      ) : null}
     </View>
   );
 }

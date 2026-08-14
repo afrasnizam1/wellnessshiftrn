@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
+  Platform,
   type ViewStyle,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -106,6 +107,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
+    elevation: 1,
   },
   outlineBtn: {
     borderRadius: Radius.pill,
@@ -124,11 +126,12 @@ const styles = StyleSheet.create({
   },
   disabled: { opacity: 0.55 },
   label: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: Typography.size.base,
     fontWeight: '700',
     letterSpacing: -0.2,
     textAlign: 'center',
+    ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
   },
   outlineLabel: {
     color: Colors.primary,

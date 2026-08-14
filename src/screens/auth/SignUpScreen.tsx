@@ -248,7 +248,7 @@ export default function SignUpScreen() {
       }
     } catch (err: unknown) {
       console.warn('Sign up failed:', err);
-      Alert.alert('Error', authErrorMessage(err, 'Account creation failed. Please try again.'));
+      Alert.alert('Error', authErrorMessage(err, 'Account creation failed. Please try again.', 'signup'));
     } finally {
       setLoading(false);
     }
@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
   submitText: { color: Colors.white, fontSize: Typography.size.md, fontWeight: '700' },
   switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: Spacing.xl },
   switchPrompt: { fontSize: Typography.size.sm, color: Colors.textSecondary },
-  switchLink: { fontSize: Typography.size.sm, color: Colors.primary, fontWeight: '700' },
+  switchLink: { fontSize: Typography.size.sm, color: Colors.purple, fontWeight: '700' },
 });
 
 const modalStyles = StyleSheet.create({

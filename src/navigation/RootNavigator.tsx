@@ -63,6 +63,7 @@ import {
   isSimulatorOrEmulator,
   setDeferredSimulatorSession,
 } from '../services/simulatorLaunch';
+import firestore from '@react-native-firebase/firestore';
 import { Screen } from './screenNames';
 import { logger } from '../utils/logger';
 
@@ -133,10 +134,22 @@ async function ensureProfile(firebaseUser: { uid: string; email: string | null; 
 
   if (!profile) {
     try {
+      // If users/{uid} was briefly unreadable, a clinicians/{uid} doc still means
+      // this account is a clinician — never default them to patient.
+      let inferredRole: UserProfile['role'] = 'patient';
+      try {
+        const clinicianDoc = await firestore().collection('clinicians').doc(firebaseUser.uid).get();
+        if (clinicianDoc.exists()) {
+          inferredRole = 'clinician';
+        }
+      } catch (roleProbeError) {
+        console.warn('[ensureProfile] clinician role probe failed:', roleProbeError);
+      }
+
       await userService.createProfile(firebaseUser.uid, {
         displayName: firebaseUser.displayName || 'User',
         email: firebaseUser.email || '',
-        role: 'patient',
+        role: inferredRole,
       });
       profile = await userService.getProfile(firebaseUser.uid);
     } catch (error) {

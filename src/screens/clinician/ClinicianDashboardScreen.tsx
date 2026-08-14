@@ -154,7 +154,6 @@ export default function ClinicianDashboardScreen() {
 
   const PRACTICE_TOOLS = [
     { icon: 'layers-outline' as const, title: 'Bulk actions', subtitle: 'Batch tools', screen: Screen.bulkActions },
-    { icon: 'clipboard-outline' as const, title: 'Templates', subtitle: 'Body-system care plans', screen: Screen.messageTemplates },
     { icon: 'calendar-outline' as const, title: 'Schedule', subtitle: 'Visit planning', screen: Screen.clinicianSchedule },
     { icon: 'chatbubble-ellipses-outline' as const, title: 'Conversation starters', subtitle: 'Visit prompts', screen: Screen.conversationStarters },
     { icon: 'notifications-outline' as const, title: 'Between visits', subtitle: 'Support nudges', screen: Screen.betweenVisits },

@@ -115,9 +115,17 @@ android {
     }
 }
 
+tasks.register("copyHologramModels", Copy) {
+    from("${rootDir}/../ios/WellnessShift/Models")
+    include("*.usdz")
+    into("${projectDir}/src/main/assets/hologram/models")
+}
+preBuild.dependsOn("copyHologramModels")
+
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    implementation("androidx.webkit:webkit:1.14.0")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

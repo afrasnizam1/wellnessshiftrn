@@ -1,28 +1,38 @@
 // src/screens/more/CarePlanScreen.tsx
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Colors, Typography, Spacing, Radius, Shadow, fitnessModuleIonIcon } from '../../theme';
 import { useAppStore } from '../../store';
-import { clinicianService } from '../../services/clinicianService';
+import { clinicianService, formatClinicianConnectedMessage, normalizeInviteCode } from '../../services/clinicianService';
 import { carePlanService } from '../../services/firebase';
 import { gamificationService } from '../../services/gamificationService';
 import { markCarePlanSeen } from '../../services/carePlanUnseen';
-import type { ConnectionRequest } from '../../types';
+import { Screen } from '../../navigation/screenNames';
+import { FITNESS_MODULES } from '../../data/fitnessData';
+import { openCarePlanTask, resolveCarePlanModuleId } from '../../utils/carePlanActions';
+import type { CarePlanTask, ConnectionRequest } from '../../types';
 import AppScreen from '../../components/common/AppScreen';
-
-const PLAN_TABS = ['Overview', 'Workouts', 'Nutrition', 'Sleep', 'Habits', 'Mindfulness', 'Goals'];
+import { AppCard, BrandButton, IconBadge, ScreenHeader } from '../../components/ui';
 
 export default function CarePlanScreen() {
   const navigation = useNavigation<any>();
-  const { user, carePlan, setCarePlan, setUser, setHasUnseenCarePlan } = useAppStore();
-  const [activeTab, setActiveTab] = useState('Overview');
+  const {
+    user,
+    carePlan,
+    clinicianRecommendations,
+    setCarePlan,
+    setUser,
+    setHasUnseenCarePlan,
+  } = useAppStore();
   const [connectCode, setConnectCode] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<ConnectionRequest[]>([]);
   const [responding, setResponding] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -32,9 +42,34 @@ export default function CarePlanScreen() {
   );
 
   useEffect(() => {
-    if (!user || user.clinicianId) return;
-    return clinicianService.watchPendingRequestsForPatient(user.uid, setPendingRequests);
-  }, [user?.uid, user?.clinicianId]);
+    if (!user) return;
+    const unsubPlans = carePlanService.watchCarePlans(user.uid, (plans) => {
+      setCarePlan(plans[0] ?? null);
+    });
+    if (user.clinicianId) {
+      return () => unsubPlans();
+    }
+    const unsubReq = clinicianService.watchPendingRequestsForPatient(user.uid, setPendingRequests);
+    return () => {
+      unsubPlans();
+      unsubReq();
+    };
+  }, [user?.uid, user?.clinicianId, setCarePlan]);
+
+  const tasks: CarePlanTask[] = useMemo(() => {
+    if (carePlan?.tasks?.length) return carePlan.tasks;
+    const recs = clinicianRecommendations?.recommendedModules ?? [];
+    return recs.map((m) => ({
+      id: m.id,
+      title: m.title,
+      description: m.description,
+      type: 'goal' as const,
+      isComplete: false,
+      moduleId: m.id,
+    }));
+  }, [carePlan?.tasks, clinicianRecommendations]);
+
+  const doneCount = tasks.filter((t) => t.isComplete).length;
 
   const handleApprove = async (request: ConnectionRequest) => {
     if (!user) return;
@@ -44,7 +79,11 @@ export default function CarePlanScreen() {
       setUser({ ...user, clinicianId });
       const plans = await carePlanService.getCarePlans(user.uid);
       if (plans.length > 0) setCarePlan(plans[0]);
-      Alert.alert('Connected!', `You are now linked with ${request.clinicianName}.`);
+      const info = await clinicianService.getPatientClinicianInfo(user.uid).catch(() => null);
+      Alert.alert(
+        'Connected!',
+        formatClinicianConnectedMessage(info ?? { clinicianName: request.clinicianName }),
+      );
       gamificationService.evaluateAchievements(user.uid).catch(() => {});
     } catch (err: any) {
       Alert.alert('Error', err.message ?? 'Could not approve request.');
@@ -64,19 +103,18 @@ export default function CarePlanScreen() {
   };
 
   const handleConnect = async () => {
-    if (connectCode.trim().length < 4) return;
+    const code = normalizeInviteCode(connectCode);
+    if (code.length < 4) return;
     setConnecting(true);
     try {
       if (user) {
-        const clinicianId = await clinicianService.connectWithCode(
-          user.uid,
-          connectCode.trim().toUpperCase()
-        );
+        const clinicianId = await clinicianService.connectWithCode(user.uid, code);
         setUser({ ...user, clinicianId });
         const plans = await carePlanService.getCarePlans(user.uid);
         if (plans.length > 0) setCarePlan(plans[0]);
+        const info = await clinicianService.getPatientClinicianInfo(user.uid).catch(() => null);
+        Alert.alert('Connected!', formatClinicianConnectedMessage(info ?? {}));
       }
-      Alert.alert('Connected!', 'You are now linked with your clinician.');
       setConnectCode('');
     } catch (err: any) {
       Alert.alert('Error', err.message ?? 'Invalid or expired code.');
@@ -85,16 +123,32 @@ export default function CarePlanScreen() {
     }
   };
 
-  if (!carePlan) {
+  const markDone = async (task: CarePlanTask) => {
+    if (!user || !carePlan || task.isComplete) return;
+    setCompletingId(task.id);
+    try {
+      const next = await carePlanService.completeTask(user.uid, carePlan.id, task.id);
+      if (next) setCarePlan(next);
+    } catch {
+      Alert.alert('Could not update', 'Please try again.');
+    } finally {
+      setCompletingId(null);
+    }
+  };
+
+  const backFromCarePlan = () => {
+    const index = navigation.getState()?.index ?? 0;
+    if (index > 0) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate(Screen.tabMyCare, { screen: Screen.myCare });
+  };
+
+  if (!carePlan && tasks.length === 0) {
     return (
-      <AppScreen style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backText}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Care Plan</Text>
-          <View style={{ width: 40 }} />
-        </View>
+      <AppScreen mesh={false} style={styles.safe}>
+        <ScreenHeader title="My Care Plan" onBack={backFromCarePlan} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>🩺</Text>
@@ -141,9 +195,10 @@ export default function CarePlanScreen() {
                 placeholder="e.g. ABC123"
                 placeholderTextColor={Colors.textTertiary}
                 value={connectCode}
-                onChangeText={setConnectCode}
+                onChangeText={(text) => setConnectCode(normalizeInviteCode(text))}
                 autoCapitalize="characters"
-                maxLength={8}
+                autoCorrect={false}
+                maxLength={12}
               />
               <TouchableOpacity
                 style={[styles.connectBtn, connecting && styles.btnDisabled]}
@@ -165,77 +220,79 @@ export default function CarePlanScreen() {
     );
   }
 
-  const tasksByType = (type: string) =>
-    carePlan.tasks.filter((t) => type === 'Overview' || t.type === type.toLowerCase());
-
   return (
-    <AppScreen style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Care Plan</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      {/* Clinician info */}
-      <View style={styles.clinicianBar}>
-        <View style={styles.clinicianAvatar}>
-          <Text style={{ fontSize: 18 }}>🩺</Text>
-        </View>
-        <View style={styles.clinicianInfo}>
-          <Text style={styles.clinicianName}>{carePlan.clinicianName}</Text>
-          <Text style={styles.clinicianSpec}>{carePlan.specialty}</Text>
-        </View>
-        <View style={styles.connectedBadge}>
-          <View style={styles.connectedDot} />
-          <Text style={styles.connectedText}>Connected</Text>
-        </View>
-      </View>
-
-      {/* Tab bar */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabBar}>
-        {PLAN_TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && styles.tabActive]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+    <AppScreen mesh={false} style={styles.safe}>
+      <ScreenHeader title="My Care Plan" onBack={backFromCarePlan} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.planTitle}>{carePlan.title}</Text>
-
-        {tasksByType(activeTab).length === 0 ? (
-          <View style={styles.emptyTab}>
-            <Text style={styles.emptyTabText}>No {activeTab.toLowerCase()} tasks yet</Text>
+        <AppCard>
+          <Text style={styles.fromLabel}>From {carePlan?.clinicianName ?? clinicianRecommendations?.clinicianName}</Text>
+          <Text style={styles.planTitle}>{carePlan?.title ?? 'Your care plan'}</Text>
+          <Text style={styles.planHint}>
+            Open each item, do the activity, then mark it done. Your clinician sees your progress.
+          </Text>
+          <Text style={styles.progressMeta}>
+            {doneCount} of {tasks.length} complete
+          </Text>
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${tasks.length ? (doneCount / tasks.length) * 100 : 0}%` },
+              ]}
+            />
           </View>
-        ) : (
-          tasksByType(activeTab).map((task) => (
-            <View key={task.id} style={[styles.taskCard, task.isComplete && styles.taskCardDone]}>
-              <View style={styles.taskLeft}>
-                <View style={[styles.taskCheckbox, task.isComplete && styles.taskCheckboxDone]}>
-                  {task.isComplete && <Text style={styles.taskCheck}>✓</Text>}
+        </AppCard>
+
+        {tasks.map((task) => {
+          const moduleId = resolveCarePlanModuleId(task);
+          const catalog = moduleId ? FITNESS_MODULES.find((m) => m.id === moduleId) : undefined;
+          const canOpen = !!(moduleId || /check-in|daily plan/i.test(task.title));
+          return (
+            <AppCard key={task.id} style={task.isComplete ? styles.taskDone : undefined}>
+              <View style={styles.taskTop}>
+                {catalog ? (
+                  <IconBadge name={fitnessModuleIonIcon(catalog)} color={catalog.color} size="sm" />
+                ) : (
+                  <View style={[styles.checkIcon, task.isComplete && styles.checkIconDone]}>
+                    <Ionicons
+                      name={task.isComplete ? 'checkmark' : 'ellipse-outline'}
+                      size={18}
+                      color={task.isComplete ? Colors.white : Colors.primary}
+                    />
+                  </View>
+                )}
+                <View style={styles.taskCopy}>
+                  <Text style={[styles.taskTitle, task.isComplete && styles.taskTitleDone]}>
+                    {task.title}
+                  </Text>
+                  {task.description ? (
+                    <Text style={styles.taskDesc}>{task.description}</Text>
+                  ) : null}
                 </View>
               </View>
-              <View style={styles.taskInfo}>
-                <Text style={[styles.taskTitle, task.isComplete && styles.taskTitleDone]}>
-                  {task.title}
-                </Text>
-                <Text style={styles.taskDesc}>{task.description}</Text>
-                {task.dueDate && (
-                  <Text style={styles.taskDue}>Due: {task.dueDate}</Text>
-                )}
+              <View style={styles.taskActions}>
+                {canOpen && !task.isComplete ? (
+                  <BrandButton
+                    label="Open"
+                    variant="outline"
+                    compact
+                    onPress={() => openCarePlanTask(navigation, task)}
+                    style={styles.actionBtn}
+                  />
+                ) : null}
+                <BrandButton
+                  label={task.isComplete ? 'Done' : 'Mark done'}
+                  compact
+                  disabled={task.isComplete}
+                  loading={completingId === task.id}
+                  onPress={() => markDone(task)}
+                  style={styles.actionBtn}
+                />
               </View>
-              <View style={[styles.typePill, { backgroundColor: Colors.primary + '22' }]}>
-                <Text style={[styles.typePillText, { color: Colors.primary }]}>{task.type}</Text>
-              </View>
-            </View>
-          ))
-        )}
+            </AppCard>
+          );
+        })}
         <View style={{ height: Spacing.xl }} />
       </ScrollView>
     </AppScreen>
@@ -244,57 +301,52 @@ export default function CarePlanScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: Spacing.base, paddingVertical: Spacing.md,
-    backgroundColor: Colors.white, borderBottomWidth: 1, borderBottomColor: Colors.border,
-  },
-  backBtn: { width: 40 },
-  backText: { fontSize: 32, color: Colors.primary, lineHeight: 38 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: Typography.size.base, fontWeight: '700', color: Colors.text },
-  clinicianBar: {
-    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    backgroundColor: Colors.white, padding: Spacing.base,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
-  },
-  clinicianAvatar: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: Colors.primaryBg, alignItems: 'center', justifyContent: 'center',
-  },
-  clinicianInfo: { flex: 1 },
-  clinicianName: { fontSize: Typography.size.base, fontWeight: '700', color: Colors.text },
-  clinicianSpec: { fontSize: Typography.size.xs, color: Colors.textSecondary },
-  connectedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  connectedDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.success },
-  connectedText: { fontSize: Typography.size.xs, color: Colors.success, fontWeight: '600' },
-  tabBar: { backgroundColor: Colors.white, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  tab: { paddingHorizontal: Spacing.base, paddingVertical: Spacing.md },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: Colors.primary },
-  tabText: { fontSize: Typography.size.sm, color: Colors.textSecondary },
-  tabTextActive: { color: Colors.primary, fontWeight: '700' },
   content: { padding: Spacing.base, gap: Spacing.md },
-  planTitle: { fontSize: Typography.size.lg, fontWeight: '700', color: Colors.text },
-  taskCard: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md,
-    backgroundColor: Colors.white, borderRadius: Radius.lg,
-    padding: Spacing.base, ...Shadow.sm,
+  fromLabel: {
+    fontSize: Typography.size.xs,
+    fontWeight: '700',
+    color: Colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
-  taskCardDone: { opacity: 0.65 },
-  taskLeft: { paddingTop: 2 },
-  taskCheckbox: {
-    width: 24, height: 24, borderRadius: 12,
-    borderWidth: 2, borderColor: Colors.border,
-    alignItems: 'center', justifyContent: 'center',
+  planTitle: { fontSize: Typography.size.lg, fontWeight: '800', color: Colors.text, marginTop: 4 },
+  planHint: {
+    fontSize: Typography.size.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    marginTop: Spacing.sm,
   },
-  taskCheckboxDone: { backgroundColor: Colors.success, borderColor: Colors.success },
-  taskCheck: { color: Colors.white, fontSize: 12, fontWeight: '700' },
-  taskInfo: { flex: 1 },
-  taskTitle: { fontSize: Typography.size.base, fontWeight: '600', color: Colors.text },
+  progressMeta: {
+    fontSize: Typography.size.xs,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    marginTop: Spacing.md,
+  },
+  progressTrack: {
+    height: 8,
+    backgroundColor: Colors.borderLight,
+    borderRadius: Radius.pill,
+    overflow: 'hidden',
+    marginTop: 6,
+  },
+  progressFill: { height: '100%', backgroundColor: Colors.success, borderRadius: Radius.pill },
+  taskDone: { opacity: 0.72 },
+  taskTop: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+  taskCopy: { flex: 1 },
+  taskTitle: { fontSize: Typography.size.base, fontWeight: '700', color: Colors.text },
   taskTitleDone: { textDecorationLine: 'line-through', color: Colors.textSecondary },
-  taskDesc: { fontSize: Typography.size.xs, color: Colors.textSecondary, marginTop: 2 },
-  taskDue: { fontSize: Typography.size.xs, color: Colors.warning, marginTop: 4 },
-  typePill: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.xl },
-  typePillText: { fontSize: 10, fontWeight: '700' },
+  taskDesc: { fontSize: Typography.size.sm, color: Colors.textSecondary, marginTop: 4, lineHeight: 20 },
+  taskActions: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
+  actionBtn: { flex: 1 },
+  checkIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: Colors.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkIconDone: { backgroundColor: Colors.success },
   emptyState: { alignItems: 'center', paddingVertical: Spacing['3xl'], gap: Spacing.md },
   emptyEmoji: { fontSize: 56 },
   emptyTitle: { fontSize: Typography.size.xl, fontWeight: '700', color: Colors.text },
@@ -337,6 +389,4 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md, alignItems: 'center',
   },
   approveBtnText: { color: Colors.white, fontWeight: '700' },
-  emptyTab: { alignItems: 'center', paddingVertical: Spacing['2xl'] },
-  emptyTabText: { fontSize: Typography.size.sm, color: Colors.textSecondary },
 });

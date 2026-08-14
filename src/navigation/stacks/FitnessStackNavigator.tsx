@@ -25,12 +25,16 @@ import FoodScanScreen from '../../screens/home/FoodScanScreen';
 import BodyMetricsScreen from '../../screens/home/BodyMetricsScreen';
 import HealthRecordsScreen from '../../screens/home/HealthRecordsScreen';
 import { Screen } from '../screenNames';
+import { carePlanReturnListeners } from '../carePlanReturn';
 
 const Stack = createNativeStackNavigator<FitnessStackParamList>();
 
 export default function FitnessStackNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      screenListeners={carePlanReturnListeners}
+    >
       <Stack.Screen name={Screen.fitnessHub} component={FitnessHubScreen} />
       <Stack.Screen name={Screen.moduleDetail} component={ModuleDetailScreen} />
       <Stack.Screen name={Screen.breathingExercise} component={BreathingExerciseScreen} />

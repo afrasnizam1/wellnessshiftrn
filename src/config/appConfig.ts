@@ -13,7 +13,7 @@ export const appConfig = {
 
   firebaseProjectId: 'wellnessshift-rn-ios',
 
-  /** Where users land after tapping the email verification link (Firebase Hosting). */
+  /** Branded confirmation page (also used as a custom email-action handler). */
   emailVerificationContinueUrl:
     'https://wellnessshift-rn-ios.firebaseapp.com/email-verified.html',
 
