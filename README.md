@@ -1,133 +1,140 @@
-# WellnessShift — React Native
+# WellnessShift
 
-React Native port of the WellnessShift iOS app.
+React Native app for patients and clinicians (`afras.wellnessshiftrn.ios` / `afras.wellnessshiftrn.android`).
+
+Firebase project: **wellnessshift-rn-ios**  
+Site: [wellnessshift.co.uk](https://wellnessshift.co.uk)
 
 ---
 
-## Quick Start
+## What the app includes
 
-### 1. Prerequisites
+**Patients**
+- Auth (email, Apple, optional Google), onboarding quiz, wellness results
+- Home (score, daily plan, activity, body metrics)
+- Fitness Hub (modules, anatomy holograms, workouts, nutrition, meditation)
+- AI Insights and health coach chat
+- Analytics and progress
+- Care plans when connected to a clinician (My Care tab)
+- Profile, subscriptions, HealthKit / Health Connect, social, settings
+
+**Clinicians**
+- Dashboard, patients, care plans and templates
+- Fitness Hub recommendations sent as care-plan tasks
+- Messages, analytics, practice settings
+
+**3D holograms**
+- iOS: SceneKit + USDZ (`ios/WellnessShift/HologramSceneView.swift`, models in `ios/WellnessShift/Models/`)
+- Android: WebView + Three.js USD loader (`src/hologram/androidHologramViewer.ts` → `android/app/src/main/assets/hologram/`)
+
+---
+
+## Prerequisites
+
 - Node.js 18+
-- Xcode 15+ with iOS 17 simulator
-- CocoaPods: `sudo gem install cocoapods`
-- React Native CLI: `npm install -g react-native-cli`
+- Xcode 16+ (iOS Simulator; current simulators are iOS 26.x)
+- Android Studio + an emulator (e.g. Pixel)
+- CocoaPods (`bundle exec pod install` in `ios/` if you use the Gemfile)
+- Watchman recommended for Metro
 
-### 2. Install dependencies
+Do **not** install the old global `react-native-cli`. Use the project scripts below.
+
+---
+
+## Setup
+
 ```bash
 npm install
 cd ios && pod install && cd ..
 ```
 
-### 3. Firebase setup
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Create / use your existing WellnessShift project
-3. Download `GoogleService-Info.plist`
-4. Drag it into Xcode under the `ios/WellnessShift/` folder
-5. Enable: Authentication, Firestore, Functions, Messaging, Remote Config, Crashlytics
+Native Firebase config should already be in the repo:
 
-### 4. Run on iOS
+- iOS: `ios/WellnessShift/GoogleService-Info.plist`
+- Android: `android/app/google-services.json`
+
+Google Sign-In needs a real web client ID in `src/config/googleAuth.local.ts` (see `googleAuthConfig`). Leave it empty to hide Google.
+
+---
+
+## Run
+
+Start Metro once:
+
 ```bash
-npx react-native run-ios
+npm start
+```
+
+Then in another terminal:
+
+```bash
+npm run ios          # default simulator
+npm run android      # connected device / emulator + adb reverse 8081
+```
+
+Target a specific iPhone:
+
+```bash
+npx react-native run-ios --simulator "iPhone 17 Pro"
+```
+
+Android debug JS is packaged in the APK (`debuggableVariants = []`). After changing native code, hologram assets, or `viewer.js`, do a **full** `npm run android` (not a Metro-only reload).
+
+Rebuild the Android hologram viewer after editing `src/hologram/androidHologramViewer.ts`:
+
+```bash
+npm run bundle:hologram
 ```
 
 ---
 
-## Project Structure
+## Backend
+
+| Script | Purpose |
+|--------|---------|
+| `npm run deploy:rules` | Firestore rules |
+| `npm run functions:deploy` | Cloud Functions |
+| `npm run deploy:backend` | Firestore + Functions |
+| `npm run deploy:hosting` | Email-verified / auth-action pages |
+
+Email verification continue URL: `https://wellnessshift-rn-ios.firebaseapp.com/email-verified.html`
+
+---
+
+## Layout
 
 ```
-WellnessShift/
-├── App.tsx                        # Entry point
-├── src/
-│   ├── theme/                     # Colors, typography, spacing
-│   ├── types/                     # TypeScript types for whole app
-│   ├── store/                     # Zustand global state
-│   ├── services/
-│   │   ├── firebase.ts            # Firestore + Auth
-│   │   ├── ai.ts                  # OpenAI via Firebase proxy
-│   │   ├── healthkit.ts           # Apple HealthKit (read-only)
-│   │   └── iap.ts                 # StoreKit 2 subscriptions
-│   ├── navigation/
-│   │   ├── RootNavigator.tsx      # Auth flow gating
-│   │   ├── MainTabNavigator.tsx   # 5-tab patient app
-│   │   ├── ClinicianTabNavigator.tsx
-│   │   ├── AuthNavigator.tsx
-│   │   └── stacks/                # Per-tab stack navigators
-│   ├── screens/
-│   │   ├── auth/                  # Splash, SignIn, SignUp, Quiz, etc.
-│   │   ├── home/                  # Home, DailyPlan, TaskDetail
-│   │   ├── fitness/               # FitnessHub + all modules
-│   │   ├── insights/              # AI Insights + Chat
-│   │   ├── analytics/             # Analytics dashboard
-│   │   ├── more/                  # Profile, CarePlan, Settings, etc.
-│   │   └── clinician/             # Clinician portal
-│   └── components/
-│       ├── common/                # Shared UI (banners, etc.)
-│       └── home/                  # WellnessOrbitRing, DailyPlanCard, etc.
+App.tsx
+src/
+  config/          # appConfig, Google / Contentsquare locals
+  navigation/      # auth, patient tabs (+ My Care), clinician tabs
+  screens/         # auth, home, fitness, insights, analytics, more, clinician
+  components/
+  services/        # Firebase, AI, HealthKit, Health Connect, IAP, care plans
+  hologram/        # Android Three.js USD viewer source
+  store/           # Zustand
+  theme/
+ios/WellnessShift/ # SceneKit holograms, USDZ models, Info.plist
+android/app/       # Hologram WebView, google-services.json
+functions/         # Firebase Cloud Functions
+public/            # Hosting (email-verified.html)
 ```
 
 ---
 
-## Native Modules (iOS-specific)
+## Stack
 
-These require native code — already configured in services/:
+| Area | Choice |
+|------|--------|
+| State | Zustand |
+| Navigation | React Navigation v6 |
+| Charts | react-native-gifted-charts |
+| Motion | react-native-reanimated |
+| Graphics | react-native-svg |
+| Local storage | react-native-mmkv |
+| iOS health | react-native-health (HealthKit) |
+| Android health | react-native-health-connect |
+| Subscriptions | react-native-iap |
+| Auth extras | Apple + Google Sign-In |
 
-| Module | Library | Purpose |
-|--------|---------|---------|
-| HealthKit | `react-native-health` | Steps, HR, sleep, etc. |
-| StoreKit 2 | `react-native-iap` | Subscriptions |
-| Sign in with Apple | `@invertase/react-native-apple-authentication` | Auth |
-| Google Sign-In | `@react-native-google-signin/google-signin` | Auth |
-
-### HealthKit — Info.plist additions required
-Add to `ios/WellnessShift/Info.plist`:
-```xml
-<key>NSHealthShareUsageDescription</key>
-<string>Wellness Shift reads your health data to personalise your wellness score and daily plan.</string>
-<key>NSHealthUpdateUsageDescription</key>
-<string>Wellness Shift does not write to Apple Health.</string>
-```
-
-### Signing & Capabilities (Xcode)
-Under Signing & Capabilities, add:
-- HealthKit
-- Push Notifications
-- In-App Purchase
-- Sign In with Apple
-
----
-
-## Screen Build Order (recommended)
-
-The stub screens are placeholders. Build in this order for fastest visible progress:
-
-1. ✅ **SplashScreen** — done
-2. ✅ **HomeScreen** — done (WellnessOrbitRing, DailyPlanCard)
-3. 🔲 **SignInScreen / SignUpScreen** — auth flow
-4. 🔲 **QuizScreen** — onboarding assessment
-5. 🔲 **FitnessHubScreen** — content library
-6. 🔲 **InsightsFeedScreen + AIChatScreen** — AI tab
-7. 🔲 **AnalyticsDashboardScreen** — charts
-8. 🔲 **MoreMenuScreen** — settings hub
-9. 🔲 All clinician screens
-
----
-
-## Key Decisions
-
-- **State management:** Zustand (lightweight, no boilerplate)
-- **Navigation:** React Navigation v6 (industry standard)
-- **Charts:** react-native-gifted-charts (closest to your iOS charts)
-- **Animations:** react-native-reanimated (smooth 60fps)
-- **SVG rings:** react-native-svg (the orbit ring visualisation)
-- **Storage:** react-native-mmkv (fast local storage, replaces UserDefaults)
-
----
-
-## 3D Anatomy Models
-
-The beating heart and anatomy tutors in iOS use SceneKit/RealityKit. Options for RN:
-1. **Keep as native module** — wrap your existing SceneKit views in a React Native NativeModule (recommended, preserves quality)
-2. **expo-gl + three.js** — JS-based 3D, more work, less fidelity
-3. **WebView + Three.js** — embed a web-based 3D viewer
-
-Recommendation: native module wrapper for the anatomy screens. We can scaffold that next.
+Xcode capabilities already in use: HealthKit, Push Notifications, In-App Purchase, Sign In with Apple.
