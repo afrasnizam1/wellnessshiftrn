@@ -42,7 +42,7 @@ export const TERMS_SECTIONS: LegalSection[] = [
 export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     title: '1. Data We Collect',
-    body: 'We collect account details (name, email), wellness assessment responses, daily plan and fitness activity, app usage events, optional device health metrics, in-app purchase / subscription status from Apple or Google, crash and diagnostic logs, and messages with linked clinicians.',
+    body: 'We collect account details (name, email), wellness assessment responses, daily plan and fitness activity, app usage events, optional device health metrics, in-app purchase / subscription status from Apple or Google, crash and diagnostic logs, and messages with linked clinicians. Optional menstrual cycle tracking (period dates, flow level, symptoms, and notes) is stored on your device only — see section 4.',
   },
   {
     title: '2. How We Use Data',
@@ -53,35 +53,39 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     body: 'On iOS you may grant read access to Apple Health (HealthKit) data such as activity and sleep. On Android you may grant Health Connect read access. Access is optional and read-only; we do not write samples back to Apple Health or Health Connect. You can revoke access in system Settings at any time. See also Health Data Disclosure in the app.',
   },
   {
-    title: '4. In-App Purchases & Subscriptions',
+    title: '4. Cycle tracking (on-device only)',
+    body: 'If you use menstrual cycle tracking, period dates, flow level, symptoms, and notes are stored locally on your device via AsyncStorage, keyed to your account. This data is not synced to our servers or Firestore, is not visible to linked clinicians, and is not used for analytics, advertising, or any purpose beyond powering in-app cycle predictions. It is not included in server-side account deletion because it never leaves the device. Uninstalling the app or clearing app data removes it.',
+  },
+  {
+    title: '5. In-App Purchases & Subscriptions',
     body: 'Purchase receipts and subscription status are processed by Apple or Google and synced to your Wellness Shift account so we can unlock Growth or Pro features. We do not store full payment card details. Store account identifiers needed for restore / entitlement checks may be processed securely.',
   },
   {
-    title: '5. Crash reporting (Firebase Crashlytics)',
+    title: '6. Crash reporting (Firebase Crashlytics)',
     body: 'When enabled, Firebase Crashlytics collects crash stacks, device model, OS version, and related diagnostics so we can fix stability issues. Crash reports are not used for advertising.',
   },
   {
-    title: '6. Analytics & session replay (Contentsquare)',
+    title: '7. Analytics & session replay (Contentsquare)',
     body: 'Contentsquare analytics and session replay are on by default so we can improve the product. We may collect screen views, interaction events, and session replay of the app UI. You can turn “Allow analytics” off anytime in Profile to stop collection.',
   },
   {
-    title: '7. Clinician Sharing',
-    body: 'If you connect with a clinician, they may view agreed wellness data and care plans. You can disconnect at any time.',
+    title: '8. Clinician Sharing',
+    body: 'If you connect with a clinician, they may view agreed wellness data and care plans. You can disconnect at any time. Cycle tracking data is never shared with clinicians.',
   },
   {
-    title: '8. AI Processing',
+    title: '9. AI Processing',
     body: 'Some features use AI-style coaching responses to generate wellness guidance. Outputs are for education only and are not medical advice. See AI Disclosure in Settings for details.',
   },
   {
-    title: '9. Your GDPR Rights',
+    title: '10. Your GDPR Rights',
     body: 'Under UK GDPR you may access, correct, export, or delete your data. Use Data Rights in the app or email support@wellnessshift.co.uk.',
   },
   {
-    title: '10. Retention',
-    body: 'Data is retained while your account is active. After deletion, personal data is removed within 30 days except where law requires retention.',
+    title: '11. Retention',
+    body: 'Data is retained while your account is active. After deletion, personal data is removed within 30 days except where law requires retention. On-device cycle tracking data is removed when you uninstall the app or clear app storage, not by the server deletion job.',
   },
   {
-    title: '11. Contact',
+    title: '12. Contact',
     body: 'Wellness Shift Ltd · support@wellnessshift.co.uk · United Kingdom',
   },
 ];
@@ -185,6 +189,6 @@ export const HEALTH_DATA_DISCLOSURE_SECTIONS: LegalSection[] = [
   },
   {
     title: 'Sharing',
-    body: 'Connected clinicians only see wellness data you have agreed to share through care-plan linking. Disconnecting a clinician stops new sharing.',
+    body: 'Connected clinicians only see wellness data you have agreed to share through care-plan linking. Disconnecting a clinician stops new sharing. Menstrual cycle logs stay on your device and are never sent to clinicians or our servers.',
   },
 ];

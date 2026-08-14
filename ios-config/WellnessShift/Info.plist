@@ -57,8 +57,6 @@
   <dict>
     <key>NSAllowsArbitraryLoads</key>
     <false/>
-    <key>NSAllowsArbitraryLoadsInWebContent</key>
-    <true/>
     <key>NSExceptionDomains</key>
     <dict>
       <key>wellnessshift.co.uk</key>

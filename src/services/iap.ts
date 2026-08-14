@@ -104,7 +104,7 @@ function productPriceAmount(product: ProductSubscription): string {
   return label || '0';
 }
 
-function resolveHighestSubscription(purchases: Purchase[]): ActiveSubscription | null {
+export function resolveHighestSubscription(purchases: Purchase[]): ActiveSubscription | null {
   let best: ActiveSubscription | null = null;
 
   for (const purchase of purchases) {

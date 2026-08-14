@@ -310,13 +310,24 @@ export const clinicianService = {
     const existing = doc.data()?.clinicianInviteCode as string | undefined;
     if (existing) return existing;
 
-    const code = generateCode();
+    const code = existing ?? generateCode();
     const now = fsNow();
-    await firestore().collection('clinicians').doc(clinicianId).set(
+    if (!existing) {
+      await firestore().collection('clinicians').doc(clinicianId).set(
+        {
+          clinicianInviteCode: code,
+          clinicianInviteCodeUpdatedAt: now,
+          lastUpdated: now,
+        },
+        { merge: true }
+      );
+    }
+    // Public lookup index — patients cannot read clinicians/{id} until they are linked.
+    await firestore().collection('inviteCodes').doc(code).set(
       {
-        clinicianInviteCode: code,
-        clinicianInviteCodeUpdatedAt: now,
-        lastUpdated: now,
+        clinicianId,
+        used: false,
+        createdAt: now,
       },
       { merge: true }
     );
@@ -331,6 +342,16 @@ export const clinicianService = {
     if (normalized.length < 4) return null;
 
     try {
+      const lookup = await firestore().collection('inviteCodes').doc(normalized).get();
+      if (lookup.exists()) {
+        const data = lookup.data();
+        if (data?.clinicianId && !data.used) return data.clinicianId as string;
+      }
+    } catch (error) {
+      console.warn('[findClinicianByInviteCode] inviteCodes lookup failed:', error);
+    }
+
+    try {
       const byMain = await firestore()
         .collection('clinicians')
         .where('clinicianInviteCode', '==', normalized)
@@ -339,16 +360,6 @@ export const clinicianService = {
       if (!byMain.empty) return byMain.docs[0].id;
     } catch (error) {
       console.warn('[findClinicianByInviteCode] clinicians query failed:', error);
-    }
-
-    try {
-      const legacy = await firestore().collection('inviteCodes').doc(normalized).get();
-      if (legacy.exists()) {
-        const data = legacy.data();
-        if (data?.clinicianId && !data.used) return data.clinicianId as string;
-      }
-    } catch (error) {
-      console.warn('[findClinicianByInviteCode] legacy inviteCodes lookup failed:', error);
     }
 
     return null;

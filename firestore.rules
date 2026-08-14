@@ -15,6 +15,19 @@ service cloud.firestore {
         get(/databases/$(database)/documents/patients/$(patientId)).data.linkedClinicianId == request.auth.uid;
     }
 
+    /** Signed-in user is a patient linked to this clinician (patients or legacy users field). */
+    function isLinkedToClinician(clinicianId) {
+      return isSignedIn() && (
+        (
+          exists(/databases/$(database)/documents/patients/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/patients/$(request.auth.uid)).data.linkedClinicianId == clinicianId
+        ) || (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicianId == clinicianId
+        )
+      );
+    }
+
     /** Patient may add/remove only themselves on a clinician's users doc. */
     function isPatientLinkedPatientsPatch(clinicianUserId) {
       return isSignedIn() &&
@@ -117,8 +130,9 @@ service cloud.firestore {
       }
     }
 
+    // Clinician docs include work email, licence, phone, invite codes — not a public directory.
     match /clinicians/{clinicianId} {
-      allow read: if isSignedIn();
+      allow read: if isOwner(clinicianId) || isLinkedToClinician(clinicianId);
       allow create, update: if isOwner(clinicianId);
 
       match /linkedPatients/{patientId} {
@@ -174,9 +188,11 @@ service cloud.firestore {
       }
     }
 
+    // Lookup-only docs (clinicianId). Full clinician profiles are not readable here.
     match /inviteCodes/{code} {
       allow read: if isSignedIn();
-      allow write: if false; // legacy, read-only fallback — new codes are written to clinicians/{id}.clinicianInviteCode
+      allow create, update: if isSignedIn() && request.resource.data.clinicianId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.clinicianId == request.auth.uid;
     }
 
     match /userProfiles/{userId} {
