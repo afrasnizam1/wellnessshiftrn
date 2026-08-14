@@ -21,6 +21,7 @@ import LegalDocumentScreen from '../../screens/more/LegalDocumentScreen';
 import DataRightsScreen from '../../screens/more/DataRightsScreen';
 import NewsletterScreen from '../../screens/more/NewsletterScreen';
 import MenstrualCycleScreen from '../../screens/more/MenstrualCycleScreen';
+import WomensHealthHubScreen from '../../screens/more/WomensHealthHubScreen';
 import TrackedWebViewScreen from '../../screens/common/TrackedWebViewScreen';
 import BlogScreen from '../../screens/more/BlogScreen';
 import ForumScreen from '../../screens/more/ForumScreen';
@@ -79,6 +80,7 @@ export default function MoreStackNavigator() {
       />
       <Stack.Screen name={Screen.dataRights} component={DataRightsScreen} />
       <Stack.Screen name={Screen.newsletter} component={NewsletterScreen} />
+      <Stack.Screen name={Screen.womensHealth} component={WomensHealthHubScreen} />
       <Stack.Screen name={Screen.menstrualCycle} component={MenstrualCycleScreen} />
       <Stack.Screen name={Screen.website} component={TrackedWebViewScreen} />
       <Stack.Screen name={Screen.blog} component={BlogScreen} />

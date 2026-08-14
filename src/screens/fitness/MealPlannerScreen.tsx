@@ -180,11 +180,16 @@ export default function MealPlannerScreen() {
 
       <Modal visible={!!picker} transparent animationType="slide" onRequestClose={() => setPicker(null)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPicker(null)}>
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>
-              {picker ? `${picker.day} · ${MEAL_SLOTS.find((s) => s.key === picker.slot)?.label}` : ''}
-            </Text>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>
+                {picker ? `${picker.day} · ${MEAL_SLOTS.find((s) => s.key === picker.slot)?.label}` : ''}
+              </Text>
+              <TouchableOpacity onPress={() => setPicker(null)} accessibilityRole="button" accessibilityLabel="Close">
+                <Text style={styles.modalClose}>Done</Text>
+              </TouchableOpacity>
+            </View>
             <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
               {picker && MEAL_OPTIONS[picker.slot].map((option) => {
                 const selected = plan[picker.day][picker.slot] === option.id;
@@ -276,10 +281,19 @@ const styles = StyleSheet.create({
     width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border,
     alignSelf: 'center', marginTop: Spacing.sm, marginBottom: Spacing.md,
   },
-  modalTitle: {
-    fontSize: Typography.size.lg, fontWeight: '700', color: Colors.text,
-    paddingHorizontal: Spacing.base, marginBottom: Spacing.sm,
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.base,
+    marginBottom: Spacing.sm,
+    gap: Spacing.md,
   },
+  modalTitle: {
+    flex: 1,
+    fontSize: Typography.size.lg, fontWeight: '700', color: Colors.text,
+  },
+  modalClose: { fontSize: Typography.size.base, fontWeight: '700', color: Colors.primary },
   modalList: { paddingHorizontal: Spacing.base },
   optionRow: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md,

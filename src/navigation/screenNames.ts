@@ -108,6 +108,7 @@ export const Screen = {
   dataRights: 'Data Rights',
   newsletter: 'Newsletter',
   menstrualCycle: 'Menstrual Cycle',
+  womensHealth: 'For Women',
   website: 'WellnessShift Website',
   blog: 'Blog',
   forum: 'Community Forum',

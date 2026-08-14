@@ -36,7 +36,8 @@ class HologramSceneUIView: UIView {
     sceneView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     sceneView.backgroundColor = .black
     sceneView.allowsCameraControl = true
-    sceneView.autoenablesDefaultLighting = false
+    sceneView.autoenablesDefaultLighting = true
+    sceneView.isPlaying = true
     sceneView.antialiasingMode = .multisampling4X
     sceneView.preferredFramesPerSecond = 60
     addSubview(sceneView)
@@ -175,8 +176,6 @@ enum HologramLoader {
     case heartBronchial
   }
 
-  private static let defaultScale: Float = 0.2
-
   static func requiresOnDemandDownload(_ fileName: String) -> Bool {
     onDemandModels.contains(fileName)
   }
@@ -209,57 +208,79 @@ enum HologramLoader {
 
   static func apply(preset: Preset, to scene: SCNScene, sceneView: SCNView) {
     let root = scene.rootNode
-    let (_, maxDimension) = modelBounds(for: root)
+    playEmbeddedAnimations(on: root)
+    sceneView.isPlaying = true
 
-    var appliedScale: Float = defaultScale
-    var cameraDistance: Float = 3
+    var targetSize: Float = 2.2
     var fieldOfView: CGFloat = 55
+    var fill: Float = 1.35
     var accent: UIColor = .cyan
     var accentIntensity: CGFloat = 1500
 
     switch preset {
     case .brain, .anatomy:
-      appliedScale = defaultScale * 1.35
-      cameraDistance = maxDimension * appliedScale * 1.15
+      targetSize = 2.2
       fieldOfView = 50
-
+      fill = 1.28
     case .lung:
-      appliedScale = defaultScale
-      cameraDistance = maxDimension * appliedScale * 1.2
-
+      targetSize = 2.25
+      fill = 1.3
     case .stomach:
-      appliedScale = defaultScale * 1.4
-      cameraDistance = maxDimension * appliedScale * 1.05
+      targetSize = 2.1
       fieldOfView = 48
-
+      fill = 1.22
     case .skeleton, .ecorche:
-      appliedScale = defaultScale * 0.5
-      cameraDistance = maxDimension * appliedScale * 1.2
-
+      targetSize = 2.35
+      fill = 1.32
     case .beatingHeart:
-      appliedScale = defaultScale * 12.0
-      cameraDistance = maxDimension * appliedScale * 1.5
+      targetSize = 2.05
+      fill = 1.25
       accent = .red
       accentIntensity = 1000
-
     case .heartLungs:
-      let targetSize: Float = 3.2
-      appliedScale = maxDimension > 0 ? targetSize / maxDimension : 1
-      cameraDistance = maxDimension * appliedScale * 1.8
+      targetSize = 3.2
       fieldOfView = 52
+      fill = 1.55
       accent = .white
-
     case .heartBronchial:
-      let targetSize: Float = 3.0
-      appliedScale = maxDimension > 0 ? targetSize / maxDimension : 1
-      cameraDistance = maxDimension * appliedScale * 1.55
+      targetSize = 3.0
       fieldOfView = 50
+      fill = 1.4
       accent = .white
     }
 
+    let (_, rawDimension) = modelBounds(for: root)
+    let maxDimension = max(rawDimension, 0.001)
+    let appliedScale = min(max(targetSize / maxDimension, 0.01), 80)
+
     centerModel(in: scene, scale: appliedScale)
     addLights(to: scene.rootNode, accent: accent, accentIntensity: accentIntensity)
+
+    let (_, framed) = modelBounds(for: root)
+    let visible = max(framed, 0.5)
+    let fov = Float(fieldOfView) * .pi / 180
+    let cameraDistance = max((visible / 2) / tan(fov / 2) * fill, 1.2)
+
     setupCamera(on: sceneView, in: scene, distance: cameraDistance, fieldOfView: fieldOfView)
+
+    // Skinned USDZs (beating heart) often report empty bounds until the first tick.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+      guard let cameraNode = sceneView.pointOfView else { return }
+      let (_, lateSize) = modelBounds(for: root)
+      let vis = max(lateSize, 0.5)
+      let dist = max((vis / 2) / tan(fov / 2) * fill, 1.2)
+      cameraNode.position = SCNVector3(0, 0, dist)
+      cameraNode.look(at: SCNVector3(0, 0, 0))
+      sceneView.defaultCameraController.target = SCNVector3(0, 0, 0)
+    }
+  }
+
+  private static func playEmbeddedAnimations(on root: SCNNode) {
+    root.enumerateHierarchy { node, _ in
+      for key in node.animationKeys {
+        node.animationPlayer(forKey: key)?.play()
+      }
+    }
   }
 
   private static func modelBounds(for root: SCNNode) -> (center: SCNVector3, maxDimension: Float) {
@@ -316,7 +337,13 @@ enum HologramLoader {
       (minVec.y + maxVec.y) / 2,
       (minVec.z + maxVec.z) / 2
     )
-    let maxDimension = max(modelSize.x, max(modelSize.y, modelSize.z))
+    var maxDimension = max(modelSize.x, max(modelSize.y, modelSize.z))
+    if maxDimension < 1e-4 {
+      let sphere = root.boundingSphere
+      if sphere.radius > 1e-4 {
+        return (sphere.center, sphere.radius * 2)
+      }
+    }
     return (center, maxDimension)
   }
 

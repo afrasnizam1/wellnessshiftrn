@@ -98,6 +98,7 @@ export const CSQ_LEAF_NAMES: Partial<Record<ScreenName, string>> = {
   [Screen.dataRights]: 'Data Rights',
   [Screen.newsletter]: 'Newsletter',
   [Screen.menstrualCycle]: 'Cycle',
+  [Screen.womensHealth]: 'For Women',
   [Screen.website]: 'Website',
   [Screen.blog]: 'Blog',
   [Screen.forum]: 'Forum',

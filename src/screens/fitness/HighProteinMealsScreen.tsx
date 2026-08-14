@@ -8,13 +8,12 @@ import {
   Image,
   ImageBackground,
   Modal,
-  Pressable,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors, Typography, Spacing, Radius } from '../../theme';
-import { AppCard, AnimatedPressable } from '../../components/ui';
+import { AppCard, AnimatedPressable, ScreenHeader } from '../../components/ui';
 import AppScreen from '../../components/common/AppScreen';
 import {
   HIGH_PROTEIN_MEALS,
@@ -38,18 +37,7 @@ export default function HighProteinMealsScreen() {
 
   return (
     <AppScreen style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Text style={styles.backText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>High Protein Meals</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title="High Protein Meals" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ImageBackground
@@ -161,16 +149,9 @@ function MealDetailModal({
   if (!meal) return null;
 
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={styles.modalRoot}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle} numberOfLines={2}>
-            {meal.name}
-          </Text>
-          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
-            <Ionicons name="close" size={24} color={Colors.text} />
-          </Pressable>
-        </View>
+    <Modal visible animationType="slide" onRequestClose={onClose}>
+      <AppScreen style={styles.safe} mesh={false}>
+        <ScreenHeader title={meal.name} onBack={onClose} />
         <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
           {!imageFailed ? (
             <Image
@@ -218,23 +199,13 @@ function MealDetailModal({
             </Text>
           ))}
         </ScrollView>
-      </View>
+      </AppScreen>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
-  },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  backText: { fontSize: 32, color: Colors.primary, lineHeight: 34, fontWeight: '300' },
-  headerTitle: { fontSize: Typography.size.lg, fontWeight: '800', color: Colors.text },
   content: { paddingBottom: Spacing['3xl'], gap: Spacing.md },
   hero: {
     marginHorizontal: Spacing.base,
@@ -325,23 +296,6 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     lineHeight: 16,
     textAlign: 'center',
-  },
-  modalRoot: { flex: 1, backgroundColor: Colors.background },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.borderLight,
-  },
-  modalTitle: {
-    flex: 1,
-    fontSize: Typography.size.lg,
-    fontWeight: '800',
-    color: Colors.text,
   },
   modalContent: { padding: Spacing.base, paddingBottom: Spacing['3xl'], gap: Spacing.sm },
   modalImage: {

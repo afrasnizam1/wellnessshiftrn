@@ -25,6 +25,8 @@ import { navigateToFitnessModule, getRouteForModuleId } from '../../utils/fitnes
 import { clinicianService } from '../../services/clinicianService';
 import ClinicianRecommendationsCard from '../../components/home/ClinicianRecommendationsCard';
 import AppScreen from '../../components/common/AppScreen';
+import { onboardingStorage } from '../../services/onboardingStorage';
+import { shouldShowWomensHealth } from '../../services/cycleTrackingService';
 
 type Tab = 'recommended' | 'all';
 type DomainSection = (typeof FITNESS_DOMAIN_GROUPS)[number];
@@ -148,6 +150,7 @@ export default function FitnessHubScreen() {
   const [activeTab, setActiveTab] = useState<Tab>('recommended');
   const [searchQuery, setSearchQuery] = useState('');
   const [clinicianRec, setClinicianRec] = useState<FitnessHubRecommendation | null>(null);
+  const [showWomensHealth, setShowWomensHealth] = useState(false);
   /** Mount Explore list once, then keep it alive so tab switches are instant. */
   const [exploreMounted, setExploreMounted] = useState(false);
 
@@ -165,6 +168,13 @@ export default function FitnessHubScreen() {
       unsub?.();
     };
   }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user) return;
+    onboardingStorage.getUserGender(user.uid).then((stored) => {
+      setShowWomensHealth(shouldShowWomensHealth(user.gender ?? stored));
+    });
+  }, [user?.uid, user?.gender]);
 
   const recommendedModules = useMemo(
     () => getRecommendedModules(wellnessScore, 10),
@@ -313,6 +323,25 @@ export default function FitnessHubScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            {showWomensHealth && (
+              <>
+                <SectionHeader title="For women" icon="woman-outline" />
+                <AppCard padded={false}>
+                  <ListRow
+                    title="Cycle & period tracker"
+                    subtitle="Log periods, flow, symptoms, and phase tips"
+                    iconName="calendar-outline"
+                    iconColor={Colors.brand}
+                    onPress={() =>
+                      navigation.navigate(Screen.tabMore, { screen: Screen.womensHealth })
+                    }
+                    showDivider={false}
+                    animated={false}
+                  />
+                </AppCard>
+              </>
+            )}
+
             {clinicianRec && (
               <>
                 <SectionHeader title="From your clinician" icon="medkit-outline" />
@@ -441,7 +470,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: Typography.size.base, color: Colors.text, padding: 0 },
 
   progressWrap: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
     width: '42%',
     minWidth: 120,
   },
@@ -461,7 +490,7 @@ const styles = StyleSheet.create({
   },
   learningProgressWrap: {
     marginBottom: Spacing.sm,
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
   },
 
   featuredRow: { paddingBottom: Spacing.xs, paddingRight: Spacing.base },

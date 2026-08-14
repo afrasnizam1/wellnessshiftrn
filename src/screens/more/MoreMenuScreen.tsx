@@ -306,10 +306,17 @@ export default function MoreMenuScreen() {
       title: "Women's Health",
       rows: [
         {
-          icon: 'calendar-outline' as IconName,
+          icon: 'woman-outline' as IconName,
           iconGradient: ['#F24D80', '#EC407A'] as [string, string],
-          label: 'Cycle Tracking',
-          sublabel: 'Track your menstrual cycle',
+          label: 'For women',
+          sublabel: 'Cycle, periods, symptoms & learning',
+          screen: Screen.womensHealth,
+        },
+        {
+          icon: 'calendar-outline' as IconName,
+          iconGradient: ['#EC407A', '#F24D80'] as [string, string],
+          label: 'Cycle & period tracker',
+          sublabel: 'Log start, flow, and how you feel',
           screen: Screen.menstrualCycle,
         },
       ],

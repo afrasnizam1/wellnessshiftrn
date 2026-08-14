@@ -43,6 +43,7 @@ import { getScoreImprovementAdvice } from '../../utils/recommendedModules';
 import { navigateToLinkedModule } from '../../utils/fitnessModuleRouter';
 import BodyMetricsCard from '../../components/home/BodyMetricsCard';
 import HomePurposeLeadCard from '../../components/home/HomePurposeLeadCard';
+import HomeCycleCard from '../../components/home/HomeCycleCard';
 import ClinicianRecommendationsCard from '../../components/home/ClinicianRecommendationsCard';
 import { healthKitService } from '../../services/healthkit';
 import { applyLifestyleMetricsToWellnessScore } from '../../services/lifestyleScoreService';
@@ -578,6 +579,8 @@ export default function HomeScreen() {
             onPress={openPurposeLead}
           />
         ) : null}
+
+        <HomeCycleCard />
 
         <AppCard style={styles.scoreCard} padded={false}>
           <View style={styles.scoreCardInner}>

@@ -631,6 +631,7 @@ export type MoreStackParamList = {
   [Screen.healthDataDisclosure]: { document?: 'health' } | undefined;
   [Screen.dataRights]: undefined;
   [Screen.newsletter]: undefined;
+  [Screen.womensHealth]: undefined;
   [Screen.menstrualCycle]: undefined;
   [Screen.website]: WebViewScreenParams;
   [Screen.blog]: undefined;

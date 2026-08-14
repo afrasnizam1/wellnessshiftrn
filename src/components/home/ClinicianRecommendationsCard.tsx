@@ -1,6 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors, Typography, Spacing, Radius } from '../../theme';
+import { fitnessModuleIonIcon } from '../../theme';
+import { ANATOMY_MODULE_IMAGES } from '../../assets/anatomy';
 import type { FitnessHubRecommendation } from '../../types';
 import { FITNESS_MODULES } from '../../data/fitnessData';
 
@@ -38,13 +41,24 @@ export default function ClinicianRecommendationsCard({
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.row}>
         {recommendation.recommendedModules.map((mod) => {
           const catalog = FITNESS_MODULES.find((m) => m.id === mod.id);
+          const art = ANATOMY_MODULE_IMAGES[mod.id];
           return (
             <TouchableOpacity
               key={mod.id}
               style={styles.chip}
               onPress={() => onModulePress(mod.id)}
             >
-              <Text style={styles.chipIcon}>{mod.icon || catalog?.icon || '✨'}</Text>
+              {art ? (
+                <Image source={art} style={styles.chipArt} />
+              ) : (
+                <View style={styles.chipIconWrap}>
+                  <Ionicons
+                    name={catalog ? fitnessModuleIonIcon(catalog) : 'sparkles-outline'}
+                    size={28}
+                    color={catalog?.color ?? Colors.primary}
+                  />
+                </View>
+              )}
               <Text style={styles.chipTitle} numberOfLines={2}>{mod.title}</Text>
             </TouchableOpacity>
           );
@@ -85,18 +99,32 @@ const styles = StyleSheet.create({
   row: { marginHorizontal: -Spacing.xs },
   chip: {
     width: 120,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: '#0A0A0A',
     borderRadius: Radius.lg,
-    padding: Spacing.md,
+    padding: Spacing.sm,
+    paddingBottom: Spacing.md,
     marginRight: Spacing.sm,
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  chipIcon: { fontSize: 28 },
+  chipArt: {
+    width: 104,
+    height: 88,
+    borderRadius: Radius.md,
+    backgroundColor: '#000',
+  },
+  chipIconWrap: {
+    width: 104,
+    height: 88,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   chipTitle: {
     fontSize: Typography.size.xs,
     fontWeight: '600',
-    color: Colors.text,
+    color: Colors.white,
     textAlign: 'center',
   },
 });
