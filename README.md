@@ -1,140 +1,256 @@
 # WellnessShift
 
-React Native app for patients and clinicians (`afras.wellnessshiftrn.ios` / `afras.wellnessshiftrn.android`).
+Patient wellness app and clinician portal, built in React Native for **iOS** and **Android**.
 
-Firebase project: **wellnessshift-rn-ios**  
-Site: [wellnessshift.co.uk](https://wellnessshift.co.uk)
+People get a daily plan, fitness and anatomy learning, AI insights, and (when linked) a clinician care plan. Clinicians manage patients, send modules, and follow progress in the same Firebase project.
 
----
-
-## What the app includes
-
-**Patients**
-- Auth (email, Apple, optional Google), onboarding quiz, wellness results
-- Home (score, daily plan, activity, body metrics)
-- Fitness Hub (modules, anatomy holograms, workouts, nutrition, meditation)
-- AI Insights and health coach chat
-- Analytics and progress
-- Care plans when connected to a clinician (My Care tab)
-- Profile, subscriptions, HealthKit / Health Connect, social, settings
-
-**Clinicians**
-- Dashboard, patients, care plans and templates
-- Fitness Hub recommendations sent as care-plan tasks
-- Messages, analytics, practice settings
-
-**3D holograms**
-- iOS: SceneKit + USDZ (`ios/WellnessShift/HologramSceneView.swift`, models in `ios/WellnessShift/Models/`)
-- Android: WebView + Three.js USD loader (`src/hologram/androidHologramViewer.ts` → `android/app/src/main/assets/hologram/`)
+| | |
+|---|---|
+| Website | [wellnessshift.co.uk](https://wellnessshift.co.uk) |
+| Firebase | `wellnessshift-rn-ios` |
+| iOS bundle | `afras.wellnessshiftrn.ios` |
+| Android id | `afras.wellnessshiftrn.android` |
+| Stack | React Native 0.86 · React 19 · TypeScript · Firebase |
 
 ---
 
-## Prerequisites
+## Contents
 
-- Node.js 18+
-- Xcode 16+ (iOS Simulator; current simulators are iOS 26.x)
-- Android Studio + an emulator (e.g. Pixel)
-- CocoaPods (`bundle exec pod install` in `ios/` if you use the Gemfile)
-- Watchman recommended for Metro
-
-Do **not** install the old global `react-native-cli`. Use the project scripts below.
+- [Who it’s for](#who-its-for)
+- [What you can do in the app](#what-you-can-do-in-the-app)
+- [How the app is structured](#how-the-app-is-structured)
+- [3D holograms](#3d-holograms)
+- [Tech stack](#tech-stack)
+- [Repository layout](#repository-layout)
+- [Run locally](#run-locally)
+- [Backend](#backend)
+- [Subscriptions](#subscriptions)
+- [More docs](#more-docs)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## Setup
+## Who it’s for
+
+**Patients** sign up (or sign in), complete onboarding and a wellness quiz, then land in a tabbed app: Home, Fitness, AI Insights, Analytics, More. If a clinician is connected, a **My Care** tab appears with assigned tasks.
+
+**Clinicians** use a separate portal: dashboard, patient list, care-plan templates, Fitness Hub recommendations, messaging, and practice settings.
+
+Roles are stored in Firebase (`registeredUsers` / `patients` / `clinicians`). Root navigation routes on auth state, email verification, onboarding, and role.
+
+---
+
+## What you can do in the app
+
+### Patient
+
+| Area | What’s there |
+|------|----------------|
+| **Auth & onboarding** | Email, Sign in with Apple, optional Google. Purpose / role, quiz, results, habits, HealthKit or Health Connect permission, notifications, paywall |
+| **Home** | Wellness score, daily plan, check-ins, steps / activity, body metrics, food scan, health records, care-plan banner |
+| **Fitness** | Module library, workouts, nutrition, meditation, breathing, calculators, anatomy holograms, guided programs |
+| **AI Insights** | Feed of insights plus health-coach chat (OpenAI via Cloud Functions) |
+| **Analytics** | Score history, category detail, progress, PDF / export |
+| **More** | Profile, subscription, connect clinician, habits, social, messages, privacy, help |
+| **My Care** | Clinician care-plan tasks — open a linked Fitness module, mark done, return to the plan |
+
+### Clinician
+
+| Area | What’s there |
+|------|----------------|
+| **Home** | Practice dashboard |
+| **Patients** | List, detail, notes, bulk actions, add via invite |
+| **Care** | Create / send care plans, templates, Fitness Hub recommendations (also written as care-plan tasks) |
+| **Insights** | Practice analytics |
+| **Inbox** | Patient messages |
+| **Settings** | Profile, practice mode, audit log |
+
+---
+
+## How the app is structured
+
+```mermaid
+flowchart TB
+  App[App.tsx] --> Root[RootNavigator]
+  Root --> Auth[Auth + onboarding]
+  Root --> Patient[Patient tabs]
+  Root --> Clinician[Clinician tabs]
+  Patient --> Home[Home]
+  Patient --> Fitness[Fitness]
+  Patient --> AI[AI Insights]
+  Patient --> Analytics[Analytics]
+  Patient --> More[More]
+  Patient --> Care[My Care — if linked]
+  Patient --> FB[(Firebase Auth + Firestore)]
+  Clinician --> FB
+  Fitness --> Holo[USDZ holograms]
+```
+
+State lives in **Zustand**. Native health, IAP, notifications, Crashlytics, and Contentsquare are initialised from `App.tsx`. Config flags (demo mode, Google, App Check, etc.) are in `src/config/appConfig.ts`.
+
+---
+
+## 3D holograms
+
+Same USDZ files as the original native iOS app (`ios/WellnessShift/Models/`). Android copies them into the APK at build time.
+
+| Platform | Viewer |
+|----------|--------|
+| iOS | SceneKit native view — `ios/WellnessShift/HologramSceneView.swift` |
+| Android | WebView + Three.js `USDLoader` — source `src/hologram/androidHologramViewer.ts`, bundled to `android/app/src/main/assets/hologram/` |
+
+Models in Fitness / Anatomy:
+
+| Title | USDZ | Preset |
+|-------|------|--------|
+| Beating Heart | `Beating-heart` | `beatingHeart` |
+| Heart & Lungs | `adult_heart_and_lungs` | `heartLungs` |
+| Heart & Bronchial Airways | `adult_heart_and_bronchial_airways` | `heartBronchial` |
+| Brain | `Brain_hologram` | `brain` |
+| Lungs | `Struktur_Paru-Paru_Manusia_3D_Model` | `lung` |
+| Stomach | `Realistic_Human_Stomach` | `stomach` |
+| Skeleton | `Free_Pack_-_Human_Skeleton` | `skeleton` |
+| Écorché | `Male_Full_Body_Ecorche` | `ecorche` |
+| Anatomy study | `Ecorche_-_Anatomy_study` | `anatomy` |
+
+After editing the Android viewer TypeScript:
+
+```bash
+npm run bundle:hologram
+npm run android
+```
+
+Android debug JS is compiled into the APK (`debuggableVariants = []`). Metro reload alone will not pick up hologram or native changes.
+
+---
+
+## Tech stack
+
+| Layer | Choice |
+|-------|--------|
+| UI | React Native 0.86, React Navigation v6, Reanimated, SVG |
+| State | Zustand |
+| Charts | react-native-gifted-charts |
+| Local storage | react-native-mmkv |
+| Backend | Firebase Auth, Firestore, Functions, Hosting, Messaging, Crashlytics, Remote Config |
+| iOS health | HealthKit (`react-native-health`) |
+| Android health | Health Connect (`react-native-health-connect`) |
+| Payments | react-native-iap (StoreKit / Play Billing) |
+| Auth extras | Apple, Google Sign-In |
+| Analytics / replay | Contentsquare (opt-out in Profile) |
+
+---
+
+## Repository layout
+
+```
+App.tsx
+src/
+  config/           App + Google / Contentsquare local secrets
+  navigation/       Auth, patient tabs, clinician tabs, stacks
+  screens/          auth, home, fitness, insights, analytics, more, clinician
+  components/       Shared UI
+  services/         Firebase, AI, health, IAP, care plans, notifications
+  hologram/         Android Three.js viewer source
+  store/            Zustand
+  theme/            Colour, type, spacing
+ios/WellnessShift/  SceneKit holograms, USDZ, Info.plist, GoogleService-Info.plist
+android/app/        Native hologram WebView, google-services.json
+functions/          Cloud Functions (AI proxy, etc.)
+public/             Hosting — email verified / auth-action page
+firestore.rules
+```
+
+---
+
+## Run locally
+
+**Need:** Node 18+, Xcode 16+ (iOS 26 simulators are fine), Android Studio + emulator, CocoaPods, Watchman. Do not install the old global `react-native-cli`.
 
 ```bash
 npm install
 cd ios && pod install && cd ..
-```
-
-Native Firebase config should already be in the repo:
-
-- iOS: `ios/WellnessShift/GoogleService-Info.plist`
-- Android: `android/app/google-services.json`
-
-Google Sign-In needs a real web client ID in `src/config/googleAuth.local.ts` (see `googleAuthConfig`). Leave it empty to hide Google.
-
----
-
-## Run
-
-Start Metro once:
-
-```bash
 npm start
 ```
 
-Then in another terminal:
+In another terminal:
 
 ```bash
-npm run ios          # default simulator
-npm run android      # connected device / emulator + adb reverse 8081
+npm run ios
+# or
+npx react-native run-ios --simulator "iPhone 17 Pro"
+
+npm run android    # adb reverse 8081, then install
 ```
 
-Target a specific iPhone:
+Firebase plists/json are already in the repo. Google Sign-In stays hidden until you put a Web client ID in `src/config/googleAuth.local.ts`.
+
+Clean rebuild both platforms (native / hologram changes):
 
 ```bash
+cd android && ./gradlew clean && cd ..
+xcodebuild -workspace ios/WellnessShift.xcworkspace -scheme WellnessShift -configuration Debug clean
+npm run android
 npx react-native run-ios --simulator "iPhone 17 Pro"
 ```
 
-Android debug JS is packaged in the APK (`debuggableVariants = []`). After changing native code, hologram assets, or `viewer.js`, do a **full** `npm run android` (not a Metro-only reload).
+### npm scripts
 
-Rebuild the Android hologram viewer after editing `src/hologram/androidHologramViewer.ts`:
-
-```bash
-npm run bundle:hologram
-```
+| Script | What it does |
+|--------|----------------|
+| `npm start` | Metro (`--host 0.0.0.0`) |
+| `npm run ios` | Install on iOS simulator |
+| `npm run android` | Install on Android + dismiss 16KB compat dialog |
+| `npm run bundle:hologram` | esbuild Android `viewer.js` |
+| `npm run deploy:rules` | Firestore rules |
+| `npm run functions:deploy` | Cloud Functions |
+| `npm run deploy:backend` | Firestore + Functions |
+| `npm run deploy:hosting` | Email-verified hosting page |
+| `npm run generate:icons` | App icons |
 
 ---
 
 ## Backend
 
-| Script | Purpose |
-|--------|---------|
-| `npm run deploy:rules` | Firestore rules |
-| `npm run functions:deploy` | Cloud Functions |
-| `npm run deploy:backend` | Firestore + Functions |
-| `npm run deploy:hosting` | Email-verified / auth-action pages |
+Email verification continue URL:
 
-Email verification continue URL: `https://wellnessshift-rn-ios.firebaseapp.com/email-verified.html`
+`https://wellnessshift-rn-ios.firebaseapp.com/email-verified.html`
+
+Typical Firestore areas: `users` (scores, daily plans, care plans, check-ins), `patients` / `clinicians`, `messageThreads`, `connectionRequests`, `inviteCodes`.
 
 ---
 
-## Layout
+## Subscriptions
 
-```
-App.tsx
-src/
-  config/          # appConfig, Google / Contentsquare locals
-  navigation/      # auth, patient tabs (+ My Care), clinician tabs
-  screens/         # auth, home, fitness, insights, analytics, more, clinician
-  components/
-  services/        # Firebase, AI, HealthKit, Health Connect, IAP, care plans
-  hologram/        # Android Three.js USD viewer source
-  store/           # Zustand
-  theme/
-ios/WellnessShift/ # SceneKit holograms, USDZ models, Info.plist
-android/app/       # Hologram WebView, google-services.json
-functions/         # Firebase Cloud Functions
-public/            # Hosting (email-verified.html)
-```
+Product IDs in `src/services/iap.ts` (must match App Store Connect / Play Console):
+
+| Product ID | Tier |
+|------------|------|
+| `com.wellnessshift.growth.monthly` | Growth |
+| `com.wellnessshift.growth.yearly` | Growth |
+| `com.wellnessshift.pro.monthly` | Pro |
+| `com.wellnessshift.pro.yearly` | Pro |
+
+Production checklist (IDs, privacy, Contentsquare): [docs/APP_STORE_SETUP.md](docs/APP_STORE_SETUP.md).
 
 ---
 
-## Stack
+## More docs
 
-| Area | Choice |
+| File | Topic |
 |------|--------|
-| State | Zustand |
-| Navigation | React Navigation v6 |
-| Charts | react-native-gifted-charts |
-| Motion | react-native-reanimated |
-| Graphics | react-native-svg |
-| Local storage | react-native-mmkv |
-| iOS health | react-native-health (HealthKit) |
-| Android health | react-native-health-connect |
-| Subscriptions | react-native-iap |
-| Auth extras | Apple + Google Sign-In |
+| [ARCHITECTURE_DIAGRAM.md](ARCHITECTURE_DIAGRAM.md) | Navigators, data, services |
+| [docs/APP_STORE_SETUP.md](docs/APP_STORE_SETUP.md) | Store + Firebase IDs |
+| [docs/contentsquare-webview-tag-web-team.md](docs/contentsquare-webview-tag-web-team.md) | Session replay / WebViews |
 
-Xcode capabilities already in use: HealthKit, Push Notifications, In-App Purchase, Sign In with Apple.
+`XCODE_SETUP.md` and the `NATIVE_IOS_*` notes are from the original port and are not current runbooks.
+
+---
+
+## Troubleshooting
+
+- **Android hologram / native change not showing** — full `npm run android`, not a Metro reload. Re-run `npm run bundle:hologram` if you edited the viewer TS.
+- **iOS hologram missing** — USDZ must be in the app bundle (`ios/WellnessShift/Models/`).
+- **Google button missing** — empty or `YOUR_` web client ID.
+- **Care plan back goes to Home** — opening a module from My Care should return via `fromCarePlan` (Fitness / Home stacks).
+- **16KB emulator dialog on Android** — `scripts/dismiss-android-compat-dialog.sh` runs after `npm run android`.
