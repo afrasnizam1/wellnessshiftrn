@@ -16,7 +16,7 @@ import AppScreen from '../../components/common/AppScreen';
 import ClinicianHeroHeader from '../../components/clinician/ClinicianHeroHeader';
 
 export default function ClinicianAnalyticsScreen() {
-  const { user } = useAppStore();
+  const user = useAppStore((s) => s.user);
   const [patients, setPatients] = useState<Awaited<ReturnType<typeof clinicianService.fetchLinkedPatients>>>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

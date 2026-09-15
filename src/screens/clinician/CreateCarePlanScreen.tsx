@@ -483,14 +483,14 @@ function PatientSelector({
 }) {
   return (
     <TouchableOpacity
-      style={[styles.patientSelector, required && styles.patientSelectorRequired]}
+      style={styles.patientSelector}
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole="button"
       accessibilityLabel={patient ? `Patient ${patient.displayName}` : 'Select patient'}
     >
       <View style={styles.patientSelectorIcon}>
-        <Ionicons name="person" size={18} color={ClinicianTheme.accent} />
+        <Ionicons name="person" size={18} color={Colors.textSecondary} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.patientSelectorLabel}>
@@ -499,7 +499,10 @@ function PatientSelector({
         {loading && !patient ? (
           <Text style={styles.patientSelectorValue}>Loading patients…</Text>
         ) : (
-          <Text style={styles.patientSelectorValue} numberOfLines={1}>
+          <Text
+            style={[styles.patientSelectorValue, !patient && styles.patientSelectorPlaceholder]}
+            numberOfLines={1}
+          >
             {patient ? patient.displayName : 'Tap to choose a linked patient'}
           </Text>
         )}
@@ -981,19 +984,15 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     backgroundColor: Colors.white,
     borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
     ...Shadow.sm,
-  },
-  patientSelectorRequired: {
-    borderColor: ClinicianTheme.accent,
-    backgroundColor: ClinicianTheme.accentSoft,
   },
   patientSelectorIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: ClinicianTheme.accentSoft,
+    backgroundColor: Colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1009,6 +1008,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
     marginTop: 2,
+  },
+  patientSelectorPlaceholder: {
+    fontWeight: '600',
+    color: Colors.textSecondary,
   },
   patientSelectorEmail: {
     fontSize: Typography.size.xs,

@@ -4,6 +4,10 @@ import LinearGradient from 'react-native-linear-gradient';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { Colors, Gradients } from '../../theme';
 
+const MESH_START = { x: 0, y: 0 };
+const MESH_END = { x: 1, y: 1 };
+const MESH_COLORS = [...Gradients.mesh];
+
 type Props = {
   children: React.ReactNode;
   edges?: Edge[];
@@ -27,9 +31,9 @@ export default function AppScreen({
       <StatusBar barStyle={statusBarStyle} backgroundColor="transparent" translucent />
       {mesh && (
         <LinearGradient
-          colors={[...Gradients.mesh]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          colors={MESH_COLORS}
+          start={MESH_START}
+          end={MESH_END}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />

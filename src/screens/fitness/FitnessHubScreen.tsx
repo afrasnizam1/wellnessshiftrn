@@ -13,6 +13,7 @@ import { Colors, Typography, Spacing, Radius, fitnessModuleIonIcon } from '../..
 import { AppCard, SectionHeader, ListRow, SegmentedControl } from '../../components/ui';
 import FeaturedGuideCard from '../../components/fitness/FeaturedGuideCard';
 import StepsPinnedPreviewCard from '../../components/fitness/StepsPinnedPreviewCard';
+import FuturisticModuleGlyph, { hasFuturisticGlyph } from '../../components/fitness/FuturisticModuleGlyph';
 import { LEARNING_GUIDES } from '../../data/learningGuides';
 import { useAppStore } from '../../store';
 import {
@@ -34,7 +35,6 @@ type ProgressHandle = { setProgress: (value: number) => void };
 
 const TAB_OPTIONS: Array<'Recommended' | 'Explore all'> = ['Recommended', 'Explore all'];
 const MODULE_COUNT = FITNESS_MODULES.length;
-const LIST_BOTTOM = <View style={{ height: 100 }} />;
 
 const LEARNING_ROUTES: Record<string, string> = {
   vitamins: Screen.vitaminsLearning,
@@ -90,12 +90,17 @@ const ModuleRow = memo(function ModuleRow({
   showDivider: boolean;
 }) {
   const handlePress = useCallback(() => onPress(module), [module, onPress]);
+  const glyph = hasFuturisticGlyph(module.id) ? (
+    <FuturisticModuleGlyph moduleId={module.id} color={module.color} size={28} />
+  ) : undefined;
   return (
     <ListRow
       title={module.title}
       subtitle={module.subtitle}
-      iconName={fitnessModuleIonIcon(module)}
+      icon={glyph}
+      iconName={glyph ? undefined : fitnessModuleIonIcon(module)}
       iconColor={module.color}
+      iconBg={glyph ? `${module.color}18` : undefined}
       badge={module.isPremium ? 'PRO' : undefined}
       badgeColor={Colors.brand}
       onPress={handlePress}
@@ -402,8 +407,6 @@ export default function FitnessHubScreen() {
 
             <SectionHeader title="Recommended for you" icon="star-outline" />
             <ModuleGroup modules={recommendedModules} onPress={navigateToModule} />
-
-            {LIST_BOTTOM}
           </ScrollView>
         </View>
 
@@ -427,7 +430,6 @@ export default function FitnessHubScreen() {
               windowSize={5}
               removeClippedSubviews
               ListEmptyComponent={exploreEmpty}
-              ListFooterComponent={LIST_BOTTOM}
             />
           </View>
         ) : null}

@@ -20,4 +20,9 @@ class HologramSceneViewManager : SimpleViewManager<HologramSceneUIView>() {
   fun setPreset(view: HologramSceneUIView, value: String?) {
     view.setPreset(value)
   }
+
+  @ReactProp(name = "autoRotate", defaultBoolean = false)
+  fun setAutoRotate(view: HologramSceneUIView, value: Boolean) {
+    view.setAutoRotate(value)
+  }
 }

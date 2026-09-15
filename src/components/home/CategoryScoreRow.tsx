@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -26,10 +26,10 @@ interface Props {
   isSelected: boolean;
   feedback: ScoreChangeFeedback | null;
   analytics: ChartTapContext;
-  onPress: () => void;
+  onPress: (key: WellnessCategoryKey) => void;
 }
 
-export default function CategoryScoreRow({
+export default memo(function CategoryScoreRow({
   cat,
   score,
   isSelected,
@@ -90,7 +90,7 @@ export default function CategoryScoreRow({
   return (
     <AnimatedPressable
       style={[styles.row, rowStyle]}
-      onPress={onPress}
+      onPress={() => onPress(cat.key as WellnessCategoryKey)}
       {...chartTapA11yProps(analytics, cat.key as WellnessCategoryKey)}
     >
       <View style={[styles.dot, { backgroundColor: cat.color }]} />
@@ -113,7 +113,7 @@ export default function CategoryScoreRow({
       </Animated.Text>
     </AnimatedPressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: {

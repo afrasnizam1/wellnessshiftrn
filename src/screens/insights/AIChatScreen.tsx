@@ -60,7 +60,7 @@ export default function AIChatScreen() {
       addChatMessage({
         id: 'welcome',
         role: 'assistant',
-        content: `Hi! I'm your AI Health Coach.\n\nI can see your wellness data and I'm here to give you personalised guidance. ${wellnessScore ? `Your current wellness score is ${wellnessScore.overall.toFixed(1)}/10.` : ''}\n\nWhat would you like to work on today?`,
+        content: `Hi — I'm your Wellness Coach.\n\nI use your wellness score and simple coaching rules (not a generative AI) to suggest practical next steps. ${wellnessScore ? `Your current wellness score is ${wellnessScore.overall.toFixed(1)}/10.` : ''}\n\nWhat would you like to work on today?`,
         timestamp: new Date().toISOString(),
       });
     }
@@ -73,7 +73,7 @@ export default function AIChatScreen() {
   const promptUpgrade = () => {
     Alert.alert(
       'Free limit reached',
-      'Upgrade to Growth or Pro for a higher AI coach message allowance.',
+      'Upgrade to Growth or Pro for a higher Wellness Coach message allowance.',
       [
         { text: 'Not now', style: 'cancel' },
         { text: 'Upgrade', onPress: () => navigation.navigate(Screen.subscriptionPaywall, { feature: 'aiChat' }) },
@@ -188,7 +188,7 @@ export default function AIChatScreen() {
             </LinearGradient>
           </View>
           <View style={styles.headerCopy}>
-            <Text style={styles.headerTitle} numberOfLines={1}>AI Health Coach</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>Wellness Coach</Text>
             <View style={styles.onlineIndicator}>
               <View style={styles.onlineDot} />
               <Text style={styles.onlineText}>Ready to help</Text>

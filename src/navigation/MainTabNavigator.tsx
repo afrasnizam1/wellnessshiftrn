@@ -5,7 +5,7 @@ import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Platform, StyleSheet, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import type { MainTabParamList } from '../types';
-import { Colors, Typography, Shadow, TAB_ICONS, type IoniconName } from '../theme';
+import { Colors, Typography, Shadow, TAB_ICONS, TabBarMetrics, type IoniconName } from '../theme';
 import { useAppStore } from '../store';
 
 import HomeStackNavigator from './stacks/HomeStackNavigator';
@@ -51,15 +51,15 @@ function TabIcon({
 }
 
 export function MainTabNavigator() {
-  const { user, hasUnseenCarePlan } = useAppStore();
-  const hasClinician = !!user?.clinicianId;
+  const hasClinician = useAppStore((s) => !!s.user?.clinicianId);
+  const hasUnseenCarePlan = useAppStore((s) => s.hasUnseenCarePlan);
 
   return (
     <Tab.Navigator
       backBehavior="history"
       screenOptions={({ route }) => ({
         headerShown: false,
-        sceneContainerStyle: styles.scene,
+        sceneContainerStyle: [styles.scene, styles.sceneWithTab],
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: Colors.tabActive,
         tabBarInactiveTintColor: Colors.tabInactive,
@@ -96,10 +96,11 @@ export function MainTabNavigator() {
           const focused = getFocusedRouteNameFromRoute(route) ?? Screen.aiInsightsFeed;
           const hideTab = AI_INSIGHTS_HIDE_TAB.has(focused);
           return {
-            tabBarLabel: 'AI Insights',
-            tabBarAccessibilityLabel: 'AI Insights tab',
+            tabBarLabel: 'Ai insights',
+            tabBarAccessibilityLabel: 'Ai insights tab',
             // Floating tab bar overlays chat/detail input — hide on those screens
             tabBarStyle: hideTab ? { display: 'none' } : styles.tabBar,
+            sceneContainerStyle: hideTab ? styles.scene : [styles.scene, styles.sceneWithTab],
           };
         }}
       />
@@ -129,12 +130,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  sceneWithTab: {
+    paddingBottom: TabBarMetrics.contentInset,
+  },
   tabBar: {
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: Platform.OS === 'ios' ? 24 : 12,
-    height: Platform.OS === 'ios' ? 72 : 64,
+    bottom: TabBarMetrics.bottom,
+    height: TabBarMetrics.height,
     paddingBottom: Platform.OS === 'ios' ? 8 : 6,
     paddingTop: 8,
     backgroundColor: Platform.OS === 'ios' ? 'rgba(255,255,255,0.92)' : Colors.surface,

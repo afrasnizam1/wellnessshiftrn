@@ -34,70 +34,45 @@ export default function LeaderboardScreen() {
     if (!user) return;
     setLoading(true);
     try {
-      // Fetch friend board entries and transform into leaderboard
+      // Fetch friend board entries and transform into leaderboard (friends only — no fake users)
       const friendEntries = await socialService.fetchFriendBoardEntries(user.uid);
-      
-      // Mock additional leaderboard data for demonstration
-      const mockData: LeaderboardEntry[] = [
-        {
-          id: 'mock1',
-          displayName: 'Alex Chen',
-          weeklyActions: 12,
-          totalActions: 145,
-          currentStreak: 7,
-          longestStreak: 21,
-          isCurrentUser: false,
-        },
-        {
-          id: 'mock2',
-          displayName: 'Sarah Johnson',
-          weeklyActions: 10,
-          totalActions: 132,
-          currentStreak: 5,
-          longestStreak: 18,
-          isCurrentUser: false,
-        },
-        {
-          id: 'mock3',
-          displayName: 'Mike Williams',
-          weeklyActions: 9,
-          totalActions: 98,
-          currentStreak: 3,
-          longestStreak: 12,
-          isCurrentUser: false,
-        },
-      ];
 
-      // Transform friend entries to leaderboard format
-      const friendLeaderboard: LeaderboardEntry[] = friendEntries.map((entry, index) => ({
-        id: entry.id,
-        displayName: entry.displayName,
-        weeklyActions: Math.max(1, Math.floor(Math.random() * 15)), // Mock weekly count
-        totalActions: Math.max(5, Math.floor(Math.random() * 200)), // Mock total count
-        currentStreak: Math.floor(Math.random() * 10), // Mock streak
-        longestStreak: Math.max(5, Math.floor(Math.random() * 30)), // Mock longest streak
-        isCurrentUser: entry.userId === user.uid,
-      }));
-
-      // Add current user if not in friends list
-      const currentUserEntry: LeaderboardEntry = {
-        id: user.uid,
-        displayName: user.displayName || 'You',
-        weeklyActions: 8,
-        totalActions: 76,
-        currentStreak: 4,
-        longestStreak: 15,
-        isCurrentUser: true,
-      };
-
-      const allEntries = [...mockData, ...friendLeaderboard];
-      if (!allEntries.some(e => e.isCurrentUser)) {
-        allEntries.push(currentUserEntry);
+      const byUser = new Map<string, LeaderboardEntry>();
+      for (const entry of friendEntries) {
+        const existing = byUser.get(entry.userId);
+        if (existing) {
+          existing.weeklyActions += 1;
+          existing.totalActions += 1;
+        } else {
+          byUser.set(entry.userId, {
+            id: entry.userId,
+            displayName: entry.displayName,
+            weeklyActions: 1,
+            totalActions: 1,
+            currentStreak: 0,
+            longestStreak: 0,
+            isCurrentUser: entry.userId === user.uid,
+          });
+        }
       }
 
-      // Sort by weekly actions (no ranking emphasis, just grouping)
-      const sorted = allEntries.sort((a, b) => b.weeklyActions - a.weeklyActions);
-      setEntries(sorted);
+      // Ensure current user appears even with zero board actions
+      if (!byUser.has(user.uid)) {
+        byUser.set(user.uid, {
+          id: user.uid,
+          displayName: user.displayName || 'You',
+          weeklyActions: 0,
+          totalActions: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          isCurrentUser: true,
+        });
+      }
+
+      const friendLeaderboard = Array.from(byUser.values()).sort(
+        (a, b) => b.weeklyActions - a.weeklyActions,
+      );
+      setEntries(friendLeaderboard);
     } catch (e) {
       console.warn('Failed to load leaderboard:', e);
     } finally {

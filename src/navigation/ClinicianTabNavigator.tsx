@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import type { ClinicianTabParamList } from '../types';
-import { Typography, Colors, type IoniconName } from '../theme';
+import { Typography, Colors, TabBarMetrics, type IoniconName } from '../theme';
 import { ClinicianTheme } from '../theme/clinicianTheme';
 
 import ClinicianDashboardScreen from '../screens/clinician/ClinicianDashboardScreen';
@@ -41,6 +41,7 @@ export function ClinicianTabNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        sceneContainerStyle: styles.sceneWithTab,
         tabBarStyle: styles.tabBar,
         tabBarShowLabel: false,
       }}
@@ -67,12 +68,16 @@ export function ClinicianTabNavigator() {
 }
 
 const styles = StyleSheet.create({
+  sceneWithTab: {
+    flex: 1,
+    paddingBottom: TabBarMetrics.contentInset,
+  },
   tabBar: {
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: Platform.OS === 'ios' ? 24 : 12,
-    height: Platform.OS === 'ios' ? 72 : 64,
+    bottom: TabBarMetrics.bottom,
+    height: TabBarMetrics.height,
     paddingBottom: Platform.OS === 'ios' ? 8 : 6,
     paddingTop: 8,
     backgroundColor: Colors.surface,

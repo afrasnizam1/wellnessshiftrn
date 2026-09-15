@@ -1,15 +1,9 @@
-import React, { useMemo, useState, memo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, {
-  Defs,
-  LinearGradient as SvgLinearGradient,
-  Path,
-  Stop,
-  Circle,
-} from 'react-native-svg';
+import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors, Typography, Spacing, Radius } from '../../theme';
-import { AppCard, AnimatedPressable } from '../ui';
+import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
+import { AnimatedPressable } from '../ui';
 import { computeBiologicalAge, type BiologicalAgeBand } from '../../utils/biologicalAge';
 import type { WellnessScore } from '../../types';
 
@@ -20,85 +14,25 @@ type Props = {
   weightKg?: number;
   onImproveScore?: () => void;
   onAddDateOfBirth?: () => void;
+  onOpenVirtualTwin?: () => void;
 };
 
 const BAND_COLORS: Record<BiologicalAgeBand, string> = {
   poor: Colors.error,
-  fair: Colors.warning,
+  fair: '#E67E22',
   good: Colors.nutrition,
   great: Colors.success,
   excellent: '#1B7F6E',
 };
-
-function polar(cx: number, cy: number, r: number, angleDeg: number) {
-  const rad = ((angleDeg - 90) * Math.PI) / 180;
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-}
-
-function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: number) {
-  const start = polar(cx, cy, r, endDeg);
-  const end = polar(cx, cy, r, startDeg);
-  const large = endDeg - startDeg <= 180 ? '0' : '1';
-  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${large} 0 ${end.x} ${end.y}`;
-}
-
-function CompactGauge({
-  progress,
-  accent,
-  size = 88,
-}: {
-  progress: number;
-  accent: string;
-  size?: number;
-}) {
-  const stroke = 8;
-  const cx = size / 2;
-  const cy = size / 2 + 4;
-  const r = size * 0.38;
-  const startAngle = -110;
-  const endAngle = 110;
-  const sweep = endAngle - startAngle;
-  const clamped = Math.max(0.02, Math.min(1, progress));
-  const fillEnd = startAngle + sweep * clamped;
-  const tip = polar(cx, cy, r, fillEnd);
-
-  return (
-    <Svg width={size} height={size * 0.62}>
-      <Defs>
-        <SvgLinearGradient id="bioCompactFill" x1="0%" y1="0%" x2="100%" y2="0%">
-          <Stop offset="0%" stopColor={Colors.primary} stopOpacity="0.55" />
-          <Stop offset="100%" stopColor={accent} stopOpacity="1" />
-        </SvgLinearGradient>
-      </Defs>
-      <Path
-        d={arcPath(cx, cy, r, startAngle, endAngle)}
-        stroke={Colors.border}
-        strokeWidth={stroke}
-        fill="none"
-        strokeLinecap="round"
-      />
-      <Path
-        d={arcPath(cx, cy, r, startAngle, fillEnd)}
-        stroke="url(#bioCompactFill)"
-        strokeWidth={stroke}
-        fill="none"
-        strokeLinecap="round"
-      />
-      <Circle cx={tip.x} cy={tip.y} r={stroke * 0.45} fill={accent} />
-    </Svg>
-  );
-}
 
 export default memo(function BiologicalAgeCard({
   dateOfBirth,
   wellnessScore,
   heightCm,
   weightKg,
-  onImproveScore,
   onAddDateOfBirth,
+  onOpenVirtualTwin,
 }: Props) {
-  const [expanded, setExpanded] = useState(false);
-
   const result = useMemo(() => {
     if (!dateOfBirth || !wellnessScore) return null;
     return computeBiologicalAge({
@@ -109,38 +43,29 @@ export default memo(function BiologicalAgeCard({
     });
   }, [dateOfBirth, wellnessScore, heightCm, weightKg]);
 
-  const toggle = () => setExpanded((v) => !v);
-
   if (!wellnessScore) return null;
 
   if (!dateOfBirth || !result) {
     return (
-      <AppCard style={styles.card}>
-        <View style={styles.headerRow}>
-          <View style={[styles.iconWrap, { backgroundColor: Colors.primaryLight }]}>
-            <Ionicons name="hourglass-outline" size={18} color={Colors.primary} />
-          </View>
-          <View style={styles.headerText}>
-            <Text style={styles.eyebrow}>Biological age</Text>
-            <Text style={styles.title}>Needs your date of birth</Text>
-          </View>
-        </View>
-        <Text style={styles.emptyBody}>
-          Add your date of birth in Profile. We combine it with your wellness score so improving
-          habits can pull your biological age down.
+      <View style={styles.card}>
+        <LinearGradient
+          colors={['rgba(0,122,255,0.06)', 'rgba(242,77,128,0.04)', '#FFFFFF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.wash}
+        />
+        <Text style={styles.kicker}>Bio age</Text>
+        <Text style={styles.emptyTitle}>Add your date of birth</Text>
+        <Text style={styles.subtitle}>
+          We estimate biological age from your age and wellness score.
         </Text>
         {onAddDateOfBirth ? (
-          <AnimatedPressable
-            style={styles.secondaryCta}
-            onPress={onAddDateOfBirth}
-            accessibilityRole="button"
-            accessibilityLabel="Add date of birth in profile"
-          >
-            <Text style={styles.secondaryCtaText}>Add in Profile</Text>
+          <AnimatedPressable style={styles.cta} onPress={onAddDateOfBirth}>
+            <Text style={styles.ctaText}>Open Profile</Text>
             <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
           </AnimatedPressable>
         ) : null}
-      </AppCard>
+      </View>
     );
   }
 
@@ -148,247 +73,244 @@ export default memo(function BiologicalAgeCard({
   const ageLabel = Number.isInteger(result.biologicalAge)
     ? String(result.biologicalAge)
     : result.biologicalAge.toFixed(1);
-  const deltaLabel =
-    (result.deltaYears > 0 ? '+' : '') +
-    result.deltaYears.toFixed(1).replace(/\.0$/, '');
+  const deltaAbs = Math.abs(result.deltaYears).toFixed(1).replace(/\.0$/, '');
+  const deltaSigned =
+    (result.deltaYears > 0 ? '+' : result.deltaYears < 0 ? '−' : '') +
+    Math.abs(result.deltaYears).toFixed(1).replace(/\.0$/, '');
+  const deltaTone =
+    result.deltaYears > 0 ? Colors.error : result.deltaYears < 0 ? Colors.success : Colors.text;
+  const younger = result.deltaYears < 0;
+  const comparisonLine =
+    result.deltaYears === 0
+      ? 'In line with your actual age'
+      : `${deltaAbs} years ${younger ? 'younger' : 'older'} than your actual age`;
+  const markerPct = Math.max(4, Math.min(96, Math.round(result.gaugeProgress * 100)));
 
   return (
-    <AppCard style={styles.card} padded={false}>
-      <AnimatedPressable
-        onPress={toggle}
-        style={styles.pressArea}
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        accessibilityLabel={`Biological age ${ageLabel}. ${result.summary}. Tap for details.`}
-      >
-        <View style={styles.headerRow}>
-          <View style={[styles.iconWrap, { backgroundColor: `${accent}18` }]}>
-            <Ionicons name="hourglass-outline" size={18} color={accent} />
-          </View>
-          <View style={styles.headerText}>
-            <Text style={styles.eyebrow}>Biological age</Text>
-            <Text style={styles.title}>{result.bandLabel} · wellness-linked</Text>
-          </View>
-          <Ionicons
-            name={expanded ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={Colors.textTertiary}
-          />
-        </View>
+    <AnimatedPressable
+      onPress={onOpenVirtualTwin}
+      accessibilityRole="button"
+      accessibilityLabel={`Biological age ${ageLabel}. Open your virtual twin.`}
+    >
+      <View style={styles.card}>
+        <LinearGradient
+          colors={['rgba(0,122,255,0.07)', 'rgba(242,77,128,0.05)', '#FFFFFF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.wash}
+        />
 
-        <View style={styles.mainRow}>
-          <View style={styles.ageBlock}>
-            <Text style={[styles.ageValue, { color: accent }]}>{ageLabel}</Text>
-            <Text style={styles.ageHint}>{result.summary}</Text>
-          </View>
-          <View style={styles.gaugeBlock}>
-            <CompactGauge progress={result.gaugeProgress} accent={accent} />
-            <Text style={[styles.bandChip, { color: accent }]}>{result.bandLabel.toUpperCase()}</Text>
+        <View style={styles.header}>
+          <Text style={styles.kicker}>Bio age</Text>
+          <View style={[styles.bandPill, { backgroundColor: `${accent}18` }]}>
+            <Text style={[styles.bandPillText, { color: accent }]}>{result.bandLabel}</Text>
           </View>
         </View>
 
-        <View style={styles.statStrip}>
-          <View style={styles.statCell}>
-            <Text style={styles.statValue}>{result.chronologicalAge}</Text>
-            <Text style={styles.statLabel}>Actual age</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statCell}>
-            <Text style={styles.statValue}>{result.wellnessScoreOverall.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>Wellness</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statCell}>
-            <Text style={[styles.statValue, { color: result.deltaYears > 0 ? Colors.error : Colors.success }]}>
-              {deltaLabel}
+        <View style={styles.hero}>
+          <Text style={styles.ageValue}>{ageLabel}</Text>
+          <View style={styles.heroMeta}>
+            <Text style={styles.ageUnit}>years</Text>
+            <Text style={styles.subtitle} numberOfLines={2}>
+              {comparisonLine}
             </Text>
-            <Text style={styles.statLabel}>Years Δ</Text>
           </View>
         </View>
-      </AnimatedPressable>
 
-      {expanded ? (
-        <View style={styles.expanded}>
-          <Text style={styles.expandedTitle}>How this is calculated</Text>
-          <Text style={styles.expandedBody}>
-            Uses your date of birth from Profile as actual age, then shifts biological age from your
-            wellness score (plus sleep, stress, fitness, and BMI when available). Raise your
-            wellness score and biological age moves down.
-          </Text>
-          <Text style={styles.linkLine}>{result.scoreLinkSummary}</Text>
-
-          {onImproveScore ? (
-            <AnimatedPressable
-              style={styles.primaryCta}
-              onPress={onImproveScore}
-              accessibilityRole="button"
-              accessibilityLabel="Improve wellness score"
-            >
-              <Text style={styles.primaryCtaText}>Improve wellness score</Text>
-              <Ionicons name="arrow-forward" size={16} color={Colors.white} />
-            </AnimatedPressable>
-          ) : null}
-          <Text style={styles.footnote}>Estimate only — not a medical diagnosis.</Text>
+        <View style={styles.gaugeBlock}>
+          <View style={styles.gaugeTrack}>
+            <LinearGradient
+              colors={['#2EDBBD', '#F5C542', '#FF7A90']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gaugeFill}
+            />
+            <View style={[styles.gaugeMarker, { left: `${markerPct}%` as `${number}%` }]} />
+          </View>
+          <View style={styles.gaugeLabels}>
+            <Text style={styles.gaugeLabel}>Younger</Text>
+            <Text style={styles.gaugeLabel}>Older</Text>
+          </View>
         </View>
-      ) : (
-        <Text style={styles.tapHint}>Tap for how this works</Text>
-      )}
-    </AppCard>
+
+        <View style={styles.statRow}>
+          <View style={styles.statChip}>
+            <Text style={styles.statLabel}>Actual</Text>
+            <Text style={styles.statValue}>{result.chronologicalAge}</Text>
+          </View>
+          <View style={styles.statChip}>
+            <Text style={styles.statLabel}>Wellness</Text>
+            <Text style={styles.statValue}>{result.wellnessScoreOverall.toFixed(1)}</Text>
+          </View>
+          <View style={styles.statChip}>
+            <Text style={styles.statLabel}>Delta</Text>
+            <Text style={[styles.statValue, { color: deltaTone }]}>{deltaSigned}</Text>
+          </View>
+        </View>
+
+        <View style={styles.cta}>
+          <Ionicons name="sparkles-outline" size={15} color={Colors.primary} />
+          <Text style={styles.ctaText}>Explore virtual twin</Text>
+          <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+        </View>
+      </View>
+    </AnimatedPressable>
   );
 });
 
 const styles = StyleSheet.create({
   card: {
-    gap: 0,
-  },
-  pressArea: {
-    padding: Spacing.base,
+    borderRadius: 24,
+    padding: Spacing.lg,
     gap: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
+    overflow: 'hidden',
+    ...Shadow.sm,
   },
-  headerRow: {
+  wash: {
+    ...StyleSheet.absoluteFill,
+  },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    justifyContent: 'space-between',
   },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+  kicker: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
-  headerText: { flex: 1, minWidth: 0 },
-  eyebrow: {
-    fontSize: Typography.size.xs,
+  bandPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Radius.pill,
+  },
+  bandPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.md,
+  },
+  ageValue: {
+    fontSize: 56,
+    fontWeight: '800',
+    color: Colors.text,
+    letterSpacing: -2.4,
+    lineHeight: 58,
+  },
+  heroMeta: {
+    flex: 1,
+    paddingBottom: 8,
+    gap: 2,
+  },
+  ageUnit: {
+    fontSize: Typography.size.sm,
     fontWeight: '700',
     color: Colors.textTertiary,
-    textTransform: 'uppercase',
     letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
-  title: {
-    fontSize: Typography.size.base,
-    fontWeight: '700',
-    color: Colors.text,
-    marginTop: 1,
-  },
-  mainRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  ageBlock: { flex: 1, minWidth: 0, gap: 4 },
-  ageValue: {
-    fontSize: 40,
-    fontWeight: '800',
-    letterSpacing: -1.5,
-    lineHeight: 44,
-  },
-  ageHint: {
+  subtitle: {
     fontSize: Typography.size.sm,
-    fontWeight: '600',
     color: Colors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 19,
+    fontWeight: '500',
   },
-  gaugeBlock: { alignItems: 'center', width: 96 },
-  bandChip: {
-    marginTop: -4,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  statStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: Radius.lg,
-    paddingVertical: Spacing.sm,
-  },
-  statCell: { flex: 1, alignItems: 'center', gap: 2 },
-  statValue: {
-    fontSize: Typography.size.base,
+  emptyTitle: {
+    fontSize: Typography.size.lg,
     fontWeight: '800',
     color: Colors.text,
+    letterSpacing: -0.4,
+  },
+  gaugeBlock: {
+    gap: 6,
+  },
+  gaugeTrack: {
+    height: 8,
+    borderRadius: 999,
+    overflow: 'visible',
+    backgroundColor: Colors.backgroundAlt,
+  },
+  gaugeFill: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 999,
+    opacity: 0.85,
+  },
+  gaugeMarker: {
+    position: 'absolute',
+    top: -4,
+    marginLeft: -7,
+    width: 14,
+    height: 16,
+    borderRadius: 7,
+    backgroundColor: Colors.surface,
+    borderWidth: 2.5,
+    borderColor: Colors.text,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
+  gaugeLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  gaugeLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.textTertiary,
+    letterSpacing: 0.3,
+  },
+  statRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statChip: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    gap: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.borderLight,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     color: Colors.textTertiary,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
-  statDivider: {
-    width: StyleSheet.hairlineWidth,
-    height: 28,
-    backgroundColor: Colors.border,
-  },
-  tapHint: {
-    paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.sm,
-    fontSize: Typography.size.xs,
-    color: Colors.textTertiary,
-    textAlign: 'center',
-  },
-  expanded: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.borderLight,
-    padding: Spacing.base,
-    gap: Spacing.sm,
-    backgroundColor: Colors.surfaceSecondary,
-  },
-  expandedTitle: {
-    fontSize: Typography.size.sm,
+  statValue: {
+    fontSize: 17,
     fontWeight: '800',
     color: Colors.text,
+    letterSpacing: -0.4,
   },
-  expandedBody: {
-    fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-  },
-  linkLine: {
-    fontSize: Typography.size.sm,
-    fontWeight: '600',
-    color: Colors.text,
-    lineHeight: 20,
-  },
-  primaryCta: {
-    marginTop: Spacing.xs,
+  cta: {
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.pill,
     paddingVertical: 12,
-  },
-  primaryCtaText: {
-    fontSize: Typography.size.sm,
-    fontWeight: '800',
-    color: Colors.white,
-  },
-  secondaryCta: {
-    marginTop: Spacing.xs,
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.primaryLight,
     borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.primaryLight,
   },
-  secondaryCtaText: {
+  ctaText: {
     fontSize: Typography.size.sm,
     fontWeight: '700',
     color: Colors.primary,
-  },
-  emptyBody: {
-    marginTop: Spacing.sm,
-    fontSize: Typography.size.sm,
-    color: Colors.textSecondary,
-    lineHeight: 20,
-  },
-  footnote: {
-    fontSize: 11,
-    color: Colors.textTertiary,
-    textAlign: 'center',
   },
 });

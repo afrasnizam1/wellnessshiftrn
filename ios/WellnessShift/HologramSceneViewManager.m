@@ -4,5 +4,6 @@
 
 RCT_EXPORT_VIEW_PROPERTY(modelFile, NSString)
 RCT_EXPORT_VIEW_PROPERTY(preset, NSString)
+RCT_EXPORT_VIEW_PROPERTY(autoRotate, BOOL)
 
 @end

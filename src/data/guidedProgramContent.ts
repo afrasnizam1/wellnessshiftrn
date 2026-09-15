@@ -116,14 +116,45 @@ export const GUIDED_PROGRAMS: Record<string, GuidedProgram> = {
     tips: ['Blocks and cushions make poses accessible.', 'PRO feature — explore Pilates-style core work on rest days.'],
   },
   breathing: {
-    intro: 'Controlled breathing is one of the fastest ways to shift your nervous system from stress to calm — backed by clinical research on heart-rate variability and anxiety reduction.',
+    intro:
+      'Breathing is one of the fastest levers you have over stress, focus, and sleep. Slow patterns raise heart-rate variability and shift you from fight-or-flight toward rest-and-digest — often within a few minutes. Use the Breathing Exercises screen for live guided timing.',
     steps: [
-      { title: 'Box breathing', duration: '4 min', description: 'Inhale 4s, hold 4s, exhale 4s, hold 4s — repeat 4 cycles. Used by Navy SEALs and clinicians for acute stress.' },
-      { title: 'Extended exhale', duration: '3 min', description: 'Inhale 4 counts, exhale 6 counts. Longer exhale activates the parasympathetic "rest and digest" response.' },
-      { title: '4-7-8 for sleep', duration: '4 cycles', description: 'Inhale 4, hold 7, exhale 8 through the mouth. Ideal during your wind-down routine.' },
-      { title: 'Daily anchor', duration: '1 min', description: 'Three conscious breaths before meals, meetings, or bed — build the habit of pausing.' },
+      {
+        title: 'Why breathwork works',
+        duration: '2 min read',
+        description:
+          'Nasal diaphragmatic breathing improves oxygen exchange and calms the brainstem. Longer exhales activate the parasympathetic system; even rhythms (box / coherent) steady focus under pressure.',
+      },
+      {
+        title: 'Box breathing',
+        duration: '4 min',
+        description:
+          'Inhale 4 · hold 4 · exhale 4 · hold 4. Ideal for exams, meetings, and acute stress spikes.',
+      },
+      {
+        title: 'Diaphragmatic & extended exhale',
+        duration: '3–4 min',
+        description:
+          'Belly-led inhale, then exhale longer than inhale (4-6). Foundation skill for anxiety with tight chest.',
+      },
+      {
+        title: '4-7-8 & physiological sigh',
+        duration: '4 cycles',
+        description:
+          '4-7-8 for bedtime wind-down; double-inhale + long exhale (physiological sigh) for a rapid mid-day reset.',
+      },
+      {
+        title: 'Coherent & energising',
+        duration: '3–5 min',
+        description:
+          'Coherent (~5-5) for daily resilience; short 2-2 energising breaths for morning alertness — not before bed.',
+      },
     ],
-    tips: ['Practice seated or lying down first.', 'Stop if dizzy — return to normal breathing.', 'Pair with the Breathing Exercise screen for guided timing.'],
+    tips: [
+      'Sit or lie down for the first sessions.',
+      'Stop if dizzy and return to normal breathing.',
+      'Open Breathing Exercises from Fitness Hub for all seven guided techniques.',
+    ],
   },
   meditation: {
     intro: 'Meditation trains attention and emotional regulation. Even 3 minutes daily changes brain connectivity over weeks — consistency matters more than duration.',

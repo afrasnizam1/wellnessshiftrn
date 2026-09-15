@@ -1,4 +1,5 @@
-/** Port of iOS WellnessOrbitRingView gradient palette */
+/** Modern circular DNA helix geometry for WellnessOrbitRing — lean SVG paths for smooth spin. */
+
 export const WELLNESS_HELIX_COLORS = [
   '#7A57F5',
   '#FA5C94',
@@ -18,13 +19,18 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 function rgbToHex(r: number, g: number, b: number): string {
-  const to = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 255)
-    .toString(16)
-    .padStart(2, '0');
+  const to = (v: number) =>
+    Math.round(Math.max(0, Math.min(1, v)) * 255)
+      .toString(16)
+      .padStart(2, '0');
   return `#${to(r)}${to(g)}${to(b)}`;
 }
 
-function blend(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
+function blend(
+  a: [number, number, number],
+  b: [number, number, number],
+  t: number,
+): [number, number, number] {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
@@ -37,77 +43,210 @@ export function helixColorAt(position: number): string {
   const next = (index + 1) % count;
   const t = scaled - Math.floor(scaled);
   const mixed = blend(colors[index], colors[next], t);
-  const lifted = blend(mixed, [1, 1, 1], 0.08);
+  const lifted = blend(mixed, [1, 1, 1], 0.12);
   return rgbToHex(lifted[0], lifted[1], lifted[2]);
 }
 
 type Point = { x: number; y: number };
 
-function smoothSegmentD(points: Point[], index: number): string {
-  const count = points.length;
-  const previous = points[(index - 1 + count) % count];
-  const start = points[index];
-  const end = points[(index + 1) % count];
-  const next = points[(index + 2) % count];
-
-  const c1x = start.x + (end.x - previous.x) / 6;
-  const c1y = start.y + (end.y - previous.y) / 6;
-  const c2x = end.x - (next.x - start.x) / 6;
-  const c2y = end.y - (next.y - start.y) / 6;
-
-  return `M ${start.x} ${start.y} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${end.x} ${end.y}`;
+/** Closed Catmull–Rom → cubic Bezier path (one continuous stroke). */
+function closedSmoothPath(points: Point[]): string {
+  const n = points.length;
+  if (n < 2) return '';
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 0; i < n; i += 1) {
+    const p0 = points[(i - 1 + n) % n];
+    const p1 = points[i];
+    const p2 = points[(i + 1) % n];
+    const p3 = points[(i + 2) % n];
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`;
+  }
+  return `${d} Z`;
 }
 
-export type HelixSegment = { d: string; color: string; width: number; opacity?: number };
+export type DnaRingRung = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  mx: number;
+  my: number;
+  color: string;
+  opacity: number;
+};
 
-export function buildDnaHelixSegments(
-  size: number,
-  orbitRadius: number,
-): { strand1: HelixSegment[]; strand2: HelixSegment[] } {
-  // Keep the helix readable but light — fewer nodes + no glow stroke
-  // (was ~312 SVG paths; now ~48).
+export type DnaRingNode = {
+  x: number;
+  y: number;
+  color: string;
+  opacity: number;
+  radius: number;
+};
+
+export type ModernDnaRing = {
+  strandA: string;
+  strandB: string;
+  strandWidth: number;
+  strandAColor: string;
+  strandBColor: string;
+  rungs: DnaRingRung[];
+  nodes: DnaRingNode[];
+  trackRadius: number;
+  trackWidth: number;
+};
+
+/**
+ * Lean circular DNA: 2 continuous strand paths + sparse rungs/nodes.
+ * Far fewer SVG nodes than the old micro-segment helix → cheaper to spin.
+ */
+export function buildModernDnaRing(size: number, orbitRadius: number): ModernDnaRing {
   const nodeCount = 24;
   const layoutScale = Math.max(0.78, Math.min(1.12, orbitRadius / 60));
-  const helixAmplitude = 10 * layoutScale;
-  const helixFrequency = 5.5;
-  const backboneWidth = Math.max(3.6, helixAmplitude * 0.46);
+  const helixAmplitude = 8.5 * layoutScale;
+  const twists = 5;
+  const groove = Math.PI * 0.78;
+  const strandWidth = Math.max(2.6, 3.1 * layoutScale);
 
   const cx = size / 2;
   const cy = size / 2;
 
-  const strand1: Point[] = [];
-  const strand2: Point[] = [];
-  const positions: number[] = [];
+  type Node = Point & { z: number; position: number };
+  const strand1: Node[] = [];
+  const strand2: Node[] = [];
 
   for (let index = 0; index < nodeCount; index += 1) {
     const position = index / nodeCount;
     const angle = position * Math.PI * 2 - Math.PI / 2;
-    const wave = Math.sin(angle * helixFrequency);
-    const r1 = orbitRadius + wave * helixAmplitude;
-    const r2 = orbitRadius - wave * helixAmplitude;
-
-    strand1.push({ x: cx + Math.cos(angle) * r1, y: cy + Math.sin(angle) * r1 });
-    strand2.push({ x: cx + Math.cos(angle) * r2, y: cy + Math.sin(angle) * r2 });
-    positions.push(position);
+    const twist = position * Math.PI * 2 * twists;
+    const z1 = Math.sin(twist);
+    const z2 = Math.sin(twist + groove);
+    const r1 = orbitRadius + Math.cos(twist) * helixAmplitude;
+    const r2 = orbitRadius + Math.cos(twist + groove) * helixAmplitude;
+    strand1.push({
+      x: cx + Math.cos(angle) * r1,
+      y: cy + Math.sin(angle) * r1,
+      z: z1,
+      position,
+    });
+    strand2.push({
+      x: cx + Math.cos(angle) * r2,
+      y: cy + Math.sin(angle) * r2,
+      z: z2,
+      position: position + 0.5,
+    });
   }
 
-  const buildStrand = (points: Point[], phaseOffset: number): HelixSegment[] => {
-    const segments: HelixSegment[] = [];
-    for (let index = 0; index < nodeCount; index += 1) {
-      const next = (index + 1) % nodeCount;
-      const midPosition = (positions[index] + positions[next]) / 2 + phaseOffset;
-      const d = smoothSegmentD(points, index);
-      const color = helixColorAt(midPosition);
+  const rungs: DnaRingRung[] = [];
+  const nodes: DnaRingNode[] = [];
+  const minSpan = helixAmplitude * 0.5;
+  const nodeRadius = Math.max(1.6, 2.1 * layoutScale);
 
-      segments.push({ d, color, width: backboneWidth });
-      segments.push({ d, color, width: Math.max(1.2, backboneWidth * 0.35), opacity: 0.35 });
-    }
-    return segments;
-  };
+  for (let index = 0; index < nodeCount; index += 3) {
+    const a = strand1[index];
+    const b = strand2[index];
+    const span = Math.hypot(b.x - a.x, b.y - a.y);
+    if (span < minSpan) continue;
+    const z = (a.z + b.z) / 2;
+    const color = helixColorAt((a.position + b.position) / 2);
+    const opacity = 0.28 + Math.max(0, z) * 0.42;
+    const mx = (a.x + b.x) / 2;
+    const my = (a.y + b.y) / 2;
+    rungs.push({
+      x1: a.x,
+      y1: a.y,
+      x2: b.x,
+      y2: b.y,
+      mx,
+      my,
+      color,
+      opacity,
+    });
+    nodes.push({
+      x: mx,
+      y: my,
+      color,
+      opacity: 0.55 + Math.max(0, z) * 0.4,
+      radius: nodeRadius * (0.85 + Math.max(0, z) * 0.25),
+    });
+  }
 
   return {
-    strand1: buildStrand(strand1, 0),
-    strand2: buildStrand(strand2, 0.5),
+    strandA: closedSmoothPath(strand1),
+    strandB: closedSmoothPath(strand2),
+    strandWidth,
+    strandAColor: '#6B5CE7',
+    strandBColor: '#2BC4B6',
+    rungs,
+    nodes,
+    trackRadius: orbitRadius,
+    trackWidth: Math.max(1, 1.25 * layoutScale),
+  };
+}
+
+/** @deprecated Prefer buildModernDnaRing — kept for any legacy callers. */
+export function buildDnaHelixSegments(size: number, orbitRadius: number) {
+  const modern = buildModernDnaRing(size, orbitRadius);
+  return {
+    strandBack: [
+      {
+        d: modern.strandA,
+        color: modern.strandAColor,
+        width: modern.strandWidth * 0.75,
+        opacity: 0.35,
+      },
+      {
+        d: modern.strandB,
+        color: modern.strandBColor,
+        width: modern.strandWidth * 0.75,
+        opacity: 0.35,
+      },
+    ],
+    strandFront: [
+      {
+        d: modern.strandA,
+        color: modern.strandAColor,
+        width: modern.strandWidth,
+        opacity: 0.95,
+      },
+      {
+        d: modern.strandB,
+        color: modern.strandBColor,
+        width: modern.strandWidth,
+        opacity: 0.95,
+      },
+    ],
+    rungsBack: modern.rungs
+      .filter((r) => r.opacity < 0.45)
+      .map((r) => ({
+        x1: r.x1,
+        y1: r.y1,
+        x2: r.x2,
+        y2: r.y2,
+        mx: r.mx,
+        my: r.my,
+        colorA: r.color,
+        colorB: r.color,
+        width: 1.4,
+        opacity: r.opacity,
+      })),
+    rungsFront: modern.rungs
+      .filter((r) => r.opacity >= 0.45)
+      .map((r) => ({
+        x1: r.x1,
+        y1: r.y1,
+        x2: r.x2,
+        y2: r.y2,
+        mx: r.mx,
+        my: r.my,
+        colorA: r.color,
+        colorB: r.color,
+        width: 1.6,
+        opacity: r.opacity,
+      })),
   };
 }
 
@@ -130,10 +269,10 @@ export function computeRingLayout(size: number) {
   const sizeStep = (maxDiameter - minDiameter) / (ringCount - 1);
 
   const outermostRadius = maxDiameter / 2 + lineWidth / 2;
-  const dnaGap = 8 * layoutScale;
+  const dnaGap = 7 * layoutScale;
   const dnaLayoutScale = Math.max(0.78, Math.min(1.12, outermostRadius / 60));
-  const helixAmplitude = 10 * dnaLayoutScale;
-  const backboneHalf = 3.25 * dnaLayoutScale;
+  const helixAmplitude = 8.5 * dnaLayoutScale;
+  const backboneHalf = 2.8 * dnaLayoutScale;
   const dnaOrbitRadius = outermostRadius + dnaGap + helixAmplitude + backboneHalf;
 
   return {
@@ -160,9 +299,9 @@ export function computeHelixCanvasInset(
   layout: { dnaOrbitRadius: number },
 ): number {
   const dnaLayoutScale = Math.max(0.78, Math.min(1.12, layout.dnaOrbitRadius / 60));
-  const helixAmplitude = 10 * dnaLayoutScale;
-  const backboneWidth = Math.max(3.6, helixAmplitude * 0.46);
-  const glowWidth = backboneWidth + 2.8;
+  const helixAmplitude = 8.5 * dnaLayoutScale;
+  const backboneWidth = Math.max(2.8, helixAmplitude * 0.4);
+  const glowWidth = backboneWidth + 2.2;
   const helixOuter = layout.dnaOrbitRadius + helixAmplitude + glowWidth / 2;
   return Math.ceil(Math.max(0, helixOuter - size / 2 + 2));
 }

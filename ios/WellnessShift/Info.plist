@@ -41,14 +41,14 @@
 			<string>Google Sign In</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.912633076119-7r2856eet5vtupfeehfru1k0hrbvgg2m</string>
+				<string>com.googleusercontent.apps.912633076119-2l95phl98uu3uldjdp7vlavf1ch1q303</string>
 			</array>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>GIDClientID</key>
-	<string>912633076119-7r2856eet5vtupfeehfru1k0hrbvgg2m.apps.googleusercontent.com</string>
+	<string>912633076119-2l95phl98uu3uldjdp7vlavf1ch1q303.apps.googleusercontent.com</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSMinimumSystemVersion</key>
@@ -123,7 +123,6 @@
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
 	<key>UIFileSharingEnabled</key>

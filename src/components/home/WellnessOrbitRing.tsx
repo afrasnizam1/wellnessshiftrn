@@ -1,7 +1,7 @@
 // src/components/home/WellnessOrbitRing.tsx
-import React, { useEffect, useMemo, memo } from 'react';
+import React, { useCallback, useEffect, useMemo, memo } from 'react';
 import { View, Text, StyleSheet, Pressable, PixelRatio } from 'react-native';
-import Svg, { Circle, Path, G } from 'react-native-svg';
+import Svg, { Circle, Path, G, Line } from 'react-native-svg';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -16,7 +16,7 @@ import { WELLNESS_CATEGORIES, Colors, Typography, Animation } from '../../theme'
 import type { WellnessCategoryKey, WellnessCategoryScores } from '../../types';
 import type { ScoreChangeFeedback } from '../../hooks/useWellnessScoreChangeFeedback';
 import {
-  buildDnaHelixSegments,
+  buildModernDnaRing,
   computeHelixCanvasInset,
   computeOrbitPanelSide,
   computeRingLayout,
@@ -39,6 +39,8 @@ interface Props {
 }
 
 const SCORE_GREEN = '#33C7A3';
+/** Calm orbit — slower spin looks modern and costs less GPU churn. */
+const DNA_SPIN_MS = 32000;
 
 function shortCategoryLabel(label: string): string {
   return label
@@ -72,8 +74,8 @@ export default memo(function WellnessOrbitRing({
   const panelSide = useMemo(() => roundPx(size + canvasInset * 2), [size, canvasInset]);
   const cx = panelSide / 2;
   const cy = panelSide / 2;
-  const helix = useMemo(
-    () => buildDnaHelixSegments(panelSide, layout.dnaOrbitRadius),
+  const dna = useMemo(
+    () => buildModernDnaRing(panelSide, layout.dnaOrbitRadius),
     [panelSide, layout.dnaOrbitRadius],
   );
   const viewBox = `0 0 ${panelSide} ${panelSide}`;
@@ -91,8 +93,9 @@ export default memo(function WellnessOrbitRing({
       cancelAnimation(rotation);
       return;
     }
+    rotation.value = 0;
     rotation.value = withRepeat(
-      withTiming(360, { duration: 45000, easing: Easing.linear }),
+      withTiming(360, { duration: DNA_SPIN_MS, easing: Easing.linear }),
       -1,
       false,
     );
@@ -200,12 +203,12 @@ export default memo(function WellnessOrbitRing({
     ? categories?.[selectedCategory] ?? 0
     : score;
 
-  const handleCategoryPress = (key: WellnessCategoryKey, categoryScore: number) => {
+  const handleCategoryPress = useCallback((key: WellnessCategoryKey, categoryScore: number) => {
     if (analytics) {
       trackChartCategoryTap(analytics, key);
     }
     onCategorySelect?.(key, categoryScore);
-  };
+  }, [analytics, onCategorySelect]);
 
   const handleCenterPress = () => {
     if (selectedCategory) {
@@ -232,6 +235,9 @@ export default memo(function WellnessOrbitRing({
       }}
     >
       <Animated.View
+        collapsable={false}
+        shouldRasterizeIOS
+        renderToHardwareTextureAndroid
         style={[
           styles.helixLayer,
           { width: panelSide, height: panelSide },
@@ -240,16 +246,88 @@ export default memo(function WellnessOrbitRing({
         pointerEvents="none"
       >
         <Svg width={panelSide} height={panelSide} viewBox={viewBox}>
-          {[...helix.strand1, ...helix.strand2].map((segment, index) => (
-            <Path
-              key={`helix-${index}`}
-              d={segment.d}
-              stroke={segment.color}
-              strokeWidth={segment.width}
-              strokeOpacity={segment.opacity ?? 1}
+          {/* Soft orbital track — grounds the DNA without extra animation cost */}
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={dna.trackRadius}
+            stroke="rgba(107, 92, 231, 0.10)"
+            strokeWidth={dna.trackWidth + 6}
+            fill="none"
+          />
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={dna.trackRadius}
+            stroke="rgba(43, 196, 182, 0.12)"
+            strokeWidth={dna.trackWidth}
+            fill="none"
+          />
+
+          {/* Back / softer pass of both strands */}
+          <Path
+            d={dna.strandA}
+            stroke={dna.strandAColor}
+            strokeWidth={dna.strandWidth * 0.72}
+            strokeOpacity={0.28}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          <Path
+            d={dna.strandB}
+            stroke={dna.strandBColor}
+            strokeWidth={dna.strandWidth * 0.72}
+            strokeOpacity={0.28}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+
+          {dna.rungs.map((rung, index) => (
+            <Line
+              key={`rung-${index}`}
+              x1={rung.x1}
+              y1={rung.y1}
+              x2={rung.x2}
+              y2={rung.y2}
+              stroke={rung.color}
+              strokeWidth={Math.max(1.2, dna.strandWidth * 0.45)}
+              strokeOpacity={rung.opacity}
               strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
+            />
+          ))}
+
+          {/* Front strands — crisp dual-tone DNA */}
+          <Path
+            d={dna.strandA}
+            stroke={dna.strandAColor}
+            strokeWidth={dna.strandWidth}
+            strokeOpacity={0.92}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          <Path
+            d={dna.strandB}
+            stroke={dna.strandBColor}
+            strokeWidth={dna.strandWidth}
+            strokeOpacity={0.92}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+
+          {dna.nodes.map((node, index) => (
+            <Circle
+              key={`node-${index}`}
+              cx={node.x}
+              cy={node.y}
+              r={node.radius}
+              fill="#FFFFFF"
+              stroke={node.color}
+              strokeWidth={1.1}
+              opacity={node.opacity}
             />
           ))}
         </Svg>

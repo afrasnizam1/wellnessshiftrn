@@ -10,12 +10,13 @@ import { navigateToFitnessModule } from '../../utils/fitnessModuleRouter';
 import { getModulePreview } from '../../data/moduleContentPreview';
 import AppScreen from '../../components/common/AppScreen';
 import { BackButton, IconBadge } from '../../components/ui';
+import FuturisticModuleGlyph, { hasFuturisticGlyph } from '../../components/fitness/FuturisticModuleGlyph';
 import { getEffectiveTier } from '../../services/iap';
 
 export default function ModuleDetailScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { subscriptionTier } = useAppStore();
+  const subscriptionTier = useAppStore((s) => s.subscriptionTier);
   const module: FitnessModule = route.params?.module;
   if (!module) return null;
 
@@ -41,7 +42,11 @@ export default function ModuleDetailScreen() {
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { backgroundColor: module.color + '15' }]}>
-          <IconBadge name={fitnessModuleIonIcon(module)} color={module.color} size="lg" />
+          {hasFuturisticGlyph(module.id) ? (
+            <FuturisticModuleGlyph moduleId={module.id} color={module.color} size={56} />
+          ) : (
+            <IconBadge name={fitnessModuleIonIcon(module)} color={module.color} size="lg" />
+          )}
           <Text style={[styles.heroTitle, { color: module.color }]}>{module.title}</Text>
           <View style={styles.heroBadge}>
             <Text style={styles.heroBadgeText}>{categoryLabel[module.category] ?? module.category}</Text>

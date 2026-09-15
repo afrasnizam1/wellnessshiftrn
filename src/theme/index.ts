@@ -1,5 +1,7 @@
 // src/theme/index.ts — aligned with native iOS DesignSystem.swift
 
+import { Platform } from 'react-native';
+
 export const Colors = {
   // iOS system blues (tabs, links)
   primary: '#007AFF',
@@ -123,6 +125,13 @@ export const Spacing = {
   '2xl': 32,
   '3xl': 48,
   '4xl': 64,
+};
+
+/** Floating tab bar overlay — keep in sync with MainTabNavigator / ClinicianTabNavigator. */
+export const TabBarMetrics = {
+  bottom: Platform.OS === 'ios' ? 24 : 12,
+  height: Platform.OS === 'ios' ? 72 : 64,
+  contentInset: Platform.OS === 'ios' ? 120 : 100,
 };
 
 export const Radius = {

@@ -8,10 +8,12 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { Colors, Typography, Spacing, Radius, Gradients, WELLNESS_CATEGORIES } from '../../theme';
-import { AppCard, ScreenHeader, FilterChip, AnimatedPressable, CategoryIcon } from '../../components/ui';
+import { ScreenHeader, FilterChip, AnimatedPressable, CategoryIcon, BrandButton, IconBadge } from '../../components/ui';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../store';
-import { aiService } from '../../services/ai';
+import { aiService, type AnalyticsAiSummary } from '../../services/ai';
 import { healthKitService } from '../../services/healthkit';
+import { getEngagementStats } from '../../services/analyticsService';
 import { getInsightsPersonalizationNote } from '../../services/insightRecommendationService';
 import { navigateToLinkedModule } from '../../utils/fitnessNavigation';
 import type { AIInsight, InsightType, WellnessCategoryKey } from '../../types';
@@ -41,19 +43,42 @@ function mergeCompletionState(generated: AIInsight[], previous: AIInsight[]): AI
 
 export default function InsightsFeedScreen() {
   const navigation = useNavigation<any>();
-  const { insights, setInsights, markInsightComplete, subscriptionTier, wellnessScore, activity } = useAppStore();
+  const {
+    insights,
+    setInsights,
+    markInsightComplete,
+    subscriptionTier,
+    wellnessScore,
+    activity,
+    checkInStreak,
+    user,
+  } = useAppStore(
+    useShallow((s) => ({
+      insights: s.insights,
+      setInsights: s.setInsights,
+      markInsightComplete: s.markInsightComplete,
+      subscriptionTier: s.subscriptionTier,
+      wellnessScore: s.wellnessScore,
+      activity: s.activity,
+      checkInStreak: s.checkInStreak,
+      user: s.user,
+    })),
+  );
   const [activeFilter, setActiveFilter] = useState<InsightType | 'All'>('All');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [aiSummary, setAiSummary] = useState<AnalyticsAiSummary | null>(null);
+  const [summarising, setSummarising] = useState(false);
+  const [planCompletionRate, setPlanCompletionRate] = useState<number | null>(null);
 
   const loadInsights = useCallback(async () => {
     setLoading(true);
     try {
       const authorized = await healthKitService.isAvailable();
-      const generated = await aiService.generateInsights(wellnessScore, activity, authorized);
-      const previous = useAppStore.getState().insights;
+      const { wellnessScore: score, activity, insights: previous } = useAppStore.getState();
+      const generated = await aiService.generateInsights(score, activity, authorized);
       const merged = mergeCompletionState(generated, previous);
       setInsights(merged);
       setExpandedIds(new Set(merged.map((i) => i.id)));
@@ -61,11 +86,35 @@ export default function InsightsFeedScreen() {
     } finally {
       setLoading(false);
     }
-  }, [wellnessScore, activity, setInsights]);
+  }, [setInsights]);
 
   useEffect(() => {
     loadInsights();
   }, [loadInsights]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    getEngagementStats(user.uid).then((stats) => {
+      setPlanCompletionRate(stats.planCompletionRate);
+    });
+  }, [user?.uid]);
+
+  const runAiSummary = useCallback(async () => {
+    setSummarising(true);
+    try {
+      const summary = await aiService.summarizeAnalytics({
+        wellnessScore,
+        activity,
+        engagement: {
+          checkInStreak,
+          planCompletionRate,
+        },
+      });
+      setAiSummary(summary);
+    } finally {
+      setSummarising(false);
+    }
+  }, [wellnessScore, activity, checkInStreak, planCompletionRate]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -115,7 +164,7 @@ export default function InsightsFeedScreen() {
     <AppScreen style={styles.safe}>
       <View style={styles.header}>
         <ScreenHeader
-          title="AI Insights"
+          title="Ai insights"
           subtitle={lastRefreshed
             ? `Updated ${lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
             : 'Refreshes with today\'s activity and your assessment.'}
@@ -168,6 +217,51 @@ export default function InsightsFeedScreen() {
             <Text style={styles.personalizationText}>{personalizationNote}</Text>
           </View>
 
+          <View style={styles.aiCard}>
+            <View style={styles.aiHeader}>
+              <IconBadge name="sparkles-outline" color={Colors.brand} size="sm" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.aiTitle}>AI analytics summary</Text>
+                <Text style={styles.aiSub}>
+                  What’s going well vs what needs improvement — based on your scores, activity & habits.
+                </Text>
+              </View>
+            </View>
+            <BrandButton
+              label={summarising ? 'Summarising…' : aiSummary ? 'Refresh summary' : 'Summarize with AI'}
+              onPress={runAiSummary}
+              loading={summarising}
+            />
+            {aiSummary ? (
+              <View style={styles.aiResult}>
+                <Text style={styles.aiHeadline}>{aiSummary.headline}</Text>
+                <Text style={styles.aiBody}>{aiSummary.body}</Text>
+                {aiSummary.strengths.length > 0 ? (
+                  <View style={styles.aiSection}>
+                    <Text style={styles.aiSectionLabel}>Doing well</Text>
+                    {aiSummary.strengths.map((line) => (
+                      <View key={line} style={styles.aiBulletRow}>
+                        <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+                        <Text style={styles.aiBullet}>{line}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+                {aiSummary.improvements.length > 0 ? (
+                  <View style={styles.aiSection}>
+                    <Text style={styles.aiSectionLabel}>Needs improvement</Text>
+                    {aiSummary.improvements.map((line) => (
+                      <View key={line} style={styles.aiBulletRow}>
+                        <Ionicons name="arrow-up-circle" size={16} color={Colors.warning} />
+                        <Text style={styles.aiBullet}>{line}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+
           <AnimatedPressable
             style={styles.chatCTA}
             onPress={() => navigation.navigate(Screen.aiHealthCoach)}
@@ -178,7 +272,7 @@ export default function InsightsFeedScreen() {
                 <Ionicons name="sparkles" size={22} color={Colors.white} />
               </View>
               <View style={styles.chatCTAInfo}>
-                <Text style={styles.chatCTATitle}>Chat with AI Health Coach</Text>
+                <Text style={styles.chatCTATitle}>Chat with Wellness Coach</Text>
                 <Text style={styles.chatCTASub}>
                   {subscriptionTier === 'free'
                     ? 'Free: 5 messages per day'
@@ -249,8 +343,6 @@ export default function InsightsFeedScreen() {
               />
             ))
           )}
-
-          <View style={{ height: 100 }} />
         </ScrollView>
       )}
     </AppScreen>
@@ -433,6 +525,40 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 18,
   },
+
+  aiCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
+    gap: Spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.brandMuted,
+  },
+  aiHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+  aiTitle: { fontSize: Typography.size.base, fontWeight: '800', color: Colors.text },
+  aiSub: { fontSize: Typography.size.xs, color: Colors.textSecondary, lineHeight: 16, marginTop: 2 },
+  aiResult: { gap: Spacing.sm },
+  aiHeadline: {
+    fontSize: Typography.size.lg,
+    fontWeight: '800',
+    color: Colors.text,
+    letterSpacing: -0.3,
+  },
+  aiBody: {
+    fontSize: Typography.size.sm,
+    color: Colors.textSecondary,
+    lineHeight: 21,
+  },
+  aiSection: { gap: Spacing.xs, marginTop: Spacing.xs },
+  aiSectionLabel: {
+    fontSize: Typography.size.xs,
+    fontWeight: '800',
+    color: Colors.text,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  aiBulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.xs },
+  aiBullet: { flex: 1, fontSize: Typography.size.sm, color: Colors.text, lineHeight: 20 },
 
   chatCTA: {
     borderRadius: Radius.lg,

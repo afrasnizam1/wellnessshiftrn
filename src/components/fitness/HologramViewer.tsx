@@ -6,6 +6,7 @@ import type { HologramPreset } from '../../data/anatomyModels';
 type NativeProps = {
   modelFile: string;
   preset: HologramPreset;
+  autoRotate?: boolean;
   style?: ViewStyle;
 };
 
@@ -15,10 +16,11 @@ type Props = {
   modelFile: string;
   preset: HologramPreset;
   height?: number;
+  autoRotate?: boolean;
 };
 
 /** Native SceneKit (iOS) / Three.js USD viewer (Android) — same USDZ assets. */
-export default function HologramViewer({ modelFile, preset, height = 300 }: Props) {
+export default function HologramViewer({ modelFile, preset, height = 300, autoRotate = false }: Props) {
   if (!NativeHologramSceneView) {
     return (
       <View style={[styles.fallback, { height }]}>
@@ -35,11 +37,14 @@ export default function HologramViewer({ modelFile, preset, height = 300 }: Prop
       <NativeHologramSceneView
         modelFile={modelFile}
         preset={preset}
+        autoRotate={autoRotate}
         style={styles.nativeView}
       />
       {Platform.OS === 'ios' ? (
         <View style={styles.hintBar}>
-          <Text style={styles.hint}>Pinch & drag to rotate · Double-tap to reset</Text>
+          <Text style={styles.hint}>
+            {autoRotate ? 'Rotates slowly · Pinch & drag to explore' : 'Pinch & drag to rotate · Double-tap to reset'}
+          </Text>
         </View>
       ) : null}
     </View>

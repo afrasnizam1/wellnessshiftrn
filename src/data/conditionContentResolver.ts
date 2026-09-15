@@ -43,7 +43,7 @@ function buildConditionContent(condition: HealthCondition): ConditionContent {
     resources: [
       { type: 'article' as const, title: `${condition.name} — NHS guidance`, description: 'Trusted UK health information and when to seek help.' },
       { type: 'exercise' as const, title: 'Fitness Hub modules', description: 'Explore related education and movement modules in the app.' },
-      { type: 'support' as const, title: 'AI Health Coach', description: 'Ask personalised questions about your wellness plan.' },
+      { type: 'support' as const, title: 'Wellness Coach', description: 'Ask personalised questions about your wellness plan.' },
     ],
   };
 }

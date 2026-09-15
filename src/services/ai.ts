@@ -1,5 +1,5 @@
 // src/services/ai.ts
-// AI coach — local responses in development.
+// Wellness Coach — local rule-based coaching (not a generative AI / LLM).
 // To enable Cloud Functions later: install @react-native-firebase/functions,
 // deploy openAIChat, and wire callFunction in this file.
 
@@ -31,24 +31,39 @@ export type AnalyticsAiSummary = {
   improvements: string[];
 };
 
-function mockCoachReply(messages: ChatMessage[], wellnessScore: WellnessScore | null): string {
+/** Keyword / score-based coaching replies — honest local logic, not an LLM. */
+function localCoachReply(messages: ChatMessage[], wellnessScore: WellnessScore | null): string {
   const last = messages[messages.length - 1]?.content.toLowerCase() ?? '';
   const score = wellnessScore?.overall?.toFixed(1) ?? '—';
+  const cats = wellnessScore?.categories;
 
   if (last.includes('sleep')) {
-    return `Your sleep score is a key lever right now (overall wellness: ${score}/10). Try a consistent wind-down: no screens 30 minutes before bed, same bedtime each night, and a short breathing exercise. Small changes over 7 days usually show up in your score.`;
+    const sleep = cats?.sleep != null ? cats.sleep.toFixed(1) : null;
+    return `Your sleep score${sleep ? ` (${sleep}/10)` : ''} is a key lever right now (overall wellness: ${score}/10). Try a consistent wind-down: no screens 30 minutes before bed, same bedtime each night, and a short breathing exercise. Small changes over 7 days usually show up in your score.`;
   }
   if (last.includes('stress') || last.includes('anx')) {
-    return `For stress relief, try box breathing: inhale 4s, hold 4s, exhale 4s, hold 4s — repeat 4 rounds. Pair it with a 10-minute walk. Your mental wellness category will respond well to daily consistency rather than intensity.`;
+    return `For stress relief, try box breathing: inhale 4s, hold 4s, exhale 4s, hold 4s — repeat 4 rounds. Pair it with a 10-minute walk. Your stress category will respond better to daily consistency than intensity.`;
   }
   if (last.includes('eat') || last.includes('food') || last.includes('nutrition')) {
     return `Focus on protein and fibre at each meal, and hydrate before you feel thirsty. With your current score (${score}/10), steady energy beats strict diets — aim for one more serving of vegetables at lunch and dinner this week.`;
   }
   if (last.includes('exercise') || last.includes('workout') || last.includes('fitness')) {
-    return `Start where you are: 20 minutes of movement you enjoy beats an ambitious plan you skip. Check your Fitness Hub for modules matched to your lowest categories. Your overall score is ${score}/10 — consistency will move it faster than intensity.`;
+    return `Start where you are: 20 minutes of movement you enjoy beats an ambitious plan you skip. Check Fitness Hub for modules matched to your lowest categories. Your overall score is ${score}/10 — consistency will move it faster than intensity.`;
+  }
+  if (last.includes('why') && last.includes('score')) {
+    const ranked = wellnessScore
+      ? WELLNESS_CATEGORIES.map((c) => ({
+          label: c.label,
+          value: wellnessScore.categories[c.key as WellnessCategoryKey] ?? 0,
+        })).sort((a, b) => a.value - b.value)
+      : [];
+    const weak = ranked[0];
+    return weak
+      ? `Your overall score is ${score}/10. The lowest area right now is ${weak.label} (${weak.value.toFixed(1)}/10). Focus on one small action there today — that usually moves the overall score faster than spreading effort thin.`
+      : `Your overall score is ${score}/10. Take the wellness assessment (or retake it) so I can point to your weakest category with a concrete next step.`;
   }
 
-  return `Thanks for sharing. Based on your wellness score (${score}/10), I'd suggest picking one small habit from today's daily plan and completing it before noon. What area would you like to focus on — sleep, stress, fitness, or nutrition?`;
+  return `Thanks for sharing. Based on your wellness score (${score}/10), pick one small habit from today's plan and complete it before noon. What would you like to focus on — sleep, stress, fitness, or nutrition?`;
 }
 
 function rankedCategories(score: WellnessScore): { key: WellnessCategoryKey; label: string; value: number }[] {
@@ -214,7 +229,7 @@ export const aiService = {
   sendMessage: async (
     messages: ChatMessage[],
     wellnessScore: WellnessScore | null,
-  ): Promise<string> => mockCoachReply(messages, wellnessScore),
+  ): Promise<string> => localCoachReply(messages, wellnessScore),
 
   generateInsights: async (
     wellnessScore: WellnessScore | null,
@@ -228,8 +243,21 @@ export const aiService = {
     return buildAnalyticsAiSummary(input);
   },
 
-  generatePatientSummary: async (_patientId: string): Promise<string> =>
-    'Patient is engaging with their daily plan. Wellness trends are stable. Recommend continuing current care plan and monitoring sleep category.',
+  generatePatientSummary: async (
+    _patientId: string,
+    wellnessScore?: WellnessScore | null,
+  ): Promise<string> => {
+    if (!wellnessScore) {
+      return 'No recent wellness score on file. Ask the patient to complete a check-in or assessment, then review their daily plan engagement.';
+    }
+    const ranked = WELLNESS_CATEGORIES.map((c) => ({
+      label: c.label,
+      value: wellnessScore.categories[c.key as WellnessCategoryKey] ?? 0,
+    })).sort((a, b) => a.value - b.value);
+    const weak = ranked[0];
+    const strong = ranked[ranked.length - 1];
+    return `Overall wellness ${wellnessScore.overall.toFixed(1)}/10. Strongest: ${strong.label} (${strong.value.toFixed(1)}). Needs attention: ${weak.label} (${weak.value.toFixed(1)}). Recommend continuing the current care plan and focusing the next review on ${weak.label.toLowerCase()}.`;
+  },
 };
 
 export const MOCK_INSIGHTS: AIInsight[] = [

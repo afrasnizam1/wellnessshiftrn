@@ -8,7 +8,7 @@ type Props = {
 
 /**
  * Optionally masks sensitive inputs in Session Replay.
- * When contentsquareDefaultMasking is false, content is left unmasked (full replays).
+ * With contentsquareDefaultMasking true (production default), wraps children in CSQMask.
  */
 export function SensitiveCSQMask({ children }: Props) {
   if (!appConfig.contentsquareDefaultMasking) {

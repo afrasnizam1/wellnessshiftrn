@@ -55,7 +55,7 @@ function Section({
 
 export default function ClinicianDashboardScreen() {
   const navigation = useNavigation<Nav>();
-  const { user } = useAppStore();
+  const user = useAppStore((s) => s.user);
   const [patients, setPatients] = useState<Awaited<ReturnType<typeof clinicianService.fetchLinkedPatients>>>([]);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [unread, setUnread] = useState(0);

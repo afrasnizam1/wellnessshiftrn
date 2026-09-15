@@ -9,6 +9,7 @@ import { firebaseAuth, userService } from '../../services/firebase';
 import { ensurePendingOnboardingApplied } from '../../services/applyPendingOnboarding';
 import { authErrorMessage } from '../../utils/authErrorMessage';
 import { signOutCurrentUser } from '../../services/authSession';
+import { deleteCurrentUserAccount } from '../../services/accountDeletion';
 import { useAppStore } from '../../store';
 import AppScreen from '../../components/common/AppScreen';
 
@@ -18,9 +19,11 @@ export default function EmailVerificationScreen() {
   const { user, setUser } = useAppStore();
   const [resending, setResending] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [changingEmail, setChangingEmail] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
   const email = user?.email ?? auth().currentUser?.email ?? '';
+  const busy = resending || checking || changingEmail;
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -93,6 +96,40 @@ export default function EmailVerificationScreen() {
     });
   };
 
+  const handleWrongEmail = () => {
+    Alert.alert(
+      'Wrong email address?',
+      `This removes the unverified account for ${email || 'this address'} so you can sign up again with the correct email. You will need to re-enter your details.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Change email',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setChangingEmail(true);
+              try {
+                await deleteCurrentUserAccount();
+              } catch (error) {
+                console.warn('Change email / delete unverified account failed:', error);
+                await signOutCurrentUser(user).catch(() => {});
+                Alert.alert(
+                  'Signed out',
+                  authErrorMessage(
+                    error,
+                    'We signed you out. Create a new account with the correct email address.',
+                  ),
+                );
+              } finally {
+                setChangingEmail(false);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <AppScreen style={styles.safe}>
       <View style={styles.content}>
@@ -106,10 +143,31 @@ export default function EmailVerificationScreen() {
           Please check your inbox and click the verification link to continue.
         </Text>
 
+        <View style={styles.wrongEmailCard}>
+          <Text style={styles.wrongEmailTitle}>Typed the wrong email?</Text>
+          <Text style={styles.wrongEmailBody}>
+            Go back and create your account again with the correct address. We will remove this
+            unverified account first.
+          </Text>
+          <TouchableOpacity
+            style={styles.wrongEmailBtn}
+            onPress={handleWrongEmail}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Change email address"
+          >
+            {changingEmail ? (
+              <ActivityIndicator color={Colors.primary} />
+            ) : (
+              <Text style={styles.wrongEmailBtnText}>Change email address</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
           style={[styles.primaryBtn, (resending || cooldown > 0) && styles.btnDisabled]}
           onPress={handleResend}
-          disabled={resending || checking || cooldown > 0}
+          disabled={busy || cooldown > 0}
         >
           {resending ? (
             <ActivityIndicator color={Colors.white} />
@@ -123,7 +181,7 @@ export default function EmailVerificationScreen() {
         <TouchableOpacity
           style={styles.secondaryBtn}
           onPress={handleCheckVerified}
-          disabled={checking || resending}
+          disabled={busy}
         >
           {checking ? (
             <ActivityIndicator color={Colors.primary} />
@@ -132,7 +190,7 @@ export default function EmailVerificationScreen() {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
+        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} disabled={busy}>
           <Text style={styles.signOutText}>I'll verify later — sign out</Text>
         </TouchableOpacity>
       </View>
@@ -151,9 +209,46 @@ const styles = StyleSheet.create({
   },
   icon: { fontSize: 72, marginBottom: Spacing.sm },
   title: { fontSize: Typography.size['2xl'], fontWeight: '700', color: Colors.text },
-  subtitle: { fontSize: Typography.size.base, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
+  subtitle: {
+    fontSize: Typography.size.base,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
   email: { fontWeight: '700', color: Colors.text },
-  hint: { fontSize: Typography.size.sm, color: Colors.textSecondary, textAlign: 'center', marginBottom: Spacing.lg },
+  hint: { fontSize: Typography.size.sm, color: Colors.textSecondary, textAlign: 'center' },
+  wrongEmailCard: {
+    width: '100%',
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: Spacing.sm,
+  },
+  wrongEmailTitle: {
+    fontSize: Typography.size.sm,
+    fontWeight: '700',
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  wrongEmailBody: {
+    fontSize: Typography.size.xs,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  wrongEmailBtn: {
+    alignSelf: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  wrongEmailBtnText: {
+    color: Colors.primary,
+    fontSize: Typography.size.sm,
+    fontWeight: '700',
+  },
   primaryBtn: {
     width: '100%',
     backgroundColor: Colors.accent,

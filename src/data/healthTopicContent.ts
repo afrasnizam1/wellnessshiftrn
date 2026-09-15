@@ -474,9 +474,56 @@ const HEALTH_TOPIC_CONTENT: Record<string, HealthTopicContent> = {
     s('Treatment', 'Short course antibiotics via GP or pharmacy scheme. Recurrent UTIs need investigation.'),
   ),
   'eye-health': topic(
-    s('Screen strain', '20-20-20 rule: every 20 min, look 20 feet away for 20 seconds.'),
-    s('Checks', 'NHS eye tests every 2 years (sooner if diabetic). Report floaters, flashes, vision loss urgently.'),
-    s('Protection', 'UV-blocking sunglasses outdoors. Safety goggles for DIY and sport.'),
+    s(
+      'Why eye care matters',
+      'Your eyes work hard every day — focusing on screens, filtering light, and staying lubricated with each blink. Lifestyle habits strongly influence dry eyes, digital strain, and long-term retinal health. Small daily practices protect comfort now and vision later.',
+    ),
+    s(
+      'Foods that support vision',
+      '• Leafy greens (spinach, kale, collards) — lutein & zeaxanthin concentrate in the macula and help filter blue light\n• Colourful veg & fruit (orange peppers, corn, carrots, berries) — carotenoids and vitamin C\n• Oily fish (salmon, sardines, mackerel) — omega-3s (EPA/DHA) support the retina and tear film\n• Eggs — lutein in yolks with dietary fat for absorption\n• Nuts & seeds (almonds, walnuts, chia, flax) — vitamin E and plant omega-3s\n• Legumes & whole grains — zinc and steady energy for eye tissues\nFood first; supplements (e.g. AREDS2-style formulas) only when an eye specialist or GP advises them.',
+    ),
+    s(
+      'Hydration & the tear film',
+      'Dehydration and low blink rate on screens thin the tear film, causing sting, blur, and fatigue. Aim for regular fluids through the day (~1.5–2L for most adults, more with exercise or heat). Pair water with omega-3-rich foods. If air is dry (heating/AC), consider a desk humidifier and preservative-free lubricating drops if your optician recommends them.',
+    ),
+    s(
+      'Eye exercises & movement habits',
+      '• 20-20-20 rule: every 20 minutes, look ~20 feet (6m) away for 20 seconds to relax focusing muscles\n• Blink breaks: consciously full-blink 10 times when eyes feel dry\n• Near–far focus: hold a thumb at arm’s length, focus near then on a distant object — 10 slow reps\n• Palming: warm palms over closed eyes for 30–60 seconds to rest photostress\n• Whole-body exercise: regular cardio and healthy weight support retinal blood flow and lower risk factors linked to eye disease\n• Outdoor time: daylight exposure is linked with lower myopia risk in developing eyes and helps circadian rhythm',
+    ),
+    s(
+      'Daily habits that protect eyes',
+      '• Screen setup: 50–65 cm away; top of screen at or below eye level\n• Longer breaks: every 2 hours, step away for 5–15 minutes\n• UV protection: quality sunglasses outdoors (and snow/water glare)\n• Sleep 7–9 hours — overnight tear production and recovery matter\n• Don’t smoke; manage blood pressure, blood sugar, and cholesterol\n• Contact lens hygiene: never sleep in day lenses; replace as directed',
+    ),
+    s(
+      'When to get checked',
+      'Book an NHS sight test about every 2 years (sooner if diabetic, family history of glaucoma, or changing vision). Seek urgent care for sudden vision loss, new flashes/floaters, severe pain, or a curtain-like shadow over vision. This module is education — not a substitute for optometry or ophthalmology care.',
+    ),
+  ),
+  'social-energy': topic(
+    s(
+      'What we mean by energy',
+      'In Wellness Shift, “energy” means three layered things: (1) biological fuel — sleep, food, movement, and mitochondrial ATP; (2) felt vitality — how alert, motivated, or drained you feel; (3) relational energy — how other people’s presence lifts or depletes you. All three interact. This module focuses on the social layer, with honest context from physics metaphors.',
+    ),
+    s(
+      'Quantum mechanics — curiosity vs claims',
+      'Quantum physics describes the microscopic world of particles, atoms, and light with extraordinary precision. Your cells obey those laws. What it does not do is prove that you can beam healing “quantum energy” into someone like a laser. Popular wellness language borrows quantum words as metaphors for interconnection and attention. We keep the metaphor inspiring and the science honest: your nervous system, hormones, and social brain are what actually “exchange” energy with people.',
+    ),
+    s(
+      'How you receive energy from people',
+      'Psychology calls this emotional contagion and relational energy. We automatically mimic faces, voice tone, and posture, then feel a version of what others feel (Hatfield, Cacioppo & Rapson). High-quality connection — laughter, safety, being truly heard — raises capacity and mood. Choose energisers: people who leave you clearer, kinder, and more resourceful. Limit chronic drainers when you can, or set time boundaries. Nature + people together (walks, shared meals) compounds the lift.',
+    ),
+    s(
+      'How you pass energy on',
+      'You transmit state before you transmit words. Calm, presence, and warmth co-regulate others’ nervous systems; rushed anxiety spreads the same way. Practices: regulate yourself first (breath, posture, brief pause), listen without fixing, offer specific appreciation, share attention fully (phone down), help in small concrete ways, and end interactions with a clear goodbye rather than abrupt withdrawal. Kindness and humour are highly contagious — in a good way.',
+    ),
+    s(
+      'Daily practice',
+      '• Morning: one energising contact (message, hug, or shared coffee)\n• Midday: notice who raises vs lowers your battery — adjust exposure\n• Before hard talks: 4 cycles of calm breathing so you pass steadiness, not stress\n• Evening: gratitude for one person who gave you energy; one way you gave it back\n• Protect solo recovery — receiving well requires rest, sleep, and food',
+    ),
+    s(
+      'Boundaries & safety',
+      'Receiving energy is not absorbing everyone’s crisis. Empathy without boundaries leads to burnout. If someone is in acute distress, listen and encourage professional help — you are not their sole battery. This is wellness education, not quantum medicine or a substitute for mental-health care.',
+    ),
   ),
   'ear-health': topic(
     s('Hearing protection', 'Limit headphone volume. Earplugs at loud events.'),
@@ -504,7 +551,7 @@ const HEALTH_TOPIC_CONTENT: Record<string, HealthTopicContent> = {
 
 const SUPPORT_FOOTER: HealthTopicSection = s(
   'Getting support',
-  'For personalised advice, consult your healthcare provider or use the AI Health Coach in the app.',
+  'For personalised advice, consult your healthcare provider or use the Wellness Coach in the app.',
 );
 
 export function resolveHealthTopicContent(
@@ -526,7 +573,7 @@ export function resolveHealthTopicContent(
 
   return topic(
     s('What you need to know', `${title} affects many aspects of daily life. ${sub} Understanding the basics helps you make informed decisions with your healthcare team.`),
-    s('Evidence-based habits', `• Start with one small change this week related to ${domain.toLowerCase()}\n• Track relevant metrics in Fitness Hub calculators and trackers\n• Pair lifestyle changes with regular medical follow-up when needed\n• Use the AI Health Coach for personalised questions`),
+    s('Evidence-based habits', `• Start with one small change this week related to ${domain.toLowerCase()}\n• Track relevant metrics in Fitness Hub calculators and trackers\n• Pair lifestyle changes with regular medical follow-up when needed\n• Use the Wellness Coach for personalised questions`),
     s('When to seek help', 'Contact your GP if symptoms are new, worsening, or affecting daily function. For urgent concerns — chest pain, severe breathlessness, sudden weakness, or thoughts of self-harm — seek emergency care immediately.'),
     SUPPORT_FOOTER,
   );

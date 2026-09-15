@@ -12,6 +12,7 @@ import HealthKitPermissionScreen from '../../screens/auth/HealthKitPermissionScr
 import BodyMetricsScreen from '../../screens/home/BodyMetricsScreen';
 import FoodScanScreen from '../../screens/home/FoodScanScreen';
 import HealthRecordsScreen from '../../screens/home/HealthRecordsScreen';
+import VirtualTwinScreen from '../../screens/home/VirtualTwinScreen';
 import { Screen } from '../screenNames';
 import { carePlanReturnListeners } from '../carePlanReturn';
 
@@ -33,6 +34,7 @@ export default function HomeStackNavigator() {
       <Stack.Screen name={Screen.bodyMetrics} component={BodyMetricsScreen} />
       <Stack.Screen name={Screen.foodScan} component={FoodScanScreen} />
       <Stack.Screen name={Screen.healthRecords} component={HealthRecordsScreen} />
+      <Stack.Screen name={Screen.virtualTwin} component={VirtualTwinScreen} />
     </Stack.Navigator>
   );
 }

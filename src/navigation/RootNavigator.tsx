@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AppLoadingScreen from '../components/auth/AppLoadingScreen';
 
 import { appConfig } from '../config/appConfig';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../store';
 import { firebaseAuth, userService, wellnessService } from '../services/firebase';
 import { onboardingStorage } from '../services/onboardingStorage';
@@ -61,7 +62,6 @@ import { registerPreAuthRouteListener, registerWelcomeVideoCompletedListener } f
 import {
   clearDeferredSimulatorSession,
   isSimulatorOrEmulator,
-  setDeferredSimulatorSession,
 } from '../services/simulatorLaunch';
 import firestore from '@react-native-firebase/firestore';
 import { Screen } from './screenNames';
@@ -274,7 +274,24 @@ export default function RootNavigator() {
     user, isAuthLoading, setUser, setAuthLoading, setHasSeenIntro, setWellnessScore, setLastQuizAnswers,
     clinicianProfileReady, setClinicianProfileReady, setSubscriptionTier, subscriptionTier,
     setTrialActive, sessionEpoch, resetSession,
-  } = useAppStore();
+  } = useAppStore(
+    useShallow((s) => ({
+      user: s.user,
+      isAuthLoading: s.isAuthLoading,
+      setUser: s.setUser,
+      setAuthLoading: s.setAuthLoading,
+      setHasSeenIntro: s.setHasSeenIntro,
+      setWellnessScore: s.setWellnessScore,
+      setLastQuizAnswers: s.setLastQuizAnswers,
+      clinicianProfileReady: s.clinicianProfileReady,
+      setClinicianProfileReady: s.setClinicianProfileReady,
+      setSubscriptionTier: s.setSubscriptionTier,
+      subscriptionTier: s.subscriptionTier,
+      setTrialActive: s.setTrialActive,
+      sessionEpoch: s.sessionEpoch,
+      resetSession: s.resetSession,
+    })),
+  );
   const [introSeen, setIntroSeen] = useState(true);
   const [preAuthRoute, setPreAuthRoute] = useState<PreAuthRoute | null>(null);
   const [onboardingRoute, setOnboardingRoute] = useState<PatientOnboardingRoute | null>(null);
@@ -286,7 +303,6 @@ export default function RootNavigator() {
   const freezePreAuthRouteRef = useRef(false);
   const guestNavActiveRef = useRef(false);
   const lastCsqScreenviewRef = useRef<string | null>(null);
-  const simulatorSessionAcceptedRef = useRef(false);
 
   useEffect(() => {
     return registerPreAuthRouteListener((route) => {
@@ -433,7 +449,6 @@ export default function RootNavigator() {
               const profile = await ensureProfile(firebaseUser);
               if (!profile || cancelled) return;
 
-              simulatorSessionAcceptedRef.current = true;
               clearDeferredSimulatorSession();
               setUser(profile);
 
@@ -468,25 +483,12 @@ export default function RootNavigator() {
               }
             };
 
-            // Simulator: keep Firebase session available via "Continue with session",
-            // but still start the personalisation funnel (purpose → goals → …).
-            if (isSimulatorOrEmulator() && !simulatorSessionAcceptedRef.current) {
-              setDeferredSimulatorSession(acceptSession);
-              freezePreAuthRouteRef.current = false;
-              guestNavActiveRef.current = false;
-              const route = await resolvePreAuthRoute(introSeen);
-              if (!cancelled) setPreAuthRoute(route);
-              setAuthLoading(false);
-              lastAuthUidRef.current = firebaseUser.uid;
-              return;
-            }
-
+            // Always resume a persisted Firebase session on launch (device + simulator).
             await acceptSession();
           } else if (isDemoProfile(useAppStore.getState().user)) {
             setAuthLoading(false);
           } else {
             clearDeferredSimulatorSession();
-            simulatorSessionAcceptedRef.current = false;
             const hadFirebaseSession = lastAuthUidRef.current != null;
             if (hadFirebaseSession) {
               freezePreAuthRouteRef.current = false;
@@ -516,9 +518,7 @@ export default function RootNavigator() {
           console.warn('[RootNavigator] force auth launch sign-out failed:', error);
         }
       }
-      // Simulators: do NOT force authentication here — that skipped the
-      // "Why are you here?" → goals funnel. Auth listener sets deferred session
-      // + auth screen only when a Firebase session exists to resume.
+      // Prefer a persisted Firebase session whenever one exists.
       if (cancelled) return;
       attachAuthListener();
     };

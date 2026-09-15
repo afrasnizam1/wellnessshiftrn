@@ -35,7 +35,7 @@ export default function AuthMainLandingScreen() {
   const [continuing, setContinuing] = React.useState(false);
 
   // Keep subscription so deferred Firebase session is ready when the button is tapped.
-  useSyncExternalStore(
+  const hasDeferredSession = useSyncExternalStore(
     subscribeDeferredSimulatorSession,
     hasDeferredSimulatorSession,
     () => false,
@@ -152,18 +152,20 @@ export default function AuthMainLandingScreen() {
             <Text style={styles.glassText}>Sign In</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.sessionBtn}
-            onPress={() => handleContinueWithSession()}
-            activeOpacity={0.9}
-            disabled={continuing || isAuthLoading}
-          >
-            {continuing ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <Text style={styles.sessionText}>Continue with session</Text>
-            )}
-          </TouchableOpacity>
+          {hasDeferredSession ? (
+            <TouchableOpacity
+              style={styles.sessionBtn}
+              onPress={() => handleContinueWithSession()}
+              activeOpacity={0.9}
+              disabled={continuing || isAuthLoading}
+            >
+              {continuing ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <Text style={styles.sessionText}>Continue with session</Text>
+              )}
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={styles.guestBtn}

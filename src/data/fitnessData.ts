@@ -9,7 +9,7 @@ import type { FitnessDomainSection } from './fitnessExploreCategories';
 
 const CORE_MODULES: FitnessModule[] = [
   // Mind & Body
-  { id: 'breathing',          title: 'Breathing Exercises',       subtitle: 'Guided breathing techniques',                  category: 'mindBody',     icon: '🌬️',  color: Colors.fitness,    isPremium: false, wellnessCategory: 'stress' },
+  { id: 'breathing',          title: 'Breathing Exercises',       subtitle: 'Why it works + 7 guided techniques',           category: 'mindBody',     icon: '🌬️',  color: Colors.fitness,    isPremium: false, wellnessCategory: 'stress' },
   { id: 'meditation',         title: 'Meditation Timer',          subtitle: 'Guided meditation & techniques',               category: 'mindBody',     icon: '🧘',  color: Colors.mindfulness, isPremium: false, wellnessCategory: 'mindfulness' },
   { id: 'mindfulness-toolkit',title: 'Mindfulness Toolkit',       subtitle: 'Stress reduction tools',                       category: 'mindBody',     icon: '🧠',  color: Colors.mental,     isPremium: false, wellnessCategory: 'mindfulness' },
   { id: 'mindfulness',        title: 'Mindfulness',               subtitle: 'Mindfulness practices',                        category: 'mindBody',     icon: '☯️',  color: Colors.mindfulness, isPremium: false, wellnessCategory: 'mindfulness' },

@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { InteractionManager, LogBox, StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { enableFreeze } from 'react-native-screens';
 import RootNavigator from './src/navigation/RootNavigator';
 import { subscriptionService } from './src/services/subscriptionService';
 import { notificationService } from './src/services/notifications';
@@ -17,6 +18,8 @@ import { appConfig, isGoogleSignInConfigured } from './src/config/appConfig';
 import { Colors } from './src/theme';
 import AppErrorBoundary from './src/components/common/AppErrorBoundary';
 
+enableFreeze(true);
+
 if (__DEV__) {
   LogBox.ignoreLogs([
     'HeapReactNativeBridgeModule requires main queue setup',
@@ -25,7 +28,7 @@ if (__DEV__) {
 }
 
 export default function App() {
-  const { setSubscriptionTier } = useAppStore();
+  const setSubscriptionTier = useAppStore((s) => s.setSubscriptionTier);
 
   useEffect(() => {
     let cleanupIap = () => {};

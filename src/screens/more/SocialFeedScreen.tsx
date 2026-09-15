@@ -38,7 +38,7 @@ export default function SocialFeedScreen() {
     if (!user) return;
     setLoading(true);
     try {
-      // Fetch friend board entries as feed posts
+      // Fetch friend board entries as feed posts (no mock community posts)
       const entries = await socialService.fetchFriendBoardEntries(user.uid);
       const feedPosts: FeedPost[] = entries.map(entry => ({
         id: entry.id,
@@ -47,41 +47,16 @@ export default function SocialFeedScreen() {
         content: entry.action,
         category: entry.category,
         createdAt: entry.createdAt,
-        likes: Math.floor(Math.random() * 5), // Mock likes
-        comments: Math.floor(Math.random() * 3), // Mock comments
+        likes: 0,
+        comments: 0,
         isLiked: false,
       }));
-      
-      // Add some mock community posts
-      const mockPosts: FeedPost[] = [
-        {
-          id: 'mock1',
-          userId: 'community',
-          displayName: 'Community Challenge',
-          content: 'Complete 10 minutes of mindfulness meditation today',
-          category: 'mental',
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          likes: 12,
-          comments: 4,
-          isLiked: false,
-        },
-        {
-          id: 'mock2',
-          userId: 'community',
-          displayName: 'Weekly Wellness Tip',
-          content: 'Drinking water first thing in the morning helps kickstart your metabolism',
-          category: 'nutrition',
-          createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-          likes: 8,
-          comments: 2,
-          isLiked: true,
-        },
-      ];
 
-      setPosts([...feedPosts, ...mockPosts].sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      ));
-      
+      setPosts(
+        feedPosts.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+      );
       const activeChallenges = await socialService.fetchChallenges();
       setChallenges(activeChallenges);
     } catch (e) {

@@ -32,6 +32,15 @@ export type HologramOrganHealth = {
   preventionTips: string[];
 };
 
+export type HologramKeepHealthyGuide = {
+  organName: string;
+  howToKeepHealthy: string;
+  foods: string[];
+  fluids: string[];
+  exercise: string[];
+  rest: string[];
+};
+
 export type HologramImportance = {
   title: string;
   importance: string;

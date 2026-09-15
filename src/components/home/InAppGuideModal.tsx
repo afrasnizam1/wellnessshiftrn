@@ -18,7 +18,6 @@ export type InAppGuideDestination =
   | 'dailyPlan'
   | 'aiInsights'
   | 'fitness'
-  | 'anatomy'
   | 'foods'
   | 'clinician'
   | 'analytics'
@@ -85,18 +84,6 @@ function buildTourSteps(primaryGoal?: string | null): TourStep[] {
       tabHint: 'Bottom tab · Fitness',
       destination: 'fitness',
       actionTitle: 'Open Fitness',
-    },
-    {
-      id: 'body',
-      title: 'Learn the human body',
-      description:
-        'Explore interactive 3D anatomy — heart, brain, lungs, muscles, and more — so you understand how your body works as you build healthier habits.',
-      icon: 'body',
-      color: Colors.mental,
-      well: ['#946BFA', '#7A57F5'],
-      tabHint: 'More · Anatomy Explorer',
-      destination: 'anatomy',
-      actionTitle: 'Explore anatomy',
     },
     {
       id: 'foods',

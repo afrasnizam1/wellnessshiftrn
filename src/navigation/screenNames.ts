@@ -71,12 +71,13 @@ export const Screen = {
   foodScan: 'Food Scan',
   bodyMetrics: 'Body Metrics',
   healthRecords: 'Health Records',
+  virtualTwin: 'Virtual Twin',
   premiumShop: 'Premium Shop',
   organHealthNutrition: 'Organ Health & Nutrition',
 
   // AI Insights stack
   aiInsightsFeed: 'AI Insights Feed',
-  aiHealthCoach: 'AI Health Coach',
+  aiHealthCoach: 'Wellness Coach',
   insightDetail: 'AI Insight Detail',
 
   // Analytics stack

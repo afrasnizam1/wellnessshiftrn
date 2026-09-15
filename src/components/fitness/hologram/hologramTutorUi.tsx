@@ -5,6 +5,7 @@ import { Colors, Typography, Spacing, Radius, Shadow } from '../../../theme';
 import type {
   HologramFactCard,
   HologramImportance,
+  HologramKeepHealthyGuide,
   HologramOrganHealth,
   HologramQuickStat,
   HologramStatCard,
@@ -140,11 +141,55 @@ export function FactCardsSection({
   );
 }
 
+function TipGroup({
+  icon,
+  title,
+  items,
+  color,
+}: {
+  icon: string;
+  title: string;
+  items: string[];
+  color: string;
+}) {
+  if (!items.length) return null;
+  return (
+    <View style={styles.tipGroup}>
+      <View style={styles.tipHead}>
+        <View style={[styles.tipIcon, { backgroundColor: `${color}18` }]}>
+          <Ionicons name={icon as any} size={16} color={color} />
+        </View>
+        <Text style={styles.subheading}>{title}</Text>
+      </View>
+      {items.map((item) => (
+        <Text key={item} style={styles.bullet}>• {item}</Text>
+      ))}
+    </View>
+  );
+}
+
+export function KeepHealthyCard({ data }: { data: HologramKeepHealthyGuide }) {
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>How to keep your {data.organName.toLowerCase()} healthy</Text>
+      <Text style={styles.cardBody}>{data.howToKeepHealthy}</Text>
+      <TipGroup icon="nutrition" title="Best foods" items={data.foods} color={Colors.nutrition} />
+      <TipGroup icon="water" title="Best fluids" items={data.fluids} color={Colors.physical} />
+      <TipGroup icon="walk" title="Movement & exercise" items={data.exercise} color={Colors.fitness} />
+      <TipGroup icon="moon" title="Rest & recovery" items={data.rest} color={Colors.mental} />
+      <Text style={styles.disclaimer}>
+        General wellness guidance — not a diagnosis or a personal treatment plan. Speak with a clinician
+        before big diet or exercise changes, especially if you have a health condition.
+      </Text>
+    </View>
+  );
+}
+
 function BulletList({ title, items }: { title: string; items: string[] }) {
   if (!items.length) return null;
   return (
     <View style={styles.listBlock}>
-      <Text style={styles.subheading}>{title}</Text>
+      <Text style={[styles.subheading, styles.listHeading]}>{title}</Text>
       {items.map((item) => (
         <Text key={item} style={styles.bullet}>• {item}</Text>
       ))}
@@ -193,7 +238,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.size.sm,
     fontWeight: '700',
     color: Colors.text,
-    marginTop: Spacing.xs,
   },
   bullet: {
     fontSize: Typography.size.sm,
@@ -256,5 +300,26 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   listBlock: { gap: 4 },
+  listHeading: { marginTop: Spacing.xs },
   issueBlock: { gap: 2, marginTop: Spacing.xs },
+  tipGroup: { gap: 4, marginTop: 4 },
+  tipHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  tipIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disclaimer: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.textTertiary,
+    marginTop: Spacing.xs,
+  },
 });

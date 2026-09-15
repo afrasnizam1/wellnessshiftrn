@@ -24,7 +24,7 @@ const ROLES: { role: UserRole; icon: string; title: string; desc: string; featur
     features: [
       'Personalised wellness score across 10 categories',
       'Daily plans tailored to your weak areas',
-      'AI Health Coach for personalised guidance',
+      'Wellness Coach for practical lifestyle guidance',
       'Apple Health integration',
       'Connect with your clinician',
     ],

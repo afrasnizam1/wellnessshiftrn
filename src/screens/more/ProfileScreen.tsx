@@ -142,7 +142,7 @@ export default function ProfileScreen() {
           <LinearGradient colors={[...Gradients.brand]} style={styles.avatar}>
             <Text style={styles.avatarLetter}>{(name[0] || 'P').toUpperCase()}</Text>
           </LinearGradient>
-          <Text style={styles.avatarHint}>Profile photo coming soon</Text>
+          <Text style={styles.avatarHint}>Your initials · photo upload in a later update</Text>
         </View>
 
         <AppCard>
@@ -198,7 +198,7 @@ export default function ProfileScreen() {
           <AppCard>
             <Text style={styles.sectionTitle}>Analytics & Session Replay</Text>
             <Text style={styles.analyticsHint}>
-              Usage analytics and session replay are on by default. Turn this off anytime to stop collection.
+              Optional. Analytics and session replay are off until you turn this on. Screens are masked by default to protect health data.
             </Text>
             <View style={styles.analyticsRow}>
               <Text style={styles.dataRowText}>Allow analytics</Text>

@@ -1,38 +1,43 @@
 // src/screens/fitness/BreathingExerciseScreen.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Animated, Easing,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Animated,
+  Easing,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors, Typography, Spacing, Radius } from '../../theme';
 import AppScreen from '../../components/common/AppScreen';
-import { BREATHING_COACHING } from '../../data/guidedSessionContent';
+import {
+  BREATHING_COACHING,
+  BREATHING_TECHNIQUES,
+  BREATHING_WHY_IT_MATTERS,
+  type BreathingTechnique,
+} from '../../data/breathingTechniques';
 
 type Phase = 'idle' | 'inhale' | 'hold' | 'exhale' | 'rest';
 
-const TECHNIQUES = [
-  { id: 'box',     name: 'Box Breathing',         desc: 'Equal 4-4-4-4 pattern — great for stress',  inhale: 4, holdIn: 4, exhale: 4, rest: 4, color: Colors.fitness },
-  { id: '478',     name: '4-7-8 Breathing',        desc: 'Calming sleep technique',                  inhale: 4, holdIn: 7, exhale: 8, rest: 0, color: Colors.mental },
-  { id: 'calm',    name: 'Calm Breathing',          desc: 'Simple 4-6 pattern for relaxation',        inhale: 4, holdIn: 0, exhale: 6, rest: 0, color: Colors.mindfulness },
-  { id: 'energy',  name: 'Energising Breath',       desc: 'Quick 2-2 to boost energy',               inhale: 2, holdIn: 0, exhale: 2, rest: 0, color: Colors.physical },
-];
-
 export default function BreathingExerciseScreen() {
   const navigation = useNavigation<any>();
-  const [selectedTech, setSelectedTech] = useState(TECHNIQUES[0]);
+  const [selectedTech, setSelectedTech] = useState<BreathingTechnique>(BREATHING_TECHNIQUES[0]);
   const [phase, setPhase] = useState<Phase>('idle');
   const [countdown, setCountdown] = useState(0);
   const [cycles, setCycles] = useState(0);
   const [totalCycles] = useState(4);
   const animScale = useRef(new Animated.Value(1)).current;
   const animOpacity = useRef(new Animated.Value(0.6)).current;
-  const intervalRef = useRef<any>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const running = useRef(false);
 
   const phaseLabels: Record<Phase, string> = {
     idle: 'Tap to begin',
     inhale: 'Inhale',
-    hold: 'Hold',
+    hold: selectedTech.id === 'sigh' ? 'Sip' : 'Hold',
     exhale: 'Exhale',
     rest: 'Rest',
   };
@@ -49,12 +54,21 @@ export default function BreathingExerciseScreen() {
     const toScale = p === 'inhale' ? 1.4 : p === 'exhale' || p === 'rest' ? 0.8 : 1.1;
     const toOpacity = p === 'inhale' ? 1 : p === 'exhale' ? 0.5 : 0.8;
     Animated.parallel([
-      Animated.timing(animScale, { toValue: toScale, duration: duration * 1000 * 0.9, useNativeDriver: true, easing: Easing.inOut(Easing.ease) }),
-      Animated.timing(animOpacity, { toValue: toOpacity, duration: duration * 1000 * 0.9, useNativeDriver: true }),
+      Animated.timing(animScale, {
+        toValue: toScale,
+        duration: duration * 1000 * 0.9,
+        useNativeDriver: true,
+        easing: Easing.inOut(Easing.ease),
+      }),
+      Animated.timing(animOpacity, {
+        toValue: toOpacity,
+        duration: duration * 1000 * 0.9,
+        useNativeDriver: true,
+      }),
     ]).start();
   };
 
-  const runCycle = async (tech: typeof TECHNIQUES[0]) => {
+  const runCycle = async (tech: BreathingTechnique) => {
     const phases: { phase: Phase; duration: number }[] = [
       { phase: 'inhale', duration: tech.inhale },
       ...(tech.holdIn > 0 ? [{ phase: 'hold' as Phase, duration: tech.holdIn }] : []),
@@ -74,7 +88,7 @@ export default function BreathingExerciseScreen() {
           remaining -= 1;
           setCountdown(remaining);
           if (remaining <= 0) {
-            clearInterval(intervalRef.current);
+            if (intervalRef.current) clearInterval(intervalRef.current);
             resolve();
           }
         }, 1000);
@@ -98,7 +112,7 @@ export default function BreathingExerciseScreen() {
 
   const stop = () => {
     running.current = false;
-    clearInterval(intervalRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
     setPhase('idle');
     setCountdown(0);
     Animated.parallel([
@@ -107,7 +121,13 @@ export default function BreathingExerciseScreen() {
     ]).start();
   };
 
-  useEffect(() => () => { running.current = false; clearInterval(intervalRef.current); }, []);
+  useEffect(
+    () => () => {
+      running.current = false;
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    },
+    [],
+  );
 
   const isRunning = phase !== 'idle';
   const color = phaseColors[phase];
@@ -118,81 +138,168 @@ export default function BreathingExerciseScreen() {
   return (
     <AppScreen style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => { stop(); navigation.goBack(); }} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => {
+            stop();
+            navigation.goBack();
+          }}
+          style={styles.backBtn}
+        >
           <Text style={styles.backText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Breathing Exercise</Text>
+        <Text style={styles.headerTitle}>Breathing Exercises</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Technique selector */}
-      {!isRunning && (
-        <View style={styles.techRow}>
-          {TECHNIQUES.map((t) => (
-            <TouchableOpacity
-              key={t.id}
-              style={[styles.techChip, selectedTech.id === t.id && { backgroundColor: t.color + '22', borderColor: t.color }]}
-              onPress={() => setSelectedTech(t)}
+      {isRunning ? (
+        <View style={styles.sessionBody}>
+          <Text style={styles.sessionTechName}>{selectedTech.name}</Text>
+          <View style={styles.circleWrap}>
+            <Animated.View
+              style={[
+                styles.circleOuter,
+                { borderColor: color, transform: [{ scale: animScale }], opacity: animOpacity },
+              ]}
             >
-              <Text style={[styles.techChipText, selectedTech.id === t.id && { color: t.color, fontWeight: '700' }]}>
-                {t.name.split(' ')[0]}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {/* Technique info */}
-      {!isRunning && (
-        <View style={styles.techInfo}>
-          <Text style={styles.techName}>{selectedTech.name}</Text>
-          <Text style={styles.techDesc}>{coaching?.intro ?? selectedTech.desc}</Text>
-          <Text style={styles.techPattern}>
-            Inhale {selectedTech.inhale}s
-            {selectedTech.holdIn > 0 ? ` · Hold ${selectedTech.holdIn}s` : ''}
-            {` · Exhale ${selectedTech.exhale}s`}
-            {selectedTech.rest > 0 ? ` · Rest ${selectedTech.rest}s` : ''}
-          </Text>
-        </View>
-      )}
-
-      {/* Breathing animation — tap circle when idle to begin */}
-      <View style={styles.circleWrap}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          disabled={isRunning}
-          onPress={() => { if (!isRunning) void start(); }}
-          accessibilityRole="button"
-          accessibilityLabel={isRunning ? phaseLabels[phase] : 'Tap to begin'}
-        >
-          <Animated.View style={[
-            styles.circleOuter,
-            { borderColor: color, transform: [{ scale: animScale }], opacity: animOpacity },
-          ]}>
-            <Animated.View style={[styles.circleInner, { backgroundColor: color + '33' }]}>
-              <Text style={[styles.phaseLabel, { color }]}>{phaseLabels[phase]}</Text>
-              {countdown > 0 && <Text style={[styles.countdown, { color }]}>{countdown}</Text>}
+              <Animated.View style={[styles.circleInner, { backgroundColor: color + '33' }]}>
+                <Text style={[styles.phaseLabel, { color }]}>{phaseLabels[phase]}</Text>
+                {countdown > 0 ? <Text style={[styles.countdown, { color }]}>{countdown}</Text> : null}
+              </Animated.View>
             </Animated.View>
-          </Animated.View>
-        </TouchableOpacity>
-
-        {isRunning && (
-          <>
-            <Text style={styles.cycleText}>Cycle {cycles} of {totalCycles}</Text>
+            <Text style={styles.cycleText}>
+              Cycle {cycles} of {totalCycles}
+            </Text>
             {liveCue ? <Text style={styles.coachingCue}>{liveCue}</Text> : null}
-          </>
-        )}
-      </View>
-
-      {/* Controls */}
-      <View style={styles.controls}>
-        <TouchableOpacity
-          style={[styles.controlBtn, { backgroundColor: isRunning ? Colors.error : selectedTech.color }]}
-          onPress={isRunning ? stop : start}
+          </View>
+          <View style={styles.controls}>
+            <TouchableOpacity style={[styles.controlBtn, { backgroundColor: Colors.error }]} onPress={stop}>
+              <Text style={styles.controlBtnText}>Stop</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.controlBtnText}>{isRunning ? 'Stop' : 'Start'}</Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.whyCard}>
+            <Text style={styles.whyEyebrow}>Why it matters</Text>
+            <Text style={styles.whyTitle}>Breathing is a remote control for your nervous system</Text>
+            <Text style={styles.whyLead}>
+              How you breathe changes heart rate, muscle tension, focus, and sleep readiness —
+              often within a few cycles. Pick a technique below that matches what you need right now.
+            </Text>
+            {BREATHING_WHY_IT_MATTERS.map((item) => (
+              <View key={item.title} style={styles.whyRow}>
+                <View style={styles.whyIcon}>
+                  <Ionicons name={item.icon} size={18} color={Colors.fitness} />
+                </View>
+                <View style={styles.whyTextCol}>
+                  <Text style={styles.whyItemTitle}>{item.title}</Text>
+                  <Text style={styles.whyItemBody}>{item.body}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          <Text style={styles.sectionLabel}>Choose a technique</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.techRow}
+          >
+            {BREATHING_TECHNIQUES.map((t) => {
+              const active = selectedTech.id === t.id;
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  style={[
+                    styles.techChip,
+                    active && { backgroundColor: t.color + '28', borderColor: t.color },
+                  ]}
+                  onPress={() => setSelectedTech(t)}
+                >
+                  <Text style={[styles.techChipText, active && { color: t.color, fontWeight: '700' }]}>
+                    {t.shortLabel}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          <View style={[styles.techCard, { borderColor: selectedTech.color + '55' }]}>
+            <Text style={[styles.techName, { color: selectedTech.color }]}>{selectedTech.name}</Text>
+            <Text style={styles.techDesc}>{coaching?.intro ?? selectedTech.desc}</Text>
+            <Text style={styles.techPattern}>
+              Inhale {selectedTech.inhale}s
+              {selectedTech.holdIn > 0
+                ? ` · ${selectedTech.id === 'sigh' ? 'Sip' : 'Hold'} ${selectedTech.holdIn}s`
+                : ''}
+              {` · Exhale ${selectedTech.exhale}s`}
+              {selectedTech.rest > 0 ? ` · Rest ${selectedTech.rest}s` : ''}
+              {' · '}
+              {totalCycles} cycles
+            </Text>
+
+            <View style={styles.detailBlock}>
+              <Text style={styles.detailLabel}>Why it helps</Text>
+              <Text style={styles.detailBody}>{selectedTech.benefit}</Text>
+            </View>
+            <View style={styles.detailBlock}>
+              <Text style={styles.detailLabel}>Best for</Text>
+              <Text style={styles.detailBody}>{selectedTech.bestFor}</Text>
+            </View>
+            {selectedTech.caution ? (
+              <View style={styles.cautionBlock}>
+                <Ionicons name="information-circle-outline" size={16} color={Colors.warning} />
+                <Text style={styles.cautionText}>{selectedTech.caution}</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <Text style={styles.typesHint}>
+            All types: Box · 4-7-8 · Extended exhale · Diaphragmatic · Coherent · Physiological sigh ·
+            Energising
+          </Text>
+
+          <View style={styles.circlePreview}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => {
+                void start();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Tap to begin"
+            >
+              <Animated.View
+                style={[
+                  styles.circleOuter,
+                  {
+                    borderColor: selectedTech.color,
+                    transform: [{ scale: animScale }],
+                    opacity: animOpacity,
+                  },
+                ]}
+              >
+                <Animated.View
+                  style={[styles.circleInner, { backgroundColor: selectedTech.color + '33' }]}
+                >
+                  <Text style={[styles.phaseLabel, { color: selectedTech.color }]}>Tap to begin</Text>
+                </Animated.View>
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.controlBtn, { backgroundColor: selectedTech.color }]}
+            onPress={() => {
+              void start();
+            }}
+          >
+            <Text style={styles.controlBtnText}>Start {selectedTech.shortLabel}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
     </AppScreen>
   );
 }
@@ -200,32 +307,140 @@ export default function BreathingExerciseScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0A0A1A' },
   header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: Spacing.base, paddingVertical: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
   },
   backBtn: { width: 40 },
   backText: { fontSize: 32, color: Colors.white, lineHeight: 38 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: Typography.size.base, fontWeight: '700', color: Colors.white },
-  techRow: {
-    flexDirection: 'row', paddingHorizontal: Spacing.base, gap: Spacing.sm, flexWrap: 'wrap',
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: Typography.size.base,
+    fontWeight: '700',
+    color: Colors.white,
   },
+  scrollContent: {
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing['3xl'],
+    gap: Spacing.md,
+  },
+  sessionBody: { flex: 1 },
+  sessionTechName: {
+    textAlign: 'center',
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: Typography.size.sm,
+    fontWeight: '600',
+    marginBottom: Spacing.sm,
+  },
+  whyCard: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: Radius.xl,
+    padding: Spacing.base,
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  whyEyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: Colors.fitness,
+  },
+  whyTitle: {
+    fontSize: Typography.size.lg,
+    fontWeight: '800',
+    color: Colors.white,
+    letterSpacing: -0.3,
+  },
+  whyLead: {
+    fontSize: Typography.size.sm,
+    color: 'rgba(255,255,255,0.65)',
+    lineHeight: 20,
+    marginBottom: Spacing.xs,
+  },
+  whyRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' },
+  whyIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(46, 219, 189, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  whyTextCol: { flex: 1, gap: 2 },
+  whyItemTitle: { fontSize: Typography.size.sm, fontWeight: '700', color: Colors.white },
+  whyItemBody: { fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.55)', lineHeight: 17 },
+  sectionLabel: {
+    fontSize: Typography.size.sm,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: Spacing.xs,
+  },
+  techRow: { gap: Spacing.sm, paddingVertical: Spacing.xs },
   techChip: {
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    borderRadius: Radius.xl, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.xl,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   techChipText: { fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
-  techInfo: { paddingHorizontal: Spacing.base, paddingTop: Spacing.md, gap: 4 },
-  techName: { fontSize: Typography.size.lg, fontWeight: '700', color: Colors.white },
-  techDesc: { fontSize: Typography.size.sm, color: 'rgba(255,255,255,0.6)' },
-  techPattern: { fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.4)', marginTop: 4 },
+  techCard: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: Radius.xl,
+    padding: Spacing.base,
+    gap: Spacing.sm,
+    borderWidth: 1.5,
+  },
+  techName: { fontSize: Typography.size.lg, fontWeight: '800' },
+  techDesc: { fontSize: Typography.size.sm, color: 'rgba(255,255,255,0.65)', lineHeight: 20 },
+  techPattern: { fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.4)', marginTop: 2 },
+  detailBlock: { gap: 4, marginTop: Spacing.xs },
+  detailLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.45)',
+  },
+  detailBody: { fontSize: Typography.size.sm, color: 'rgba(255,255,255,0.78)', lineHeight: 20 },
+  cautionBlock: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(243, 156, 18, 0.12)',
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  cautionText: { flex: 1, fontSize: Typography.size.xs, color: 'rgba(255,255,255,0.75)', lineHeight: 17 },
+  typesHint: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.35)',
+    lineHeight: 16,
+    textAlign: 'center',
+  },
+  circlePreview: { alignItems: 'center', paddingVertical: Spacing.md },
   circleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg },
   circleOuter: {
-    width: 220, height: 220, borderRadius: 110,
-    borderWidth: 3, alignItems: 'center', justifyContent: 'center',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   circleInner: {
-    width: 170, height: 170, borderRadius: 85,
-    alignItems: 'center', justifyContent: 'center', gap: 4,
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
   },
   phaseLabel: { fontSize: Typography.size.xl, fontWeight: '700' },
   countdown: { fontSize: Typography.size['3xl'], fontWeight: '700' },
@@ -240,7 +455,9 @@ const styles = StyleSheet.create({
   },
   controls: { paddingHorizontal: Spacing.base, paddingBottom: Spacing['2xl'] },
   controlBtn: {
-    borderRadius: Radius.xl, paddingVertical: Spacing.base, alignItems: 'center',
+    borderRadius: Radius.xl,
+    paddingVertical: Spacing.base,
+    alignItems: 'center',
   },
   controlBtnText: { color: Colors.white, fontSize: Typography.size.lg, fontWeight: '700' },
 });

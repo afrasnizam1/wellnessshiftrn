@@ -26,7 +26,7 @@ type Nav = NativeStackNavigationProp<ClinicianStackParamList>;
 
 export default function PatientsScreen() {
   const navigation = useNavigation<Nav>();
-  const { user } = useAppStore();
+  const user = useAppStore((s) => s.user);
   const [patients, setPatients] = useState<Awaited<ReturnType<typeof clinicianService.fetchLinkedPatients>>>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);

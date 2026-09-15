@@ -104,6 +104,7 @@ export const BATCH3_HEALTH_TOPIC_CONTENT: Record<string, HealthTopicContent> = {
     s('Digital strain', 'Hours on screens cause dry eyes, headaches, and poor sleep from blue-light disruption — especially evening use.'),
     s('Eye comfort', '• 20-20-20 breaks\n• Blink consciously\n• Screen brightness match ambient light\n• Night mode after sunset'),
     s('Sleep boundary', 'No screens 60 minutes before bed where possible. Charge devices outside the bedroom.'),
+    s('Go deeper', 'Open the Eye Health module for foods (lutein, omega-3s), hydration, eye exercises, UV protection, and when to book a sight test.'),
   ),
   'alcohol-awareness': topic(
     s('UK guidance', 'Adults should not regularly exceed 14 units per week, spread across several days, with alcohol-free days. One unit ≈ half pint beer or small wine.'),

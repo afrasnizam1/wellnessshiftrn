@@ -481,4 +481,276 @@ export const HEALTH_EDUCATION_RICH: Record<string, RichHealthEducation> = {
     ],
     relatedModuleIds: ['breathing'],
   },
+
+  'eye-health': {
+    heroImageUrl: U('1579684385127-1ef15d508118'),
+    heroIcon: 'eye-outline',
+    accentColor: '#3498DB',
+    intro:
+      'Healthy eyes need more than reading glasses later in life. Nutrition (especially lutein, zeaxanthin, and omega-3s), hydration for the tear film, movement breaks from screens, UV protection, and regular sight tests all support comfort today and vision for decades.',
+    keyTakeaways: [
+      'Leafy greens, oily fish, eggs, colourful plants, nuts, and seeds feed macular and tear-film health',
+      'Hydration + full blinks reduce dry, gritty screen strain',
+      '20-20-20 breaks, near–far focus, and outdoor daylight protect focusing muscles',
+      'UV sunglasses, sleep, no smoking, and routine NHS eye tests are non-negotiable basics',
+    ],
+    sections: [
+      {
+        title: 'Important foods for eyes',
+        intro:
+          'Lutein and zeaxanthin build macular pigment (natural blue-light filtering). Omega-3s support the retina and tear quality. Vitamins A, C, E, and zinc add antioxidant support — best from food first.',
+        imageUrl: U('1490645935967-10de6ba17061', 800),
+        cards: [
+          {
+            icon: 'leaf-outline',
+            title: 'Leafy greens',
+            body: 'Spinach, kale, and collards are top sources of lutein and zeaxanthin — carotenoids concentrated in the macula.',
+          },
+          {
+            icon: 'fish-outline',
+            title: 'Oily fish',
+            body: 'Salmon, sardines, and mackerel provide EPA/DHA omega-3s linked with tear-film comfort and retinal structure.',
+          },
+          {
+            icon: 'nutrition-outline',
+            title: 'Eggs, colour & nuts',
+            body: 'Egg yolks (lutein + fat for absorption), orange peppers/corn/berries (carotenoids & vitamin C), almonds and seeds (vitamin E).',
+          },
+          {
+            icon: 'medical-outline',
+            title: 'Supplements',
+            body: 'AREDS2-style formulas may help some people with macular disease — only under optometrist/ophthalmologist or GP advice, not DIY megadoses.',
+          },
+        ],
+      },
+      {
+        title: 'Hydration & surface comfort',
+        intro: 'Screens cut blink rate roughly in half. Thin tears mean sting, blur, and end-of-day fatigue.',
+        cards: [
+          {
+            icon: 'water-outline',
+            title: 'Drink regularly',
+            body: 'Most adults need about 1.5–2 litres of fluid daily — more with heat or exercise. Sip through the day rather than one late gulp.',
+          },
+          {
+            icon: 'eye-outline',
+            title: 'Blink on purpose',
+            body: 'Every hour of screen time, do 10 slow full blinks. Lubricating drops can help if your optician agrees.',
+          },
+          {
+            icon: 'thermometer-outline',
+            title: 'Air & environment',
+            body: 'Heating and AC dry the air. A desk humidifier and slightly lower screen brightness reduce evaporative stress.',
+          },
+        ],
+      },
+      {
+        title: 'Exercises & visual hygiene',
+        intro: 'You cannot “lift weights” for eyes, but you can rest focusing muscles and support circulation with whole-body movement.',
+        imageUrl: U('1559757148-5c350d0d3c56', 800),
+        cards: [
+          {
+            icon: 'timer-outline',
+            title: '20-20-20 rule',
+            body: 'Every 20 minutes, look about 20 feet (6 m) away for 20 seconds. Softens near-focus strain from phones and laptops.',
+          },
+          {
+            icon: 'swap-horizontal-outline',
+            title: 'Near–far focus',
+            body: 'Focus on a thumb at arm’s length, then a distant object — 10 slow reps. Palming (warm hands over closed eyes) rests photostress.',
+          },
+          {
+            icon: 'walk-outline',
+            title: 'Move & go outside',
+            body: 'Cardio and healthy weight support retinal vessels. Outdoor daylight is linked with healthier focusing development and circadian rhythm.',
+          },
+          {
+            icon: 'desktop-outline',
+            title: 'Ergonomics',
+            body: 'Screen 50–65 cm away; top edge at or below eye level. Take a longer break every 2 hours.',
+          },
+        ],
+      },
+      {
+        title: 'Daily protection checklist',
+        cards: [
+          {
+            icon: 'sunny-outline',
+            title: 'UV sunglasses',
+            body: 'Wear UV-blocking lenses outdoors — including bright winter or reflective water/snow days.',
+          },
+          {
+            icon: 'moon-outline',
+            title: 'Sleep & lifestyle',
+            body: '7–9 hours sleep, no smoking, and good blood pressure/sugar/cholesterol care protect long-term vision.',
+          },
+          {
+            icon: 'calendar-outline',
+            title: 'Sight tests',
+            body: 'NHS eye exam about every 2 years (sooner if diabetic). Urgent care for sudden loss, flashes, floaters, or a curtain over vision.',
+          },
+        ],
+      },
+    ],
+    tips: [
+      {
+        title: 'Food before pills',
+        body: 'Build a plate with greens + colourful plants + oily fish or plant omegas most weeks before buying eye supplements.',
+      },
+      {
+        title: 'Pair with screen habits',
+        body: 'Open the Screen Time & Eye Strain module for digital wellness tips that stack with this guide.',
+      },
+    ],
+    relatedModuleIds: ['screen-time', 'hydration', 'nutrition-basics', 'vitamins'],
+  },
+
+  'social-energy': {
+    heroImageUrl: U('1529156069898-49953e39b3ac'),
+    heroIcon: 'sparkles-outline',
+    accentColor: '#9B59B6',
+    intro:
+      'Energy is not only calories and sleep — it is also what happens between people. Emotional contagion and relational energy research show we “catch” moods and capacity from others, and we pass our own state on. This module blends that science with honest quantum metaphors — inspiring, without pretending physics replaces psychology.',
+    keyTakeaways: [
+      'Biological energy (sleep, food, movement) is the foundation; social energy rides on top',
+      'Quantum physics describes atoms — not a licence for unverified energy-healing claims',
+      'You receive energy through safe, high-quality connection and emotional contagion',
+      'You pass energy on by regulating yourself first, then offering presence, warmth, and help',
+    ],
+    sections: [
+      {
+        title: 'Three layers of energy',
+        intro: 'Name which layer is low before you try to “fix” it with people alone.',
+        imageUrl: U('150612661028-6e12ecbcdffb', 800),
+        cards: [
+          {
+            icon: 'flash-outline',
+            title: 'Biological fuel',
+            body: 'Sleep, nutrition, hydration, and movement refill cellular energy (ATP). Social magic fails when you are exhausted or underfuelled.',
+          },
+          {
+            icon: 'happy-outline',
+            title: 'Felt vitality',
+            body: 'Subjective alertness, motivation, and mood. Track patterns with the Energy Level Tracker in Fitness Hub.',
+          },
+          {
+            icon: 'people-outline',
+            title: 'Relational energy',
+            body: 'Interactions that leave you more resourceful — or depleted. Organisational research calls this relational energy; daily life calls it “that person lights me up.”',
+          },
+        ],
+      },
+      {
+        title: 'Quantum metaphors — kept honest',
+        intro:
+          'Quantum mechanics is real science of the very small. Wellness culture often uses its language poetically. Use the poetry; keep the claims careful.',
+        imageUrl: U('1462331940025-5067ab60f09e', 800),
+        cards: [
+          {
+            icon: 'planet-outline',
+            title: 'What physics actually says',
+            body: 'Particles, atoms, and light follow quantum rules. Your body is made of those — but that does not mean thoughts telepathically rearrange someone’s health.',
+          },
+          {
+            icon: 'bulb-outline',
+            title: 'Useful metaphor',
+            body: '“We are interconnected fields of attention” is a poetic way to say: presence, focus, and emotion synchronise between people.',
+          },
+          {
+            icon: 'shield-checkmark-outline',
+            title: 'What we will not claim',
+            body: 'No quantum rays, no substitute for medical care, no guilt if you cannot “manifest” someone else’s healing. Boundaries are healthy physics of your own nervous system.',
+          },
+        ],
+      },
+      {
+        title: 'How to receive energy from people',
+        intro:
+          'Emotional contagion (Hatfield et al.) shows we mimic expressions and physiology, then feel related emotions. Choose your inputs wisely.',
+        imageUrl: U('1522202176988-662fde403958', 800),
+        cards: [
+          {
+            icon: 'sunny-outline',
+            title: 'Seek energisers',
+            body: 'People who leave you clearer, kinder, and more capable. Shared laughter, outdoor time, and being truly heard are high-yield.',
+          },
+          {
+            icon: 'ear-outline',
+            title: 'Ask to be received',
+            body: 'Tell a trusted person what you need: pep talk, quiet company, or problem-solving. Vague venting to the wrong audience drains both of you.',
+          },
+          {
+            icon: 'battery-half-outline',
+            title: 'Spot drainers',
+            body: 'Chronic criticism, chaos, or one-way crisis dumping lowers capacity. Shorten exposure, change topic, or recover alone afterward.',
+          },
+          {
+            icon: 'leaf-outline',
+            title: 'Pair people with nature',
+            body: 'Walk-and-talks combine social co-regulation with daylight and movement — a triple refill.',
+          },
+        ],
+      },
+      {
+        title: 'How to pass energy on',
+        intro:
+          'Others catch your state before your sentences. Leadership and care research: regulate yourself, then offer presence.',
+        imageUrl: U('1511632765481-a2144b43b54e', 800),
+        cards: [
+          {
+            icon: 'pulse-outline',
+            title: 'Self-regulate first',
+            body: 'Four calm breaths, drop shoulders, soften jaw. An anxious helper spreads anxiety; a steady one co-regulates.',
+          },
+          {
+            icon: 'chatbubbles-outline',
+            title: 'Give full attention',
+            body: 'Phone down, eyes soft, reflect back what you heard. Feeling seen is one of the strongest energy gifts.',
+          },
+          {
+            icon: 'heart-outline',
+            title: 'Specific appreciation',
+            body: '“I noticed how you handled X” lands harder than generic praise — it deposits real relational fuel.',
+          },
+          {
+            icon: 'hand-left-outline',
+            title: 'Concrete help',
+            body: 'Carry a bag, send a useful link, cover a task. Action transmits care more reliably than advice alone.',
+          },
+        ],
+      },
+      {
+        title: 'A simple daily exchange ritual',
+        imageUrl: U('1544367567-0f2fcb009e0b', 800),
+        cards: [
+          {
+            icon: 'arrow-down-outline',
+            title: 'Receive',
+            body: 'One intentional energising contact each morning — message, hug, or shared coffee.',
+          },
+          {
+            icon: 'arrow-up-outline',
+            title: 'Transmit',
+            body: 'One deliberate gift of presence or kindness before the day ends.',
+          },
+          {
+            icon: 'moon-outline',
+            title: 'Recover',
+            body: 'Solo downtime is not selfish — empty batteries cannot charge others. Sleep is energy physics you can measure.',
+          },
+        ],
+      },
+    ],
+    tips: [
+      {
+        title: 'Try Breathing Exercises first',
+        body: 'If you feel depleted before a social moment, box or extended-exhale breathing steadies what you will pass on.',
+      },
+      {
+        title: 'Track patterns',
+        body: 'Log energy before/after key interactions in the Energy Level Tracker — data reveals your true energisers.',
+      },
+    ],
+    relatedModuleIds: ['breathing', 'energy-level', 'five-minute-calm', 'loving-kindness', 'stress-mindfulness'],
+  },
 };

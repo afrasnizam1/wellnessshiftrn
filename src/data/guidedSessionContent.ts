@@ -79,39 +79,5 @@ export function getMeditationCue(techniqueId: string, elapsedSeconds: number, to
   return technique.cues[index];
 }
 
-export const BREATHING_COACHING: Record<string, { intro: string; phases: Record<string, string> }> = {
-  box: {
-    intro: 'Box breathing balances the nervous system — used by athletes and clinicians for calm focus.',
-    phases: {
-      inhale: 'Breathe in slowly through the nose for 4 counts. Fill the belly, then chest.',
-      hold: 'Hold gently — no strain. Feel the stillness.',
-      exhale: 'Release slowly for 4 counts. Let shoulders drop.',
-      rest: 'Pause empty for 4 counts. Prepare for the next cycle.',
-    },
-  },
-  '478': {
-    intro: '4-7-8 breathing activates the parasympathetic response — ideal before sleep.',
-    phases: {
-      inhale: 'Quiet inhale through the nose for 4 counts.',
-      hold: 'Hold the breath for 7 counts. Stay relaxed.',
-      exhale: 'Audible exhale through the mouth for 8 counts. Release tension.',
-      rest: 'Pause naturally before the next cycle.',
-    },
-  },
-  calm: {
-    intro: 'Extended exhale signals safety to your nervous system.',
-    phases: {
-      inhale: 'Gentle 4-count inhale.',
-      exhale: 'Slow 6-count exhale — longer than the inhale.',
-      rest: 'Rest in calm.',
-    },
-  },
-  energy: {
-    intro: 'Quick rhythmic breathing increases alertness — use in the morning, not before bed.',
-    phases: {
-      inhale: 'Sharp 2-count inhale.',
-      exhale: 'Quick 2-count exhale.',
-      rest: 'Maintain a steady rhythm.',
-    },
-  },
-};
+/** @deprecated Prefer importing from breathingTechniques.ts */
+export { BREATHING_COACHING } from './breathingTechniques';

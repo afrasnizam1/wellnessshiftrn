@@ -8,25 +8,52 @@ const mockAuthDelete = jest.fn(async () => {
   callOrder.push('auth');
 });
 
-const mockEmptySnap = { empty: true, docs: [] as unknown[], size: 0 };
+const mockEmptySnap = { empty: true, docs: [] as unknown[], size: 0, exists: () => false, data: () => undefined };
+
+function mockDocRef() {
+  return {
+    delete: mockFirestoreDelete,
+    collection: () => mockCollectionRef(),
+    set: jest.fn(async () => undefined),
+    get: async () => mockEmptySnap,
+  };
+}
+
+function mockQuery() {
+  return {
+    limit: () => ({
+      get: async () => mockEmptySnap,
+    }),
+    get: async () => mockEmptySnap,
+    where: () => mockQuery(),
+  };
+}
+
+function mockCollectionRef(): ReturnType<typeof mockQuery> & {
+  doc: () => ReturnType<typeof mockDocRef>;
+} {
+  return {
+    ...mockQuery(),
+    doc: () => mockDocRef(),
+    where: () => mockQuery(),
+  };
+}
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
 
 jest.mock('@react-native-firebase/firestore', () => {
   const firestore = () => ({
-    collection: () => ({
-      doc: () => ({
-        delete: mockFirestoreDelete,
-        collection: () => ({
-          limit: () => ({
-            get: async () => mockEmptySnap,
-          }),
-        }),
-      }),
-    }),
+    collection: () => mockCollectionRef(),
     batch: () => ({
       delete: jest.fn(),
       commit: async () => undefined,
     }),
   });
+  (firestore as unknown as { FieldValue: { arrayRemove: (v: string) => string } }).FieldValue = {
+    arrayRemove: (v: string) => v,
+  };
   return { __esModule: true, default: firestore };
 });
 

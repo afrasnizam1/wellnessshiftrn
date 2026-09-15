@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
 import AppScreen from '../../components/common/AppScreen';
+import FuturisticModuleGlyph from '../../components/fitness/FuturisticModuleGlyph';
 import { useAppStore } from '../../store';
 import { gamificationService } from '../../services/gamificationService';
 import {
@@ -1261,7 +1262,7 @@ export default function BrainGameScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
-  const { user } = useAppStore();
+  const user = useAppStore((s) => s.user);
   const initId = (route.params?.gameId ?? '') as GameId;
   const [activeGame, setActiveGame] = useState<GameId | null>(
     GAMES.find((g) => g.id === initId) ? initId : null,
@@ -1345,8 +1346,8 @@ export default function BrainGameScreen() {
           </Text>
           {GAMES.map((g) => (
             <TouchableOpacity key={g.id} style={styles.gameCard} onPress={() => startGame(g.id)}>
-              <View style={[styles.gameCardIcon, { backgroundColor: g.color + '22' }]}>
-                <Text style={{ fontSize: 28 }}>{g.icon}</Text>
+              <View style={[styles.gameCardIcon, { backgroundColor: g.color + '1A', borderColor: g.color + '55' }]}>
+                <FuturisticModuleGlyph moduleId={g.id} color={g.color} size={36} />
               </View>
               <View style={styles.gameCardInfo}>
                 <Text style={styles.gameCardTitle}>{g.title}</Text>
@@ -1414,7 +1415,14 @@ const styles = StyleSheet.create({
     padding: Spacing.base,
     ...Shadow.sm,
   },
-  gameCardIcon: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  gameCardIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   gameCardInfo: { flex: 1, gap: 2 },
   gameCardTitle: { fontSize: Typography.size.base, fontWeight: '700', color: Colors.text },
   domainTag: { fontSize: Typography.size.xs, color: Colors.primary, fontWeight: '600' },

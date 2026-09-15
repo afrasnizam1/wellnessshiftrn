@@ -21,7 +21,7 @@ function initials(name: string): string {
 
 export default function ClinicianSettingsScreen() {
   const navigation = useNavigation<any>();
-  const { user } = useAppStore();
+  const user = useAppStore((s) => s.user);
   const [profile, setProfile] = useState<ClinicianProfileDoc | null>(null);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

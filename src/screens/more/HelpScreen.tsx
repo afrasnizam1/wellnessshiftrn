@@ -13,7 +13,7 @@ const FAQS = [
   { q: 'Is my data shared with anyone?', a: 'Your data is only shared with clinicians you explicitly connect with. We never sell or share your health data. See our Privacy Policy for full details.' },
   { q: 'How do I cancel my subscription?', a: 'Cancel anytime via iPhone Settings → Apple ID → Subscriptions → Wellness Shift. You keep access until the period ends.' },
   { q: 'Can I use the app without Apple Health?', a: 'Yes — Apple Health is optional. Connecting it enhances your wellness score with real activity data, but the app works fully without it.' },
-  { q: 'What is the AI Health Coach?', a: 'An in-app wellness coach that answers general health and lifestyle questions based on your profile. Free users get a daily message allowance; Growth and Pro increase that allowance. It is not medical advice and does not replace a clinician.' },
+  { q: 'What is the Wellness Coach?', a: 'An in-app wellness coach that answers general lifestyle questions using your wellness score and coaching rules (not a generative AI). Free users get a daily message allowance; Growth and Pro increase that allowance. It is not medical advice and does not replace a clinician.' },
   { q: 'Is this a medical service?', a: 'No. Wellness Shift provides wellness support and education only. For medical advice, consult a qualified healthcare professional. Call 999 for emergencies.' },
 ];
 

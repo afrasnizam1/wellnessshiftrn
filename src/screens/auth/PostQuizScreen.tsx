@@ -51,7 +51,7 @@ export default function PostQuizScreen() {
         {([
           { icon: 'calendar-outline' as IoniconName, title: 'Daily Plan', desc: 'Complete personalised tasks every day to boost your score' },
           { icon: 'fitness-outline' as IoniconName, title: 'Fitness Hub', desc: 'Explore 60+ modules tailored to your weak areas' },
-          { icon: 'sparkles-outline' as IoniconName, title: 'AI Coach', desc: 'Get personalised advice from your AI health coach' },
+          { icon: 'sparkles-outline' as IoniconName, title: 'Wellness Coach', desc: 'Get practical lifestyle guidance from your coach' },
           { icon: 'stats-chart-outline' as IoniconName, title: 'Analytics', desc: 'Track your progress with detailed charts and trends' },
         ]).map((item) => (
           <View key={item.title} style={styles.nextCard}>

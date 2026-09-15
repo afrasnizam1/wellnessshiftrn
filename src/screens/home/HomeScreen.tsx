@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState, useRef } from 'react';
+import React, { useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { Screen } from '../../navigation/screenNames';
 import { navigationRef } from '../../navigation/navigationRef';
 import {
@@ -66,6 +66,9 @@ import type { AppPurpose } from '../../types/onboardingPrefs';
 import { format } from 'date-fns';
 
 const HEALTH_SYNC_MIN_MS = 60_000;
+const CSQ_SCREEN = 'Home - Dashboard';
+const WELLNESS_RING = { screen: CSQ_SCREEN, chart: 'Wellness Ring' } as const;
+const CATEGORY_LIST_ANALYTICS = { screen: CSQ_SCREEN, chart: 'Category List' } as const;
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
@@ -137,35 +140,28 @@ export default function HomeScreen() {
   const healthSyncInFlight = useRef(false);
   const lastHomeInitUid = useRef<string | null>(null);
   const funnelComplete = !!user?.onboardingComplete;
-  const CSQ_SCREEN = 'Home - Dashboard';
-  const WELLNESS_RING = { screen: CSQ_SCREEN, chart: 'Wellness Ring' } as const;
   const { width: windowWidth } = useWindowDimensions();
-  const ringLayoutSize = 162;
-  const ringPanelSide = getOrbitPanelSize(ringLayoutSize);
-  const categoryListHeight = 8 * 22 + 4;
-  const ringRowNaturalWidth = ringPanelSide + Spacing.sm + 148;
-  const ringRowNaturalHeight = Math.max(ringPanelSide, categoryListHeight);
+  const baseRingSize = 162;
+  const basePanelSide = getOrbitPanelSize(baseRingSize);
+  const categoryListWidth = 148;
+  const ringRowNaturalWidth = basePanelSide + Spacing.sm + categoryListWidth;
   const ringRowScale = Math.min(1, (windowWidth - 68) / ringRowNaturalWidth);
-  const ringRowScaledWidth = ringRowNaturalWidth * ringRowScale;
-  const ringRowScaledHeight = ringRowNaturalHeight * ringRowScale;
-  const ringRowTransform =
-    ringRowScale < 1
-      ? [
-          { translateX: (-ringRowNaturalWidth * (1 - ringRowScale)) / 2 },
-          { translateY: (-ringRowNaturalHeight * (1 - ringRowScale)) / 2 },
-          { scale: ringRowScale },
-        ]
-      : [{ scale: 1 }];
+  const ringLayoutSize = Math.round(baseRingSize * ringRowScale);
 
   const toggleCategory = useCallback((key: WellnessCategoryKey) => {
     setSelectedCategory((prev) => (prev === key ? null : key));
   }, []);
+  const clearCategory = useCallback(() => setSelectedCategory(null), []);
+
+  const openVirtualTwin = useCallback(() => {
+    navigation.navigate(Screen.virtualTwin);
+  }, [navigation]);
 
   const selectCategoryFromList = useCallback((key: WellnessCategoryKey) => {
     setSelectedCategory((prev) => {
       const next = prev === key ? null : key;
       if (next) {
-        trackChartCategoryTap({ screen: CSQ_SCREEN, chart: 'Category List' }, next);
+        trackChartCategoryTap(CATEGORY_LIST_ANALYTICS, next);
       }
       return next;
     });
@@ -388,9 +384,6 @@ export default function HomeScreen() {
       case 'fitness':
         navigation.navigate(Screen.tabFitness);
         break;
-      case 'anatomy':
-        navigation.navigate(Screen.tabMore, { screen: Screen.anatomyExplorer });
-        break;
       case 'foods':
         navigation.navigate(Screen.tabFitness, { screen: Screen.nutritionBasics });
         break;
@@ -512,6 +505,10 @@ export default function HomeScreen() {
   const weeklyStepsTotal = weeklySteps || (activity?.steps ?? 0) * 5;
   const scoreImproved = wellnessScore && wellnessScore.overall >= 8;
   const hasAssessment = !!wellnessScore;
+  const improvementPlan = useMemo(
+    () => getScoreImprovementAdvice(wellnessScore?.categories, 3),
+    [wellnessScore?.categories],
+  );
 
   return (
     <AppScreen>
@@ -522,6 +519,7 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
         }
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews
       >
         <TrialCountdownBanner />
 
@@ -554,46 +552,20 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {carePlan ? (
-          <CarePlanBanner
-            carePlan={carePlan}
-            isNew={hasUnseenCarePlan}
-            onPress={() => {
-              if (user?.clinicianId) {
-                navigation.navigate(Screen.tabMyCare, { screen: Screen.carePlan });
-              } else {
-                navigation.navigate(Screen.tabMore, { screen: Screen.carePlan });
-              }
-            }}
-          />
-        ) : null}
-
-        {user?.primaryGoal && (
-          <GoalReminderCard goal={user.primaryGoal as any} />
-        )}
-
-        {appPurpose ? (
-          <HomePurposeLeadCard
-            purpose={appPurpose}
-            linkedToClinician={!!user?.clinicianId}
-            onPress={openPurposeLead}
-          />
-        ) : null}
-
-        <HomeCycleCard />
+        <DailyMotivationQuote />
 
         <AppCard style={styles.scoreCard} padded={false}>
           <View style={styles.scoreCardInner}>
-          <View style={[styles.scoreRingScaler, { width: ringRowScaledWidth, height: ringRowScaledHeight }]}>
-            <View style={[styles.scoreRow, { width: ringRowNaturalWidth, height: ringRowNaturalHeight, transform: ringRowTransform }]}>
+          <View style={styles.scoreRingScaler}>
+            <View style={styles.scoreRow}>
             <WellnessOrbitRing
               score={wellnessScore?.overall ?? 0}
               categories={wellnessScore?.categories}
               size={ringLayoutSize}
               spin={screenFocused}
               selectedCategory={selectedCategory}
-              onCategorySelect={(key) => toggleCategory(key)}
-              onCenterPress={() => setSelectedCategory(null)}
+              onCategorySelect={toggleCategory}
+              onCenterPress={clearCategory}
               analytics={WELLNESS_RING}
               scoreFeedback={scoreFeedback}
             />
@@ -608,8 +580,8 @@ export default function HomeScreen() {
                     score={catScore}
                     isSelected={isSelected}
                     feedback={scoreFeedback}
-                    analytics={{ screen: CSQ_SCREEN, chart: 'Category List' }}
-                    onPress={() => selectCategoryFromList(cat.key as WellnessCategoryKey)}
+                    analytics={CATEGORY_LIST_ANALYTICS}
+                    onPress={selectCategoryFromList}
                   />
                 );
               })}
@@ -640,6 +612,34 @@ export default function HomeScreen() {
           </View>
         </AppCard>
 
+        {carePlan && Platform.OS !== 'ios' ? (
+          <CarePlanBanner
+            carePlan={carePlan}
+            isNew={hasUnseenCarePlan}
+            onPress={() => {
+              if (user?.clinicianId) {
+                navigation.navigate(Screen.tabMyCare, { screen: Screen.carePlan });
+              } else {
+                navigation.navigate(Screen.tabMore, { screen: Screen.carePlan });
+              }
+            }}
+          />
+        ) : null}
+
+        {user?.primaryGoal && (
+          <GoalReminderCard goal={user.primaryGoal as any} />
+        )}
+
+        {appPurpose ? (
+          <HomePurposeLeadCard
+            purpose={appPurpose}
+            linkedToClinician={!!user?.clinicianId}
+            onPress={openPurposeLead}
+          />
+        ) : null}
+
+        <HomeCycleCard />
+
         <BiologicalAgeCard
           dateOfBirth={user?.dateOfBirth}
           wellnessScore={wellnessScore}
@@ -647,11 +647,12 @@ export default function HomeScreen() {
           weightKg={user?.weightKg}
           onImproveScore={openWellnessQuiz}
           onAddDateOfBirth={openProfile}
+          onOpenVirtualTwin={openVirtualTwin}
         />
 
         {hasAssessment ? (
           <ScoreImprovementCard
-            plan={getScoreImprovementAdvice(wellnessScore?.categories, 3)}
+            plan={improvementPlan}
             canOpenModules
             onOpenModule={(title) => navigateToLinkedModule(navigation, title)}
           />
@@ -673,7 +674,6 @@ export default function HomeScreen() {
         />
 
         <View style={styles.guidanceGroup}>
-          <DailyMotivationQuote />
           {hasAssessment && (
             <HomeNextSteps
               startHereDone={startHereDone || funnelComplete}
@@ -841,8 +841,6 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={18} color={Colors.brand} />
           </TouchableOpacity>
         )}
-
-        <View style={{ height: 100 }} />
       </ScrollView>
 
       <StartHereOnboardingModal
@@ -881,7 +879,7 @@ const SHORTCUTS = [
   { icon: 'leaf-outline', label: 'Breathing', subtitle: 'Calm down', colors: ['#2EDBBD', '#389EFA'] as [string, string], tab: Screen.tabFitness, params: { screen: Screen.breathingExercise } },
   { icon: 'moon-outline', label: 'Meditate', subtitle: 'Mindfulness', colors: ['#946BFA', '#7A57F5'] as [string, string], tab: Screen.tabFitness, params: { screen: Screen.meditationTimer } },
   { icon: 'trending-up-outline', label: 'Progress', subtitle: 'Your stats', colors: ['#389EFA', '#2EDBBD'] as [string, string], tab: Screen.tabAnalytics, params: { screen: Screen.analyticsDashboard } },
-  { icon: 'chatbubble-ellipses-outline', label: 'AI Coach', subtitle: 'Ask anything', colors: ['#F24D80', '#FF6699'] as [string, string], tab: Screen.tabAiInsights, params: { screen: Screen.aiHealthCoach } },
+  { icon: 'chatbubble-ellipses-outline', label: 'Coach', subtitle: 'Ask anything', colors: ['#F24D80', '#FF6699'] as [string, string], tab: Screen.tabAiInsights, params: { screen: Screen.aiHealthCoach } },
 ];
 
 const styles = StyleSheet.create({
@@ -928,8 +926,9 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   scoreRingScaler: {
-    overflow: 'hidden',
+    overflow: 'visible',
     alignSelf: 'flex-start',
+    width: '100%',
   },
   scoreRow: {
     flexDirection: 'row',

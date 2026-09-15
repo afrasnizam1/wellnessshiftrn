@@ -26,6 +26,7 @@ import {
   chartTapA11yProps,
   trackChartCategoryTap,
 } from '../../components/analytics';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../store';
 import {
   buildCategoryTrendSeries,
@@ -72,7 +73,14 @@ function lighten(hex: string, amt = 0.5) {
 
 export default function AnalyticsDashboardScreen() {
   const navigation = useNavigation<any>();
-  const { user, wellnessScore, activity, setActivity } = useAppStore();
+  const { user, wellnessScore, activity, setActivity } = useAppStore(
+    useShallow((s) => ({
+      user: s.user,
+      wellnessScore: s.wellnessScore,
+      activity: s.activity,
+      setActivity: s.setActivity,
+    })),
+  );
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('Overview');
   const [trendData, setTrendData] = useState<{ value: number }[]>(
     () => Array.from({ length: 7 }, () => ({ value: 3.3 })),

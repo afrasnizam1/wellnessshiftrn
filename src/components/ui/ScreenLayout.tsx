@@ -76,14 +76,22 @@ export default function ScreenLayout({
     />
   ) : null);
 
+  // Reanimated entering animations can leave tab/stack content invisible on Android
+  // (opacity stuck at 0). Keep the motion on iOS only.
+  const enableEnterAnim = animate && Platform.OS === 'ios';
+
   const content = (
     <>
       {headerNode ? (
         <View style={styles.headerPad}>{headerNode}</View>
       ) : null}
-      <Animated.View entering={animate ? FadeInDown.duration(320).springify() : undefined}>
-        {children}
-      </Animated.View>
+      {enableEnterAnim ? (
+        <Animated.View entering={FadeInDown.duration(320).springify()}>
+          {children}
+        </Animated.View>
+      ) : (
+        <View>{children}</View>
+      )}
       {footer}
     </>
   );

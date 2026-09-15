@@ -35,7 +35,7 @@ type FeatureHighlight = {
 const FEATURE_CONTEXT: Record<string, { icon: IoniconName; title: string; desc: string }> = {
   aiChat: {
     icon: 'sparkles-outline',
-    title: 'AI Health Coach',
+    title: 'Wellness Coach',
     desc: 'Ask personalised wellness questions with a higher daily message allowance.',
   },
   advancedAnalytics: {
@@ -184,10 +184,16 @@ export default function PaywallScreen() {
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);
       } else {
-        Alert.alert('No subscription found', 'We could not find an active subscription for this account.');
+        Alert.alert(
+          'No subscription found',
+          'We could not find an active Apple ID / Google Play subscription for this account. If you purchased on another Apple ID, sign in with that ID and tap Restore again.',
+        );
       }
     } catch {
-      Alert.alert('Restore failed', 'Please try again later.');
+      Alert.alert(
+        'Restore failed',
+        'Check your network connection and try again. Sandbox purchases only restore with the same sandbox Apple ID used to buy.',
+      );
     } finally {
       setLoading(false);
     }

@@ -20,6 +20,7 @@ class HologramSceneUIView(context: ThemedReactContext) : FrameLayout(context) {
   private val webView = WebView(context)
   private var modelFile: String = ""
   private var preset: String = "brain"
+  private var autoRotate: Boolean = false
   private var loadedKey: String = ""
 
   private val assetLoader = WebViewAssetLoader.Builder()
@@ -74,6 +75,13 @@ class HologramSceneUIView(context: ThemedReactContext) : FrameLayout(context) {
     reloadIfReady()
   }
 
+  fun setAutoRotate(value: Boolean) {
+    if (autoRotate == value) return
+    autoRotate = value
+    loadedKey = ""
+    reloadIfReady()
+  }
+
   override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
     super.onSizeChanged(w, h, oldw, oldh)
     if (w > 0 && h > 0) reloadIfReady()
@@ -81,13 +89,14 @@ class HologramSceneUIView(context: ThemedReactContext) : FrameLayout(context) {
 
   private fun reloadIfReady() {
     if (modelFile.isEmpty() || width <= 0 || height <= 0) return
-    val key = "$modelFile|$preset"
+    val key = "$modelFile|$preset|$autoRotate"
     if (key == loadedKey) return
     loadedKey = key
     val model = URLEncoder.encode(modelFile, "UTF-8").replace("+", "%20")
     val presetEnc = URLEncoder.encode(preset, "UTF-8").replace("+", "%20")
+    val rotate = if (autoRotate) "1" else "0"
     val url =
-      "https://$ASSET_HOST/assets/hologram/index.html?model=$model&preset=$presetEnc"
+      "https://$ASSET_HOST/assets/hologram/index.html?model=$model&preset=$presetEnc&autoRotate=$rotate"
     Log.d(TAG, "load $url")
     webView.loadUrl(url)
   }

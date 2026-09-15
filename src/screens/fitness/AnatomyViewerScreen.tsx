@@ -10,6 +10,7 @@ import HologramViewer from '../../components/fitness/HologramViewer';
 import { IconBadge, SegmentedControl } from '../../components/ui';
 import {
   FactCardsSection,
+  KeepHealthyCard,
   ModuleImportanceCard,
   OrganHealthTipsCard,
   QuickStatsRow,
@@ -17,6 +18,7 @@ import {
 } from '../../components/fitness/hologram/hologramTutorUi';
 import { ANATOMY_MODELS, getAnatomyModel } from '../../data/anatomyModels';
 import { getHologramTutorContent } from '../../data/hologramTutorContent';
+import { getHologramKeepHealthy } from '../../data/hologramKeepHealthy';
 import type { HologramTutorTab } from '../../types/hologramTutor';
 
 const STATS_SECTION_TITLES: Record<string, string> = {
@@ -49,6 +51,7 @@ export default function AnatomyViewerScreen() {
   const modelId = route.params?.modelId ?? 'heart-hologram';
   const model = getAnatomyModel(modelId);
   const tutor = getHologramTutorContent(modelId);
+  const keepHealthy = getHologramKeepHealthy(modelId);
   const [tab, setTab] = useState<HologramTutorTab>('model');
 
   const tabOptions = useMemo<[HologramTutorTab, HologramTutorTab, HologramTutorTab]>(() => {
@@ -107,6 +110,7 @@ export default function AnatomyViewerScreen() {
                 height={300}
               />
             </View>
+            <KeepHealthyCard data={keepHealthy} />
             {tutor?.importance && <ModuleImportanceCard data={tutor.importance} />}
             {tutor?.quickStats?.length ? (
               <QuickStatsRow stats={tutor.quickStats} accent={model.color} />

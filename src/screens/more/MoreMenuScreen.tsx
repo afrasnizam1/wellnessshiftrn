@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing, Shadow, type IoniconName } from '../../theme';
 import { AppCard, ListRow, ScreenLayout, AnimatedPressable } from '../../components/ui';
 import ClinicianInfoCard from '../../components/care/ClinicianInfoCard';
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../../store';
 import { signOutCurrentUser } from '../../services/authSession';
 import { clinicianService } from '../../services/clinicianService';
@@ -39,7 +40,18 @@ interface MenuSection {
 
 export default function MoreMenuScreen() {
   const navigation = useNavigation<any>();
-  const { user, carePlan, wellnessScore, subscriptionTier, setUser, setCarePlan, setClinicianRecommendations, hasUnseenCarePlan } = useAppStore();
+  const { user, carePlan, wellnessScore, subscriptionTier, setUser, setCarePlan, setClinicianRecommendations, hasUnseenCarePlan } = useAppStore(
+    useShallow((s) => ({
+      user: s.user,
+      carePlan: s.carePlan,
+      wellnessScore: s.wellnessScore,
+      subscriptionTier: s.subscriptionTier,
+      setUser: s.setUser,
+      setCarePlan: s.setCarePlan,
+      setClinicianRecommendations: s.setClinicianRecommendations,
+      hasUnseenCarePlan: s.hasUnseenCarePlan,
+    })),
+  );
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [dayOneDone, setDayOneDone] = useState(true);
@@ -283,9 +295,12 @@ export default function MoreMenuScreen() {
         { icon: 'flag-outline', iconGradient: ['#007AFF', '#389EFA'], label: 'Goals', sublabel: 'Set and track wellness goals', screen: Screen.goals },
         { icon: 'checkbox-outline', iconGradient: ['#34C759', '#2EDBBD'], label: 'Habit Tracker', sublabel: 'Build streaks with daily habits', screen: Screen.habitTracking },
         { icon: 'people-outline', iconGradient: ['#FF8561', '#FF9500'], label: 'Social Hub', sublabel: 'Friends, buddy board and challenges', screen: Screen.socialHub },
-        { icon: 'chatbubbles-outline', iconGradient: ['#946BFA', '#7A57F5'], label: 'Social Feed', sublabel: 'Community updates and challenges', screen: Screen.socialFeed },
-        { icon: 'podium-outline', iconGradient: ['#34C759', '#2EDBBD'], label: 'Community Progress', sublabel: 'Collective wellness achievements', screen: Screen.leaderboard },
-        { icon: 'body-outline', iconGradient: ['#946BFA', '#7A57F5'], label: 'Anatomy Explorer', sublabel: 'Interactive 3D anatomy learning', screen: Screen.anatomyExplorer },
+        ...(appConfig.enableSocialFeed
+          ? [{ icon: 'chatbubbles-outline' as IconName, iconGradient: ['#946BFA', '#7A57F5'] as [string, string], label: 'Social Feed', sublabel: 'Community updates and challenges', screen: Screen.socialFeed }]
+          : []),
+        ...(appConfig.enableCommunityLeaderboard
+          ? [{ icon: 'podium-outline' as IconName, iconGradient: ['#34C759', '#2EDBBD'] as [string, string], label: 'Community Progress', sublabel: 'Collective wellness achievements', screen: Screen.leaderboard }]
+          : []),
         { icon: 'medical-outline', iconGradient: ['#FF4444', '#FF6B6B'], label: 'Health Conditions', sublabel: 'Comprehensive condition information', screen: Screen.conditionHub },
         { icon: 'fitness-outline', iconGradient: ['#34C759', '#2EDBBD'], label: 'Workouts', sublabel: 'Exercise programs and movement tracking', screen: Screen.workoutHub },
         { icon: 'trophy-outline', iconGradient: ['#FF8561', '#FF9500'], label: Screen.achievements, sublabel: 'Your milestones and rewards', screen: Screen.achievements },
@@ -460,7 +475,6 @@ export default function MoreMenuScreen() {
       ))}
 
       <Text style={styles.version}>Wellness Shift v1.0.0 • UK</Text>
-      <View style={{ height: 100 }} />
     </ScreenLayout>
   );
 }

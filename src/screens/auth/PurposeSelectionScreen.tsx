@@ -200,9 +200,9 @@ export default function PurposeSelectionScreen() {
                 })
               }
               accessibilityRole="button"
-              accessibilityLabel="I'm a patient/user — Sign in"
+              accessibilityLabel="I'm here for my wellness — Sign in"
             >
-              <Text style={styles.signInLink}>I'm a patient/user — Sign in</Text>
+              <Text style={styles.signInLink}>I'm here for my wellness — Sign in</Text>
             </AnimatedPressable>
             <AnimatedPressable
               onPress={() =>

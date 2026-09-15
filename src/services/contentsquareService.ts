@@ -54,22 +54,21 @@ function ensureSessionReplayRunning(reason: string): void {
 }
 
 /**
- * Data capture + session replay are ON by default (masking off so replays are visible).
- * Profile → Allow analytics can explicitly opt out; that choice is sticky.
+ * Opt-in analytics for App Store / health privacy.
+ * No explicit preference → do not collect. Profile toggle opts in or out.
  */
 async function shouldCollectAnalytics(_user?: UserProfile | null): Promise<boolean> {
   if (await contentsquareStorage.hasExplicitPreference()) {
     return contentsquareStorage.isEnabled();
   }
-  return true;
+  return false;
 }
 
 function csqIdentity(user: UserProfile | null | undefined): string {
-  const email = user?.email?.trim().toLowerCase();
-  // Production requirement: use email as the Contentsquare user identifier.
-  if (email) return email;
-  // Fallback when email is unavailable (should be rare).
-  return user?.csq?.identity ?? user?.uid ?? 'unknown';
+  // Prefer opaque UID — never send raw email as CSQ identity for health apps.
+  const uid = user?.uid?.trim();
+  if (uid) return uid;
+  return user?.csq?.identity ?? 'unknown';
 }
 
 async function activateAnalytics(user?: UserProfile | null, userInitiated = false): Promise<void> {
@@ -141,7 +140,7 @@ async function bootstrapAnalytics(): Promise<void> {
     return;
   }
 
-  // Default ON: opt-in + autocapture + session replay from cold start.
+  // Explicit opt-in only — default is off until Profile enables analytics.
   await activateAnalytics();
 }
 
@@ -152,7 +151,12 @@ function analyticsOptions(): AnalyticsOptions {
     enableViewAutocapture: false,
     disablePageviewAutocapture: true,
     disablePageviewTitleAutocapture: true,
-    sessionReplayAutoStart: appConfig.contentsquareSessionReplayAutoStart,
+    // Product Analytics: notification tap / interaction events (FCM + local).
+    // https://docs.contentsquare.com/en/csq-sdk-react-native/product-analytics/track-push-notifications/
+    enablePushNotificationAutocapture: true,
+    enablePushNotificationTitleAutocapture: true,
+    enablePushNotificationBodyAutocapture: true,
+    sessionReplayAutoStart: false, // only after Profile opt-in via ensureSessionReplayRunning
   };
 }
 
@@ -265,9 +269,7 @@ export const contentsquareService = {
     if (!sdkAlreadyStarted()) {
       CSQ.start(buildStartConfig());
       CSQ.setDefaultMasking(appConfig.contentsquareDefaultMasking);
-      // Kick session replay immediately; bootstrapAnalytics also opts in + starts replay.
-      ensureSessionReplayRunning('sdk_start');
-
+      // Do not start replay until the user opts in (bootstrapAnalytics / Profile).
       void bootstrapAnalytics();
       attachDebugLogging();
       markSdkStarted();
@@ -325,9 +327,8 @@ export const contentsquareService = {
     }
 
     if (!user) {
-      // Keep data capture + session replay running while signed out; only drop identity.
-      if (!analyticsActive) await activateAnalytics();
-      else contentsquareService.clearUserIdentity();
+      // Signed out: drop identity; do not force collection without consent.
+      if (analyticsActive) contentsquareService.clearUserIdentity();
       return;
     }
 

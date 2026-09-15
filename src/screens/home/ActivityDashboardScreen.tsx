@@ -116,7 +116,7 @@ export default function ActivityDashboardScreen() {
         <AnimatedPressable onPress={() => navigation.navigate(Screen.tabAiInsights, { screen: Screen.aiHealthCoach })}>
           <AppCard style={styles.coachCard}>
             <ListRow
-              title="AI Health Coach"
+              title="Wellness Coach"
               subtitle="Ask about your activity and wellness goals"
               icon={<Ionicons name="sparkles" size={22} color={Colors.brand} />}
               iconBg="rgba(242, 77, 128, 0.12)"

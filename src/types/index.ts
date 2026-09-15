@@ -595,6 +595,7 @@ export type HomeStackParamList = {
   [Screen.bodyMetrics]: undefined;
   [Screen.foodScan]: undefined;
   [Screen.healthRecords]: undefined;
+  [Screen.virtualTwin]: undefined;
 };
 
 export type AIInsightsStackParamList = {

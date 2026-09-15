@@ -64,16 +64,24 @@ export const appConfig = {
   /** Register in Firebase Console → App Check → Debug tokens, then paste here for dev */
   appCheckDebugToken: '',
 
-  /** Contentsquare / Session Replay — IDs live in src/config/contentsquare.local.ts */
-  enableContentsquare: true,
   /**
-   * Start session replay with the SDK so Contentsquare can capture replays.
-   * activateAnalytics() also calls startSessionReplay() after opt-in as a backup.
-   * Collection is ON by default; users can still opt out in Profile.
+   * Contentsquare / Session Replay.
+   * Health apps: keep masking ON by default. Collection is opt-in (Profile).
    */
+  enableContentsquare: true,
   contentsquareSessionReplayAutoStart: true,
-  /** false = Session Replay shows real screens (unmasked). */
-  contentsquareDefaultMasking: false,
+  /** true = Session Replay masks UI by default (safer for health data). */
+  contentsquareDefaultMasking: true,
+
+  /**
+   * Feature gates for App Store v1 — hide unfinished / mock surfaces from navigation.
+   * Screens remain registered so deep links do not crash; entry points are removed.
+   */
+  enableSocialFeed: false,
+  enableCommunityLeaderboard: false,
+  enablePremiumShop: false,
+  /** false = hide Google Sign-In for v1 (Apple + email only). */
+  enableGoogleSignIn: false,
 
   /** Canonical app IDs — must match Xcode / Android / Firebase / ASC. */
   iosBundleId: 'afras.wellnessshiftrn.ios',
@@ -81,6 +89,7 @@ export const appConfig = {
 };
 
 export function isGoogleSignInConfigured(): boolean {
+  if (!appConfig.enableGoogleSignIn) return false;
   const id = appConfig.googleWebClientId?.trim() ?? '';
   return id.length > 0 && !id.startsWith('YOUR_');
 }

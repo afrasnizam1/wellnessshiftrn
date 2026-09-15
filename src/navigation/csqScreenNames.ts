@@ -61,6 +61,7 @@ export const CSQ_LEAF_NAMES: Partial<Record<ScreenName, string>> = {
   [Screen.foodScan]: 'Food Scan',
   [Screen.bodyMetrics]: 'Body Metrics',
   [Screen.healthRecords]: 'Health Records',
+  [Screen.virtualTwin]: 'Virtual Twin',
   [Screen.premiumShop]: 'Shop',
   [Screen.organHealthNutrition]: 'Organ Health',
 

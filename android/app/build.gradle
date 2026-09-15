@@ -72,6 +72,16 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
 
+// Release signing — never fall back to the debug keystore for Play uploads.
+// Copy android/keystore.properties.example → android/keystore.properties and
+// point storeFile at your upload keystore (both files are gitignored).
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+def hasReleaseKeystore = keystorePropertiesFile.exists()
+if (hasReleaseKeystore) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -94,15 +104,24 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (hasReleaseKeystore) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Never fall back to debug signing. Requires android/keystore.properties.
+            if (hasReleaseKeystore) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
@@ -112,6 +131,20 @@ android {
             // Compress native libs — avoids 16KB page-size alignment dialog on newer emulators (RN 0.73)
             useLegacyPackaging = true
         }
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def needsReleaseKey = graph.allTasks.any { task ->
+        def n = task.name.toLowerCase()
+        n.contains('assemblerelease') || n.contains('bundlerelease') || n.contains('packagerelease')
+    }
+    if (needsReleaseKey && !hasReleaseKeystore) {
+        throw new GradleException(
+            "Missing android/keystore.properties. Copy keystore.properties.example, " +
+            "generate an upload keystore, and configure storeFile/passwords before " +
+            "building a release AAB/APK. See docs/APP_STORE_SETUP.md § Android release signing."
+        )
     }
 }
 
